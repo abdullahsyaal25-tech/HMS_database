@@ -10,7 +10,7 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
+    return Inertia::render('Dashboard');   
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/dashboard-redirect', function () {
@@ -56,5 +56,6 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 require __DIR__.'/hospital.php';
+require __DIR__.'/redis.php';
 
 
