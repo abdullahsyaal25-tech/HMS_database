@@ -1,0 +1,4 @@
+@import "tailwindcss";
+@import "./print.css";
+@plugin "@tailwindcss/forms";
+

@@ -1,0 +1,226 @@
+/* Print-specific styles */
+@media print {
+  /* Hide elements not needed for printing */
+  .no-print,
+  .no-print *,
+  nav,
+  .sidebar,
+  .header-actions,
+  .footer,
+  .pagination,
+  .search-box,
+  .filter-options,
+  button,
+  .btn,
+  .action-buttons {
+    display: none !important;
+  }
+
+  /* Ensure content takes full width when printed */
+  body,
+  .container,
+  .main-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Improve readability for printed tables */
+  table {
+    width: 100% !important;
+    border-collapse: collapse;
+    margin: 15px 0;
+    font-size: 12px;
+  }
+
+  th, td {
+    padding: 8px;
+    text-align: left;
+    border: 1px solid #000;
+  }
+
+  th {
+    background-color: #f0f0f0 !important;
+    font-weight: bold;
+  }
+
+  /* Ensure proper spacing */
+  .card,
+  .panel,
+  .box {
+    border: 1px solid #000;
+    margin-bottom: 15px;
+    padding: 10px;
+  }
+
+  /* Improve readability for text */
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #000;
+    background: #fff;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    color: #000;
+  }
+
+  p {
+    page-break-inside: avoid;
+  }
+
+  /* Ensure images print properly */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Adjust for proper page breaks */
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  .page-break-inside-avoid {
+    page-break-inside: avoid;
+  }
+
+  /* Print-friendly links */
+  a {
+    color: #000;
+    text-decoration: underline;
+  }
+
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #555;
+  }
+
+  /* Hide decorative elements */
+  .bg-gradient,
+  .shadow,
+  .rounded,
+  .border,
+  .animate-pulse {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Adjust font sizes for printing */
+  .text-xs { font-size: 9px !important; }
+  .text-sm { font-size: 10px !important; }
+  .text-base { font-size: 12px !important; }
+  .text-lg { font-size: 14px !important; }
+  .text-xl { font-size: 16px !important; }
+  .text-2xl { font-size: 18px !important; }
+  .text-3xl { font-size: 20px !important; }
+  .text-4xl { font-size: 24px !important; }
+  
+  /* Ensure proper contrast for printing */
+  .text-gray-500,
+  .text-gray-600,
+  .text-gray-700,
+  .text-gray-800,
+  .text-gray-900 {
+    color: #000 !important;
+  }
+  
+  /* Ensure proper contrast for backgrounds */
+  .bg-gray-100,
+  .bg-gray-200,
+  .bg-gray-300,
+  .bg-gray-400,
+  .bg-gray-500 {
+    background-color: #fff !important;
+  }
+  
+  /* Handle colored badges/text for printing */
+  .text-red-600,
+  .text-red-700,
+  .text-red-800,
+  .text-green-600,
+  .text-green-700,
+  .text-green-800,
+  .text-blue-600,
+  .text-blue-700,
+  .text-blue-800,
+  .text-yellow-600,
+  .text-yellow-700,
+  .text-yellow-800 {
+    color: #000 !important;
+  }
+  
+  /* Handle colored backgrounds for printing */
+  .bg-red-100,
+  .bg-green-100,
+  .bg-blue-100,
+  .bg-yellow-100,
+  .bg-indigo-100,
+  .bg-purple-100,
+  .bg-pink-100,
+  .bg-teal-100 {
+    background-color: #fff !important;
+    border: 1px solid #ccc;
+  }
+}
+
+/* Responsive adjustments for print previews */
+@media screen and (max-width: 768px) {
+  .print-preview-table {
+    font-size: 14px;
+  }
+  
+  .print-preview-table th,
+  .print-preview-table td {
+    padding: 10px 5px;
+  }
+}
+
+/* Print preview container styling */
+.print-preview-container {
+  background-color: white;
+  padding: 20px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  margin: 20px 0;
+  min-height: 500px;
+}
+
+/* Specific print styles for report cards */
+.print-report-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  background-color: white;
+}
+
+.print-report-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.print-report-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.print-report-subtitle {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.print-report-date {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
