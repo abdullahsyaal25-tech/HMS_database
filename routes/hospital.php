@@ -192,15 +192,27 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/users/{user}', [App\Http\Controllers\Admin\PermissionsController::class, 'updateUserPermissions'])->name('admin.permissions.users.update')->middleware('auth');
         });
         
+        // Security Center Route
+        Route::get('/security', function () {
+            $user = Auth::user();
+
+            // Check if user has permission to access security center
+            if (!$user->hasPermission('manage-users') && !$user->isSuperAdmin()) {
+                abort(403, 'Unauthorized access');
+            }
+
+            return inertia('Admin/Security/Index');
+        })->name('admin.security')->middleware('auth');
+
         // Activity Logs Route for Super Admins
         Route::get('/activity-logs', function () {
             $user = Auth::user();
-            
+
             // Only allow Super Admins to access activity logs
             if (!$user->isSuperAdmin()) {
                 abort(403, 'Unauthorized access');
             }
-            
+
             return inertia('Admin/ActivityLogs');
         })->name('admin.activity-logs')->middleware('auth');
     });
@@ -211,10 +223,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/v1/admin/recent-activity', [App\Http\Controllers\API\v1\AdminController::class, 'getRecentActivity']);
     Route::get('/api/v1/admin/audit-logs', [App\Http\Controllers\API\v1\AdminController::class, 'getAuditLogs']);
     Route::get('/api/v1/admin/stats', [App\Http\Controllers\API\v1\AdminController::class, 'getStats']);
-    
+
     // Security Center API routes
     Route::put('/api/v1/admin/change-password', [App\Http\Controllers\API\v1\SecurityController::class, 'updateOwnPassword']);
+    Route::put('/api/v1/admin/update-profile', [App\Http\Controllers\API\v1\SecurityController::class, 'updateOwnProfile']);
     Route::get('/api/v1/admin/users', [App\Http\Controllers\API\v1\SecurityController::class, 'getUsers']);
+    Route::post('/api/v1/admin/users', [App\Http\Controllers\API\v1\SecurityController::class, 'createUser']);
+    Route::put('/api/v1/admin/users/{user}/update-profile', [App\Http\Controllers\API\v1\SecurityController::class, 'updateUserProfile']);
+    Route::put('/api/v1/admin/users/{user}/reset-password', [App\Http\Controllers\API\v1\SecurityController::class, 'resetUserPassword']);
+    Route::delete('/api/v1/admin/users/{user}', [App\Http\Controllers\API\v1\SecurityController::class, 'deleteUser']);
     Route::put('/api/v1/admin/users/{user}/change-password', [App\Http\Controllers\API\v1\SecurityController::class, 'updateUserPassword']);
     Route::put('/api/v1/admin/users/{user}/update-username', [App\Http\Controllers\API\v1\SecurityController::class, 'updateUsername']);
 });

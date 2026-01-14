@@ -140,6 +140,191 @@ class SecurityController extends Controller
     }
 
     /**
+     * Update the authenticated user's profile
+     */
+    public function updateOwnProfile(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $request->user()->id,
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = $request->user();
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+        ]);
+
+        return response()->json([
+            'message' => 'Profile updated successfully'
+        ]);
+    }
+
+    /**
+     * Create a new user (admin only)
+     */
+    public function createUser(Request $request): JsonResponse
+    {
+        $authenticatedUser = $request->user();
+
+        // Check if the authenticated user has permission to create users
+        if (!$authenticatedUser->isSuperAdmin() && !$authenticatedUser->hasPermission('manage-users')) {
+            return response()->json([
+                'message' => 'Unauthorized to create users'
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'role' => 'required|string|in:Hospital Admin,Doctor,Reception,Pharmacy Admin,Laboratory Admin',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Create the user with a default password
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make('password123'), // Default password, should be changed immediately
+            'role' => $request->role,
+        ]);
+
+        return response()->json([
+            'message' => 'User created successfully',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+            ]
+        ], 201);
+    }
+
+    /**
+     * Update another user's profile (admin only)
+     */
+    public function updateUserProfile(Request $request, User $user): JsonResponse
+    {
+        $authenticatedUser = $request->user();
+
+        // Check if the authenticated user has permission to manage users
+        if (!$authenticatedUser->isSuperAdmin() && !$authenticatedUser->hasPermission('manage-users')) {
+            return response()->json([
+                'message' => 'Unauthorized to update user profile'
+            ], 403);
+        }
+
+        // Prevent updating super admin profiles unless the current user is also a super admin
+        if ($user->isSuperAdmin() && !$authenticatedUser->isSuperAdmin()) {
+            return response()->json([
+                'message' => 'Only super admins can update other super admin accounts'
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'role' => 'required|string|in:Hospital Admin,Doctor,Reception,Pharmacy Admin,Laboratory Admin',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'role' => $request->role,
+        ]);
+
+        return response()->json([
+            'message' => 'User profile updated successfully'
+        ]);
+    }
+
+    /**
+     * Reset another user's password (admin only)
+     */
+    public function resetUserPassword(Request $request, User $user): JsonResponse
+    {
+        $authenticatedUser = $request->user();
+
+        // Check if the authenticated user has permission to manage users
+        if (!$authenticatedUser->isSuperAdmin() && !$authenticatedUser->hasPermission('manage-users')) {
+            return response()->json([
+                'message' => 'Unauthorized to reset user password'
+            ], 403);
+        }
+
+        // Prevent resetting super admin passwords unless the current user is also a super admin
+        if ($user->isSuperAdmin() && !$authenticatedUser->isSuperAdmin()) {
+            return response()->json([
+                'message' => 'Only super admins can reset other super admin passwords'
+            ], 403);
+        }
+
+        // Reset to default password
+        $user->update([
+            'password' => Hash::make('password123')
+        ]);
+
+        return response()->json([
+            'message' => 'User password reset successfully'
+        ]);
+    }
+
+    /**
+     * Delete a user (admin only)
+     */
+    public function deleteUser(Request $request, User $user): JsonResponse
+    {
+        $authenticatedUser = $request->user();
+
+        // Check if the authenticated user has permission to manage users
+        if (!$authenticatedUser->isSuperAdmin() && !$authenticatedUser->hasPermission('manage-users')) {
+            return response()->json([
+                'message' => 'Unauthorized to delete users'
+            ], 403);
+        }
+
+        // Prevent deleting super admin accounts unless the current user is also a super admin
+        if ($user->isSuperAdmin() && !$authenticatedUser->isSuperAdmin()) {
+            return response()->json([
+                'message' => 'Only super admins can delete other super admin accounts'
+            ], 403);
+        }
+
+        // Prevent deleting own account
+        if ($user->id === $authenticatedUser->id) {
+            return response()->json([
+                'message' => 'Cannot delete your own account'
+            ], 422);
+        }
+
+        $user->delete();
+
+        return response()->json([
+            'message' => 'User deleted successfully'
+        ]);
+    }
+
+    /**
      * Get all users for admin management (admin only)
      */
     public function getUsers(Request $request): JsonResponse
