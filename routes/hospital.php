@@ -206,3 +206,10 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
+// Admin API routes for dashboard
+Route::middleware(['auth'])->group(function () {
+    Route::get('/api/v1/admin/recent-activity', [App\Http\Controllers\API\v1\AdminController::class, 'getRecentActivity']);
+    Route::get('/api/v1/admin/audit-logs', [App\Http\Controllers\API\v1\AdminController::class, 'getAuditLogs']);
+    Route::get('/api/v1/admin/stats', [App\Http\Controllers\API\v1\AdminController::class, 'getStats']);
+});
+

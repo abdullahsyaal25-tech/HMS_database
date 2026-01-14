@@ -42,10 +42,4 @@ Route::prefix('v1')->group(function () {
         Route::put('/appointments/{id}/complete', [AppointmentController::class, 'complete']);
     });
     
-    // Admin dashboard routes
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::get('/admin/recent-activity', [AdminController::class, 'getRecentActivity']);
-        Route::get('/admin/audit-logs', [AdminController::class, 'getAuditLogs']);
-        Route::get('/admin/stats', [AdminController::class, 'getStats']);
-    });
 });

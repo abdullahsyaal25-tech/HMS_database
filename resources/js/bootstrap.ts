@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-// Set up Axios defaults for CSRF tokens
+// Set up Axios defaults for Sanctum
+axios.defaults.withCredentials = true;
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 // Add CSRF token to requests if available
