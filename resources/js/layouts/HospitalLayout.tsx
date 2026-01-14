@@ -34,14 +34,21 @@ interface HospitalLayoutProps {
 }
 
 function usePermissionChecker() {
-    const page = usePage();
-    const userPermissions = page.props.auth?.user?.permissions || [];
-    
-    const hasPermission = (permission: string): boolean => {
-        return userPermissions.includes(permission);
-    };
-    
-    return { hasPermission };
+    console.log('usePermissionChecker called');
+    try {
+        const page = usePage();
+        console.log('usePage successful:', page);
+        const userPermissions = page.props.auth?.user?.permissions || [];
+
+        const hasPermission = (permission: string): boolean => {
+            return userPermissions.includes(permission);
+        };
+
+        return { hasPermission };
+    } catch (error) {
+        console.error('Error in usePage:', error);
+        return { hasPermission: () => false };
+    }
 }
 
 function useFilteredNavItems() {

@@ -56,11 +56,14 @@ class PermissionsController extends Controller
     /**
      * Update permissions for a specific role.
      */
-    public function updateRolePermissions(Request $request, string $role): RedirectResponse
+    public function updateRolePermissions(Request $request, string $role)
     {
         // Validate the role exists in our system
         $validRoles = RolePermission::select('role')->distinct()->pluck('role');
         if (!$validRoles->contains($role)) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Invalid role specified.'], 400);
+            }
             return redirect()->back()->with('error', 'Invalid role specified.');
         }
 
@@ -78,6 +81,10 @@ class PermissionsController extends Controller
                     ]);
                 }
             }
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => 'Role permissions updated successfully.']);
         }
 
         return redirect()->route('admin.permissions.index')->with('success', 'Role permissions updated successfully.');
