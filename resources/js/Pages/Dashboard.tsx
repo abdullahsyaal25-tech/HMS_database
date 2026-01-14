@@ -1,13 +1,11 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { UserPlus, Calendar, Stethoscope, DollarSign, AlertCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import HospitalLayout from '@/layouts/HospitalLayout';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { useState, useEffect } from 'react';
 
 interface Activity {
     id: number;
@@ -54,7 +52,6 @@ interface DashboardProps {
 }
 
 export default function Dashboard(props: DashboardProps) {
-    const page = usePage();
     const {
         total_patients,
         total_doctors,
@@ -63,7 +60,6 @@ export default function Dashboard(props: DashboardProps) {
         recent_activities,
         monthly_data,
         department_data,
-        errors,
         flash
     } = props;
 
@@ -116,52 +112,96 @@ export default function Dashboard(props: DashboardProps) {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between pb-2">
                                 <CardTitle className="text-sm font-medium">Total Patients</CardTitle>
-                                <div className="p-3 rounded-full bg-blue-100">
+                                <div className="p-3 rounded-full bg-blue-100" aria-hidden="true">
                                     <UserPlus className="h-6 w-6 text-blue-600" />
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{total_patients}</div>
-                                <p className="text-xs text-gray-500">+12% from last month</p>
+                                <div className="text-2xl font-bold" aria-label={`Total patients: ${total_patients}`}>
+                                    {total_patients}
+                                </div>
+                                <div className="flex items-center text-xs text-gray-500 mt-1">
+                                    {patientChange >= 0 ? (
+                                        <TrendingUp className="h-3 w-3 text-green-500 mr-1" aria-hidden="true" />
+                                    ) : (
+                                        <TrendingDown className="h-3 w-3 text-red-500 mr-1" aria-hidden="true" />
+                                    )}
+                                    <span className={patientChange >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                        {patientChange >= 0 ? '+' : ''}{patientChange.toFixed(1)}% from last month
+                                    </span>
+                                </div>
                             </CardContent>
                         </Card>
                         
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between pb-2">
                                 <CardTitle className="text-sm font-medium">Total Doctors</CardTitle>
-                                <div className="p-3 rounded-full bg-green-100">
+                                <div className="p-3 rounded-full bg-green-100" aria-hidden="true">
                                     <Stethoscope className="h-6 w-6 text-green-600" />
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{total_doctors}</div>
-                                <p className="text-xs text-gray-500">+3% from last month</p>
+                                <div className="text-2xl font-bold" aria-label={`Total doctors: ${total_doctors}`}>
+                                    {total_doctors}
+                                </div>
+                                <div className="flex items-center text-xs text-gray-500 mt-1">
+                                    {doctorChange >= 0 ? (
+                                        <TrendingUp className="h-3 w-3 text-green-500 mr-1" aria-hidden="true" />
+                                    ) : (
+                                        <TrendingDown className="h-3 w-3 text-red-500 mr-1" aria-hidden="true" />
+                                    )}
+                                    <span className={doctorChange >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                        {doctorChange >= 0 ? '+' : ''}{doctorChange.toFixed(1)}% from last month
+                                    </span>
+                                </div>
                             </CardContent>
                         </Card>
                         
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between pb-2">
                                 <CardTitle className="text-sm font-medium">Appointments Today</CardTitle>
-                                <div className="p-3 rounded-full bg-yellow-100">
+                                <div className="p-3 rounded-full bg-yellow-100" aria-hidden="true">
                                     <Calendar className="h-6 w-6 text-yellow-600" />
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{appointments_today}</div>
-                                <p className="text-xs text-gray-500">+5% from yesterday</p>
+                                <div className="text-2xl font-bold" aria-label={`Appointments today: ${appointments_today}`}>
+                                    {appointments_today}
+                                </div>
+                                <div className="flex items-center text-xs text-gray-500 mt-1">
+                                    {appointmentChange >= 0 ? (
+                                        <TrendingUp className="h-3 w-3 text-green-500 mr-1" aria-hidden="true" />
+                                    ) : (
+                                        <TrendingDown className="h-3 w-3 text-red-500 mr-1" aria-hidden="true" />
+                                    )}
+                                    <span className={appointmentChange >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                        {appointmentChange >= 0 ? '+' : ''}{appointmentChange.toFixed(1)}% from yesterday
+                                    </span>
+                                </div>
                             </CardContent>
                         </Card>
-                        
+
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between pb-2">
                                 <CardTitle className="text-sm font-medium">Revenue Today</CardTitle>
-                                <div className="p-3 rounded-full bg-purple-100">
+                                <div className="p-3 rounded-full bg-purple-100" aria-hidden="true">
                                     <DollarSign className="h-6 w-6 text-purple-600" />
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">${revenue_today}</div>
-                                <p className="text-xs text-gray-500">+8% from yesterday</p>
+                                <div className="text-2xl font-bold" aria-label={`Revenue today: ${revenue_today}`}>
+                                    ${revenue_today}
+                                </div>
+                                <div className="flex items-center text-xs text-gray-500 mt-1">
+                                    {revenueChange >= 0 ? (
+                                        <TrendingUp className="h-3 w-3 text-green-500 mr-1" aria-hidden="true" />
+                                    ) : (
+                                        <TrendingDown className="h-3 w-3 text-red-500 mr-1" aria-hidden="true" />
+                                    )}
+                                    <span className={revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                        {revenueChange >= 0 ? '+' : ''}{revenueChange.toFixed(1)}% from yesterday
+                                    </span>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
