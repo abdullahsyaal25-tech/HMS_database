@@ -7,6 +7,7 @@ import HospitalLayout from '@/layouts/HospitalLayout';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import axios from 'axios';
 
 interface User {
     id: number;
@@ -49,45 +50,22 @@ export default function AdminDashboard({ auth }: Props) {
         // Fetch real data from backend API
         const fetchData = async () => {
             try {
-                // Fetch recent activity
-                // Using fetch with proper authentication for Sanctum
-                const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-                
-                const activityResponse = await fetch('/api/admin/recent-activity', {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': csrfToken || '',
-                    },
-                    credentials: 'include'
-                });
-                if (activityResponse.ok) {
-                    const activityData = await activityResponse.json();
-                    setRecentActivity(activityData);
-                } else {
-                    console.error('Failed to fetch recent activity:', activityResponse.status, activityResponse.statusText);
+                // Fetch recent activity using Axios
+                try {
+                    const activityResponse = await axios.get('/api/v1/admin/recent-activity');
+                    setRecentActivity(activityResponse.data);
+                } catch (error) {
+                    console.error('Failed to fetch recent activity:', error);
                 }
                 
-                // Fetch audit logs
-                const auditResponse = await fetch('/api/admin/audit-logs', {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': csrfToken || '',
-                    },
-                    credentials: 'include'
-                });
-                if (auditResponse.ok) {
-                    const auditData = await auditResponse.json();
-                    setAuditLogs(auditData);
+                // Fetch audit logs using Axios
+                try {
+                    const auditResponse = await axios.get('/api/v1/admin/audit-logs');
+                    setAuditLogs(auditResponse.data);
                     // Clear error state if both API calls succeed
-                    if (activityResponse.ok && auditResponse.ok) {
-                        setError(null);
-                    }
-                } else {
-                    console.error('Failed to fetch audit logs:', auditResponse.status, auditResponse.statusText);
+                    setError(null);
+                } catch (error) {
+                    console.error('Failed to fetch audit logs:', error);
                 }
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);

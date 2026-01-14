@@ -1,6 +1,7 @@
 export interface User {
     id: number;
     name: string;
+    email?: string;
     username?: string;
     avatar?: string;
     role?: string;
@@ -13,10 +14,13 @@ export interface BreadcrumbItem {
     title?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface NavItem {
     label?: string;
     title?: string;
-    href: string | any; // RouteDefinition type
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    href: string | any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     icon?: any; // Icon component type
 }
 
@@ -24,6 +28,7 @@ export interface SharedData {
     auth: {
         user: User;
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
 }
 

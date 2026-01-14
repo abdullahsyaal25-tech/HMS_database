@@ -30,13 +30,6 @@ export default function Login({ status }: LoginProps) {
         e.preventDefault();
         setIsLoading(true);
         
-        // Ensure CSRF token is available before submitting
-        const csrfToken = document.head.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null;
-        if (csrfToken) {
-            // Update axios defaults with the token
-            window.axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken.content;
-        }
-        
         post(route('login'), {
             onSuccess: () => {
                 setIsLoading(false);
