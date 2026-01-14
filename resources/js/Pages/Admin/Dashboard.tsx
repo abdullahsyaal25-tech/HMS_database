@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import axios from 'axios';
+import SecurityCenterModal from './Security/SecurityCenterModal';
 
 interface User {
     id: number;
@@ -45,6 +46,7 @@ export default function AdminDashboard({ auth }: Props) {
     const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
     const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
     
     useEffect(() => {
         // Fetch real data from backend API
@@ -160,8 +162,7 @@ export default function AdminDashboard({ auth }: Props) {
                             </Card>
                         </Link>
                         
-                        <Link href="/admin/security" className="block">
-                            <Card className="hover:shadow-md transition-shadow">
+                            <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setIsSecurityModalOpen(true)}>
                                 <CardHeader className="flex flex-row items-center justify-between pb-4">
                                     <div>
                                         <CardTitle className="text-lg">Security</CardTitle>
@@ -177,7 +178,6 @@ export default function AdminDashboard({ auth }: Props) {
                                     </Button>
                                 </CardContent>
                             </Card>
-                        </Link>
                         
                         {(auth.user.role === 'Hospital Admin' || auth.user.role === 'Super Admin' || auth.user.permissions?.includes('manage-permissions')) && (
                             <Link href="/admin/permissions" className="block">
@@ -200,6 +200,13 @@ export default function AdminDashboard({ auth }: Props) {
                             </Link>
                         )}
                     </div>
+                    
+                    {/* Security Center Modal */}
+                    <SecurityCenterModal 
+                        isOpen={isSecurityModalOpen}
+                        onClose={() => setIsSecurityModalOpen(false)}
+                        currentUser={auth.user}
+                    />
                     
                     <div className="bg-white rounded-lg p-6 shadow-sm mb-8">
                         <h3 className="text-lg font-semibold mb-4 flex items-center">

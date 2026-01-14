@@ -211,5 +211,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/v1/admin/recent-activity', [App\Http\Controllers\API\v1\AdminController::class, 'getRecentActivity']);
     Route::get('/api/v1/admin/audit-logs', [App\Http\Controllers\API\v1\AdminController::class, 'getAuditLogs']);
     Route::get('/api/v1/admin/stats', [App\Http\Controllers\API\v1\AdminController::class, 'getStats']);
+    
+    // Security Center API routes
+    Route::put('/api/v1/admin/change-password', [App\Http\Controllers\API\v1\SecurityController::class, 'updateOwnPassword']);
+    Route::get('/api/v1/admin/users', [App\Http\Controllers\API\v1\SecurityController::class, 'getUsers']);
+    Route::put('/api/v1/admin/users/{user}/change-password', [App\Http\Controllers\API\v1\SecurityController::class, 'updateUserPassword']);
+    Route::put('/api/v1/admin/users/{user}/update-username', [App\Http\Controllers\API\v1\SecurityController::class, 'updateUsername']);
 });
 
