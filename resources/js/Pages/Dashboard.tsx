@@ -85,8 +85,27 @@ export default function Dashboard(props: DashboardProps) {
         <HospitalLayout>
             <div className="min-h-screen bg-gray-50 p-4 md:p-8">
                 <Head title="Dashboard" />
-                
+
                 <div className="max-w-7xl mx-auto">
+                    {/* Flash Messages */}
+                    {flash?.success && (
+                        <Alert className="mb-6 border-green-200 bg-green-50">
+                            <AlertCircle className="h-4 w-4 text-green-600" />
+                            <AlertDescription className="text-green-800">
+                                {flash.success}
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
+                    {flash?.error && (
+                        <Alert className="mb-6 border-red-200 bg-red-50">
+                            <AlertCircle className="h-4 w-4 text-red-600" />
+                            <AlertDescription className="text-red-800">
+                                {flash.error}
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold text-gray-900">Hospital Management Dashboard</h1>
                         <p className="text-gray-600 mt-2">Welcome to the Hospital Management System</p>
