@@ -175,12 +175,13 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
         } catch (error: unknown) {
             console.error('Error updating password:', error);
             let errorMessage = 'Failed to update password. Please try again.';
-            if (error instanceof Error && error.message) {
-                errorMessage = error.message;
-            } else if (typeof error === 'object' && error !== null && 'response' in error) {
-                const err = error as { response?: { data?: { message?: string } } };
+            if (typeof error === 'object' && error !== null && 'response' in error) {
+                const err = error as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
                 if (err.response?.data?.message) {
                     errorMessage = err.response.data.message;
+                } else if (err.response?.data?.errors) {
+                    const validationErrors = Object.values(err.response.data.errors).flat();
+                    errorMessage = validationErrors.join(', ');
                 }
             }
             setPasswordError(errorMessage);
@@ -212,12 +213,14 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
         } catch (error: unknown) {
             console.error('Error updating profile:', error);
             let errorMessage = 'Failed to update profile. Please try again.';
-            if (error instanceof Error && error.message) {
-                errorMessage = error.message;
-            } else if (typeof error === 'object' && error !== null && 'response' in error) {
-                const err = error as { response?: { data?: { message?: string } } };
+            if (typeof error === 'object' && error !== null && 'response' in error) {
+                const err = error as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
                 if (err.response?.data?.message) {
                     errorMessage = err.response.data.message;
+                } else if (err.response?.data?.errors) {
+                    // Show validation errors
+                    const validationErrors = Object.values(err.response.data.errors).flat();
+                    errorMessage = validationErrors.join(', ');
                 }
             }
             setOwnProfileError(errorMessage);
@@ -251,12 +254,13 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
         } catch (error: unknown) {
             console.error('Error updating user profile:', error);
             let errorMessage = 'Failed to update user profile. Please try again.';
-            if (error instanceof Error && error.message) {
-                errorMessage = error.message;
-            } else if (typeof error === 'object' && error !== null && 'response' in error) {
-                const err = error as { response?: { data?: { message?: string } } };
+            if (typeof error === 'object' && error !== null && 'response' in error) {
+                const err = error as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
                 if (err.response?.data?.message) {
                     errorMessage = err.response.data.message;
+                } else if (err.response?.data?.errors) {
+                    const validationErrors = Object.values(err.response.data.errors).flat();
+                    errorMessage = validationErrors.join(', ');
                 }
             }
             setUserProfileError(errorMessage);
@@ -292,12 +296,13 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
         } catch (error: unknown) {
             console.error('Error creating user:', error);
             let errorMessage = 'Failed to create user. Please try again.';
-            if (error instanceof Error && error.message) {
-                errorMessage = error.message;
-            } else if (typeof error === 'object' && error !== null && 'response' in error) {
-                const err = error as { response?: { data?: { message?: string } } };
+            if (typeof error === 'object' && error !== null && 'response' in error) {
+                const err = error as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
                 if (err.response?.data?.message) {
                     errorMessage = err.response.data.message;
+                } else if (err.response?.data?.errors) {
+                    const validationErrors = Object.values(err.response.data.errors).flat();
+                    errorMessage = validationErrors.join(', ');
                 }
             }
             setUserManagementError(errorMessage);
@@ -318,12 +323,13 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
         } catch (error: unknown) {
             console.error('Error deleting user:', error);
             let errorMessage = 'Failed to delete user. Please try again.';
-            if (error instanceof Error && error.message) {
-                errorMessage = error.message;
-            } else if (typeof error === 'object' && error !== null && 'response' in error) {
-                const err = error as { response?: { data?: { message?: string } } };
+            if (typeof error === 'object' && error !== null && 'response' in error) {
+                const err = error as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
                 if (err.response?.data?.message) {
                     errorMessage = err.response.data.message;
+                } else if (err.response?.data?.errors) {
+                    const validationErrors = Object.values(err.response.data.errors).flat();
+                    errorMessage = validationErrors.join(', ');
                 }
             }
             setUserManagementError(errorMessage);
@@ -344,20 +350,13 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
         } catch (error: unknown) {
             console.error('Error resetting password:', error);
             let errorMessage = 'Failed to reset password. Please try again.';
-            if (error instanceof Error && error.message) {
-                errorMessage = error.message;
-            } else if (typeof error === 'object' && error !== null && 'response' in error) {
-                const err = error as { response?: { data?: { message?: string } } };
+            if (typeof error === 'object' && error !== null && 'response' in error) {
+                const err = error as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
                 if (err.response?.data?.message) {
                     errorMessage = err.response.data.message;
-                }
-            }
-            setPasswordError(errorMessage);
-            console.error('Error resetting password:', error);
-            if (error instanceof Error && error.message) {
-                const err = error as { response?: { data?: { message?: string } } };
-                if (err.response?.data?.message) {
-                    errorMessage = err.response.data.message;
+                } else if (err.response?.data?.errors) {
+                    const validationErrors = Object.values(err.response.data.errors).flat();
+                    errorMessage = validationErrors.join(', ');
                 }
             }
             setPasswordError(errorMessage);
