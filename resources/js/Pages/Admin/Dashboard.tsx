@@ -89,8 +89,6 @@ export default function AdminDashboard({ auth }: Props) {
         switch(role.toLowerCase()) {
             case 'hospital admin':
                 return <Badge variant="destructive" className="ml-2">SUPER ADMIN</Badge>;
-            case 'doctor':
-                return <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-800">DOCTOR</Badge>;
             case 'reception':
                 return <Badge variant="secondary" className="ml-2 bg-green-100 text-green-800">RECEPTION</Badge>;
             case 'pharmacy admin':
@@ -169,8 +167,8 @@ export default function AdminDashboard({ auth }: Props) {
                                             <CardTitle className="text-lg">Security Center</CardTitle>
                                             <CardDescription>Manage usernames, passwords & admin accounts</CardDescription>
                                         </div>
-                                        <div className="bg-gray-100 p-3 rounded-full">
-                                            <Shield className="h-6 w-6 text-gray-600" />
+                                        <div className="bg-yellow-100 p-3 rounded-full">
+                                            <Shield className="h-6 w-6 text-yellow-600" />
                                         </div>
                                     </CardHeader>
                                     <CardContent>
