@@ -2,7 +2,8 @@ import { Head } from '@inertiajs/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Activity, Eye, Filter, Search } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Activity, Eye, Filter, Search, Clock, Cpu, Globe, Server } from 'lucide-react';
 import HospitalLayout from '@/layouts/HospitalLayout';
 import { useState, useEffect } from 'react';
 
@@ -27,6 +28,8 @@ interface AuditLog {
 export default function ActivityLogs() {
     const [logs, setLogs] = useState<AuditLog[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [filters, setFilters] = useState({
         searchTerm: '',
         severity: '',
@@ -221,7 +224,15 @@ export default function ActivityLogs() {
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-sm text-gray-500">{log.time}</p>
-                                                <Button size="sm" variant="ghost" className="mt-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="mt-2"
+                                                    onClick={() => {
+                                                        setSelectedLog(log);
+                                                        setIsDetailsOpen(true);
+                                                    }}
+                                                >
                                                     <Eye className="h-4 w-4 mr-1" />
                                                     View Details
                                                 </Button>
@@ -238,6 +249,117 @@ export default function ActivityLogs() {
                             )}
                         </CardContent>
                     </Card>
+
+                    {/* Details Dialog */}
+                    <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+                        <DialogContent className="max-w-2xl bg-white">
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center">
+                                    <Activity className="mr-2 h-5 w-5" />
+                                    Activity Log Details
+                                </DialogTitle>
+                                <DialogDescription>
+                                    Detailed information about the selected activity log entry
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            {selectedLog && (
+                                <div className="space-y-6">
+                                    {/* Basic Information */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">User</label>
+                                            <p className="text-sm">{selectedLog.user}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Role</label>
+                                            <p className="text-sm capitalize">{selectedLog.user_role || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Action</label>
+                                            <p className="text-sm">{selectedLog.action}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Module</label>
+                                            <p className="text-sm">{selectedLog.module || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Severity</label>
+                                            <Badge variant={getSeverityBadgeVariant(selectedLog.severity)}>
+                                                {selectedLog.severity.toUpperCase()}
+                                            </Badge>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Timestamp</label>
+                                            <p className="text-sm">{selectedLog.time}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Details */}
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-500">Details</label>
+                                        <p className="text-sm mt-1 p-3 bg-gray-100 rounded">{selectedLog.details}</p>
+                                    </div>
+
+                                    {/* Performance Metrics */}
+                                    {(selectedLog.response_time || selectedLog.memory_usage) && (
+                                        <div className="border-t pt-4">
+                                            <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                                                <Server className="mr-2 h-4 w-4 text-gray-700" />
+                                                Performance Metrics
+                                            </h4>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {selectedLog.response_time && (
+                                                    <div className="flex items-center">
+                                                        <Clock className="mr-2 h-4 w-4 text-blue-700" />
+                                                        <div>
+                                                            <p className="text-xs text-gray-500">Response Time</p>
+                                                            <p className="text-sm font-medium">{selectedLog.response_time.toFixed(2)}s</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {selectedLog.memory_usage && (
+                                                    <div className="flex items-center">
+                                                        <Cpu className="mr-2 h-4 w-4 text-green-700" />
+                                                        <div>
+                                                            <p className="text-xs text-gray-500">Memory Usage</p>
+                                                            <p className="text-sm font-medium">{(selectedLog.memory_usage / 1024 / 1024).toFixed(2)} MB</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Network Information */}
+                                    {(selectedLog.ip_address || selectedLog.request_method || selectedLog.request_url) && (
+                                        <div className="border-t pt-4">
+                                            <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                                                <Globe className="mr-2 h-4 w-4 text-gray-700" />
+                                                Network Information
+                                            </h4>
+                                            <div className="space-y-2">
+                                                {selectedLog.request_method && selectedLog.request_url && (
+                                                    <div>
+                                                        <p className="text-xs text-gray-500">Request</p>
+                                                        <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                                            {selectedLog.request_method} {selectedLog.request_url}
+                                                        </code>
+                                                    </div>
+                                                )}
+                                                {selectedLog.ip_address && (
+                                                    <div>
+                                                        <p className="text-xs text-gray-500">IP Address</p>
+                                                        <p className="text-sm">{selectedLog.ip_address}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
         </HospitalLayout>

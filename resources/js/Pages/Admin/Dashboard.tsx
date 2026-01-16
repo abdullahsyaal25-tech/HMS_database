@@ -55,7 +55,7 @@ export default function AdminDashboard({ auth }: Props) {
                 // Fetch recent activity using Axios
                 try {
                     const activityResponse = await axios.get('/api/v1/admin/recent-activity');
-                    setRecentActivity(activityResponse.data);
+                    setRecentActivity(activityResponse.data.slice(0, 5));
                 } catch (error) {
                     console.error('Failed to fetch recent activity:', error);
                 }
@@ -63,7 +63,7 @@ export default function AdminDashboard({ auth }: Props) {
                 // Fetch audit logs using Axios
                 try {
                     const auditResponse = await axios.get('/api/v1/admin/audit-logs');
-                    setAuditLogs(auditResponse.data);
+                    setAuditLogs(auditResponse.data.slice(0, 5));
                     // Clear error state if both API calls succeed
                     setError(null);
                 } catch (error) {
