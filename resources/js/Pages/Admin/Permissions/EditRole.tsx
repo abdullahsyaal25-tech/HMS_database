@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,29 +30,17 @@ export default function EditRolePermissions({ role, permissions, assignedPermiss
         );
     };
 
-    const saveRolePermissions = async () => {
-        try {
-            const response = await fetch(`/admin/permissions/roles/${encodeURIComponent(role)}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-                },
-                body: JSON.stringify({
-                    permissions: selectedPermissions
-                })
-            });
-            
-            if (response.ok) {
+    const saveRolePermissions = () => {
+        router.put(`/admin/permissions/roles/${encodeURIComponent(role)}`, {
+            permissions: selectedPermissions
+        }, {
+            onSuccess: () => {
                 alert(`Permissions for ${role} saved successfully!`);
-            } else {
+            },
+            onError: () => {
                 alert('Failed to save permissions');
             }
-        } catch (error) {
-            console.error('Error saving permissions:', error);
-            alert('An error occurred while saving permissions');
-        }
+        });
     };
 
     return (
