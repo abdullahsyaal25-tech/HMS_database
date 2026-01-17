@@ -75,10 +75,34 @@ class UserController extends Controller
      */
     public function show(string $id): Response
     {
+        $currentUser = \Illuminate\Support\Facades\Auth::user();
         $user = User::with('rolePermissions.permission')->findOrFail($id);
         
+        // Security check: Only users with view-users permission can view user details
+        if (!$currentUser->isSuperAdmin() && !$currentUser->hasPermission('view-users')) {
+            abort(403, 'Unauthorized to view user details');
+        }
+        
+        // Check if current user can delete this user
+        $canDelete = $this->canCurrentUserDelete($currentUser, $user);
+        
+        // Check if current user can edit this user
+        $canEdit = $this->canCurrentUserEdit($currentUser, $user);
+        
         return Inertia::render('Admin/Users/Show', [
-            'user' => $user,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'role' => $user->role,
+                'isSuperAdmin' => $user->isSuperAdmin(),
+                'created_at' => $user->created_at,
+                'updated_at' => $user->updated_at,
+                'rolePermissions' => $user->rolePermissions,
+            ],
+            'canDelete' => $canDelete,
+            'canEdit' => $canEdit,
+            'currentUserRole' => $currentUser->role,
         ]);
     }
 
@@ -230,6 +254,62 @@ class UserController extends Controller
         return redirect()->route('admin.users.index')->with('success', 'User permissions updated successfully.');
     }
 
+    /**
+     * Check if current user can delete the target user
+     */
+    private function canCurrentUserDelete($currentUser, $targetUser): bool
+    {
+        // Cannot delete own account
+        if ($currentUser->id === $targetUser->id) {
+            return false;
+        }
+        
+        // Super Admin can delete anyone except themselves
+        if ($currentUser->isSuperAdmin()) {
+            return true;
+        }
+        
+        // Sub Super Admin can delete regular users but not Super Admins
+        if ($currentUser->role === 'Sub Super Admin') {
+            return !$targetUser->isSuperAdmin();
+        }
+        
+        // Regular admins with manage-users permission can delete non-admin users
+        if ($currentUser->hasPermission('manage-users')) {
+            return !$targetUser->isSuperAdmin() && $targetUser->role !== 'Sub Super Admin';
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Check if current user can edit the target user
+     */
+    private function canCurrentUserEdit($currentUser, $targetUser): bool
+    {
+        // Can always edit own account
+        if ($currentUser->id === $targetUser->id) {
+            return true;
+        }
+        
+        // Super Admin can edit anyone
+        if ($currentUser->isSuperAdmin()) {
+            return true;
+        }
+        
+        // Sub Super Admin can edit regular users but not Super Admins
+        if ($currentUser->role === 'Sub Super Admin') {
+            return !$targetUser->isSuperAdmin();
+        }
+        
+        // Regular admins with manage-users permission can edit non-admin users
+        if ($currentUser->hasPermission('manage-users')) {
+            return !$targetUser->isSuperAdmin() && $targetUser->role !== 'Sub Super Admin';
+        }
+        
+        return false;
+    }
+    
     /**
      * Get all available roles from the role permissions.
      */
