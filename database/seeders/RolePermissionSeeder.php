@@ -41,6 +41,14 @@ class RolePermissionSeeder extends Seeder
                 'view-laboratory', 'create-lab-tests', 'edit-lab-tests', 'delete-lab-tests',
                 'view-reports',
             ],
+            'Reception Admin' => [
+                'view-users',
+                'view-patients', 'create-patients', 'edit-patients', 'delete-patients',
+                'view-doctors', 'create-doctors', 'edit-doctors', 'delete-doctors',
+                'view-appointments', 'create-appointments', 'edit-appointments', 'delete-appointments',
+                'view-billing', 'create-billing', 'edit-billing', 'delete-billing',
+                'view-reports',
+            ],
             'Reception' => [
                 'view-patients', 'create-patients', 'edit-patients',
                 'view-appointments', 'create-appointments',

@@ -695,8 +695,8 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                 <option value="">Select a role...</option>
                                                                 <option value="Super Admin">👑 Super Admin</option>
                                                                 <option value="Sub Super Admin">🎩 Sub Super Admin</option>
-                                                                <option value="Doctor">👨‍⚕️ Doctor</option>
-                                                                <option value="Reception">📋 Reception</option>
+                                                                <option value="Reception Admin">📋 Reception Admin</option>
+                                                                <option value="Reception">👥 Reception</option>
                                                                 <option value="Pharmacy Admin">💊 Pharmacy Admin</option>
                                                                 <option value="Laboratory Admin">🧪 Laboratory Admin</option>
                                                             </select>
@@ -847,7 +847,7 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                     <option value="">Select role...</option>
                                                                     <option value="Super Admin">Super Admin</option>
                                                                     <option value="Sub Super Admin">Sub Super Admin</option>
-                                                                    <option value="Doctor">Doctor</option>
+                                                                    <option value="Reception Admin">Reception Admin</option>
                                                                     <option value="Reception">Reception</option>
                                                                     <option value="Pharmacy Admin">Pharmacy Admin</option>
                                                                     <option value="Laboratory Admin">Laboratory Admin</option>
