@@ -98,7 +98,7 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
 
     // Fetch users when component mounts (only for super admins)
     useEffect(() => {
-        if (auth.user.role === 'Hospital Admin' || auth.user.permissions?.includes('manage-users')) {
+        if (auth.user.role === 'Super Admin' || auth.user.permissions?.includes('manage-users')) {
             fetchUsers();
         }
     }, [auth.user]);
@@ -377,7 +377,7 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                     </div>
 
                     <Tabs value={activeTab} onValueChange={(value) => {
-                        if (value === 'admin-management' && !(auth.user.role === 'Hospital Admin' || auth.user.permissions?.includes('manage-users'))) {
+                        if (value === 'admin-management' && !(auth.user.role === 'Super Admin' || auth.user.permissions?.includes('manage-users'))) {
                             return;
                         }
                         setActiveTab(value as 'my-account' | 'admin-management');
@@ -392,7 +392,7 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                             </TabsTrigger>
                             <TabsTrigger
                                 value="admin-management"
-                                disabled={!(auth.user.role === 'Hospital Admin' || auth.user.permissions?.includes('manage-users'))}
+                                disabled={!(auth.user.role === 'Super Admin' || auth.user.permissions?.includes('manage-users'))}
                                 className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-lg h-10 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <Users className="h-4 w-4" />
@@ -693,7 +693,8 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring transition-colors"
                                                             >
                                                                 <option value="">Select a role...</option>
-                                                                <option value="Hospital Admin">🏥 Hospital Admin</option>
+                                                                <option value="Super Admin">👑 Super Admin</option>
+                                                                <option value="Sub Super Admin">🎩 Sub Super Admin</option>
                                                                 <option value="Doctor">👨‍⚕️ Doctor</option>
                                                                 <option value="Reception">📋 Reception</option>
                                                                 <option value="Pharmacy Admin">💊 Pharmacy Admin</option>
@@ -756,10 +757,11 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                     <td className="py-3 px-2">{user.username}</td>
                                                                     <td className="py-3 px-2">
                                                                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                                            user.role === 'Hospital Admin' ? 'bg-red-100 text-red-600' :
+                                                                            user.role === 'Super Admin' ? 'bg-purple-100 text-purple-600' :
+                                                                            user.role === 'Sub Super Admin' ? 'bg-blue-100 text-blue-600' :
                                                                             user.role === 'Doctor' ? 'bg-red-100 text-red-600' :
                                                                             user.role === 'Reception' ? 'bg-green-100 text-green-600' :
-                                                                            user.role === 'Pharmacy Admin' ? 'bg-purple-100 text-purple-600' :
+                                                                            user.role === 'Pharmacy Admin' ? 'bg-indigo-100 text-indigo-600' :
                                                                             user.role === 'Laboratory Admin' ? 'bg-yellow-100 text-yellow-600' :
                                                                             'bg-muted text-muted-foreground'
                                                                         }`}>
@@ -843,7 +845,9 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors"
                                                                 >
                                                                     <option value="">Select role...</option>
-                                                                    <option value="Hospital Admin">Hospital Admin</option>
+                                                                    <option value="Super Admin">Super Admin</option>
+                                                                    <option value="Sub Super Admin">Sub Super Admin</option>
+                                                                    <option value="Doctor">Doctor</option>
                                                                     <option value="Reception">Reception</option>
                                                                     <option value="Pharmacy Admin">Pharmacy Admin</option>
                                                                     <option value="Laboratory Admin">Laboratory Admin</option>

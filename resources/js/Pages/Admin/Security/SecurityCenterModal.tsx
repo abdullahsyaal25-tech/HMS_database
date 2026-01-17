@@ -389,7 +389,7 @@ export default function SecurityCenterModal({ isOpen, onClose, currentUser }: Se
                         </div>
                         Security Center
                         <div className="ml-auto text-sm font-normal text-muted-foreground">
-                            {currentUser.role === 'Hospital Admin' || currentUser.permissions?.includes('manage-users') 
+                            {currentUser.role === 'Super Admin' || currentUser.permissions?.includes('manage-users') 
                                 ? 'Admin Access' 
                                 : 'User Access'
                             }
@@ -398,7 +398,7 @@ export default function SecurityCenterModal({ isOpen, onClose, currentUser }: Se
                 </DialogHeader>
                 
                 <Tabs value={activeTab} onValueChange={(value) => {
-                    if (value === 'admin-management' && !(currentUser.role === 'Hospital Admin' || currentUser.permissions?.includes('manage-users'))) {
+                    if (value === 'admin-management' && !(currentUser.role === 'Super Admin' || currentUser.permissions?.includes('manage-users'))) {
                         return;
                     }
                     setActiveTab(value as 'my-account' | 'admin-management');
@@ -410,7 +410,7 @@ export default function SecurityCenterModal({ isOpen, onClose, currentUser }: Se
                         </TabsTrigger>
                         <TabsTrigger 
                             value="admin-management" 
-                            disabled={!(currentUser.role === 'Hospital Admin' || currentUser.permissions?.includes('manage-users'))}
+                            disabled={!(currentUser.role === 'Super Admin' || currentUser.permissions?.includes('manage-users'))}
                             className="flex items-center gap-2"
                         >
                             <Users className="h-4 w-4" />
@@ -711,7 +711,8 @@ export default function SecurityCenterModal({ isOpen, onClose, currentUser }: Se
                                                             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                                         >
                                                             <option value="">Select a role...</option>
-                                                            <option value="Hospital Admin">🏥 Hospital Admin</option>
+                                                            <option value="Super Admin">👑 Super Admin</option>
+                                                            <option value="Sub Super Admin">🎩 Sub Super Admin</option>
                                                             <option value="Doctor">👨‍⚕️ Doctor</option>
                                                             <option value="Reception">📋 Reception</option>
                                                             <option value="Pharmacy Admin">💊 Pharmacy Admin</option>
@@ -847,7 +848,8 @@ export default function SecurityCenterModal({ isOpen, onClose, currentUser }: Se
                                                                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                                             >
                                                                 <option value="">Select role...</option>
-                                                                <option value="Hospital Admin">Hospital Admin</option>
+                                                                <option value="Super Admin">Super Admin</option>
+                                                                <option value="Sub Super Admin">Sub Super Admin</option>
                                                                 <option value="Doctor">Doctor</option>
                                                                 <option value="Reception">Reception</option>
                                                                 <option value="Pharmacy Admin">Pharmacy Admin</option>
