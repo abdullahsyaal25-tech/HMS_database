@@ -6,6 +6,8 @@ use Closure;
 use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class PerformanceMonitoringMiddleware
@@ -28,12 +30,28 @@ class PerformanceMonitoringMiddleware
         $executionTime = round(($endTime - $startTime) * 1000, 2); // in milliseconds
         $memoryUsed = $endMemory - $startMemory;
 
-        // Only log for API requests and if execution time > 100ms or memory > 10MB or error response
+        // Get query count for this request
+        $queryCount = count(DB::getQueryLog());
+
+        // Only log for API requests and if execution time > 100ms, memory > 10MB, high query count, or error response
         $shouldLog = $request->is('api/*') && (
             $executionTime > 100 ||
             $memoryUsed > 10000000 || // 10MB
+            $queryCount > 10 || // Too many queries per request
             $response->getStatusCode() >= 400
         );
+
+        // Log high query count separately
+        if ($queryCount > 10) {
+            Log::warning("High query count detected", [
+                'url' => $request->fullUrl(),
+                'method' => $request->method(),
+                'query_count' => $queryCount,
+                'execution_time' => $executionTime,
+                'memory_used' => $memoryUsed,
+                'queries' => DB::getQueryLog()
+            ]);
+        }
 
         if ($shouldLog) {
             $user = Auth::guard('sanctum')->user();
@@ -61,6 +79,7 @@ class PerformanceMonitoringMiddleware
                 'severity' => $this->determineSeverity($response->getStatusCode(), $executionTime),
                 'response_time' => $executionTime / 1000, // convert to seconds for consistency
                 'memory_usage' => $memoryUsed,
+                'query_count' => $queryCount,
                 'error_details' => $errorDetails,
                 'request_method' => $request->method(),
                 'request_url' => $request->fullUrl(),

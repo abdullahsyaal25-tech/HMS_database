@@ -28,13 +28,21 @@ class AppointmentService
 
     /**
      * Get all related data needed for appointment forms
+     * Optimized to load only necessary fields for performance
      */
     public function getAppointmentFormData()
     {
         return [
-            'patients' => Patient::all(),
-            'doctors' => Doctor::all(),
-            'departments' => Department::all(),
+            'patients' => Patient::select('id', 'first_name', 'last_name', 'patient_id')
+                ->orderBy('last_name')
+                ->get(),
+            'doctors' => Doctor::select('id', 'first_name', 'last_name', 'specialization')
+                ->where('status', 'active')
+                ->orderBy('last_name')
+                ->get(),
+            'departments' => Department::select('id', 'name')
+                ->orderBy('name')
+                ->get(),
         ];
     }
 
@@ -44,10 +52,18 @@ class AppointmentService
     public function createAppointment(array $data)
     {
         DB::beginTransaction();
-        
+
         try {
+            // Generate appointment ID using database auto-increment for thread safety
+            $nextId = DB::selectOne("
+                SELECT AUTO_INCREMENT as next_id
+                FROM information_schema.TABLES
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'appointments'
+            ")->next_id ?? 1;
+
             $appointment = Appointment::create([
-                'appointment_id' => 'APPT' . date('Y') . str_pad(Appointment::count() + 1, 5, '0', STR_PAD_LEFT),
+                'appointment_id' => 'APPT' . date('Y') . str_pad($nextId, 5, '0', STR_PAD_LEFT),
                 'patient_id' => $data['patient_id'],
                 'doctor_id' => $data['doctor_id'],
                 'department_id' => $data['department_id'],

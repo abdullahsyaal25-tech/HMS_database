@@ -61,20 +61,19 @@ class PatientController extends Controller
             ]);
             
 
-            // Generate a unique patient ID
+            // Generate a unique patient ID using optimized query
             $year = date('Y');
-            $lastPatient = Patient::where('patient_id', 'LIKE', 'P' . $year . '%')
-                ->orderByRaw('CAST(SUBSTRING(patient_id, ' . (strlen($year) + 2) . ') AS UNSIGNED) DESC')
-                ->first();
-            
-            if ($lastPatient) {
-                $lastNumber = (int) substr($lastPatient->patient_id, strlen('P' . $year));
-                $nextNumber = $lastNumber + 1;
-            } else {
-                $nextNumber = 1;
-            }
-            
-            $patientId = 'P' . $year . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+            $yearPrefix = 'P' . $year;
+
+            // Use database function for better performance
+            $maxNumber = DB::selectOne("
+                SELECT MAX(CAST(SUBSTRING(patient_id, 6) AS UNSIGNED)) as max_num
+                FROM patients
+                WHERE patient_id LIKE ?
+            ", [$yearPrefix . '%'])->max_num ?? 0;
+
+            $nextNumber = $maxNumber + 1;
+            $patientId = $yearPrefix . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
             
             
             // Create patient record
