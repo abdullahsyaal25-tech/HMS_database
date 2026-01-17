@@ -15,9 +15,9 @@ class DefaultUsersSeeder extends Seeder
         $user = \App\Models\User::firstOrCreate(
             ['username' => 'hospital_admin'],
             [
-                'name' => 'Hospital Admin',
-                'password' => 'password', // Will be automatically hashed by model cast
-                'role' => 'Hospital Admin',
+                'name' => 'Super Admin',
+                'password' => 'password', 
+                'role' => 'Super Admin',
             ]
         );
         
@@ -47,13 +47,23 @@ class DefaultUsersSeeder extends Seeder
         
 
         
+        // Create or update Sub Super Admin
+        $user = \App\Models\User::firstOrCreate(
+            ['username' => 'sub_super_admin'],
+            [
+                'name' => 'Sub Super Admin',
+                'password' => 'password', // Will be automatically hashed by model cast
+                'role' => 'Sub Super Admin',
+            ]
+        );
+
         // Create or update a Doctor
         $user = \App\Models\User::firstOrCreate(
             ['username' => 'dr_john_doe'],
             [
                 'name' => 'Dr. John Doe',
                 'password' => 'password', // Will be automatically hashed by model cast
-                'role' => 'doctor',
+                'role' => 'Doctor',
             ]
         );
         

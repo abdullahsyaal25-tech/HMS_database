@@ -737,6 +737,7 @@ export default function SecurityCenterModal({ isOpen, onClose, currentUser }: Se
                                                 <Button
                                                     type="submit"
                                                     disabled={creatingUser || !userName.trim() || !userEmail.trim() || !userRole.trim()}
+                                                    variant="default"
                                                     className="w-full"
                                                 >
                                                     {creatingUser ? (
@@ -873,6 +874,7 @@ export default function SecurityCenterModal({ isOpen, onClose, currentUser }: Se
                                                         <Button
                                                             type="submit"
                                                             disabled={updatingUserProfile}
+                                                            variant="default"
                                                             className="flex-1"
                                                         >
                                                             {updatingUserProfile ? (

@@ -82,9 +82,9 @@ class User extends Authenticatable
         // Debug: Log permission check
       
         
-        // Super admin check: Hospital Admin has all permissions
-        if ($this->role === 'Hospital Admin') {
-           
+        // Super admin check: Super Admin has all permissions
+        if ($this->role === 'Super Admin') {
+
             return true;
         }
         
@@ -145,6 +145,15 @@ class User extends Authenticatable
      */
     public function isSuperAdmin(): bool
     {
-        return $this->role === 'Hospital Admin';
+        return $this->role === 'Super Admin';
+    }
+
+    /**
+     * Check if the user is deletable
+     * Super Admin is immutable and cannot be deleted
+     */
+    public function isDeletable(): bool
+    {
+        return !$this->isSuperAdmin();
     }
 }

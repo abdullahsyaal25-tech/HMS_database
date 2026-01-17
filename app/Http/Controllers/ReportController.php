@@ -28,9 +28,9 @@ class ReportController extends Controller
     public function patientReport()
     {
         $user = Auth::user();
-        
+
         // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
+        if (!$user->hasAnyRole(['Super Admin', 'Sub Super Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
             abort(403, 'Unauthorized access');
         }
         
@@ -46,9 +46,9 @@ class ReportController extends Controller
     public function doctorReport()
     {
         $user = Auth::user();
-        
+
         // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
+        if (!$user->hasAnyRole(['Super Admin', 'Sub Super Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
             abort(403, 'Unauthorized access');
         }
         
@@ -66,10 +66,10 @@ class ReportController extends Controller
         $user = Auth::user();
         
         // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
+        if (!$user->hasAnyRole(['Super Admin', 'Sub Super Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
             abort(403, 'Unauthorized access');
         }
-        
+
         $appointments = Appointment::with('patient', 'doctor')->get();
         
         $pdf = Pdf::loadView('reports.appointment-report', compact('appointments'));
@@ -84,10 +84,10 @@ class ReportController extends Controller
         $user = Auth::user();
         
         // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
+        if (!$user->hasAnyRole(['Super Admin', 'Sub Super Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
             abort(403, 'Unauthorized access');
         }
-        
+
         $bills = Bill::with('patient', 'items')->get();
         
         $pdf = Pdf::loadView('reports.billing-report', compact('bills'));
@@ -102,7 +102,7 @@ class ReportController extends Controller
         $user = Auth::user();
         
         // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin'])) {
+        if (!$user->hasAnyRole(['Super Admin', 'Sub Super Admin', 'Pharmacy Admin'])) {
             abort(403, 'Unauthorized access');
         }
         
@@ -120,7 +120,7 @@ class ReportController extends Controller
         $user = Auth::user();
         
         // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Laboratory Admin'])) {
+        if (!$user->hasAnyRole(['Super Admin', 'Sub Super Admin', 'Laboratory Admin'])) {
             abort(403, 'Unauthorized access');
         }
         
@@ -136,9 +136,9 @@ class ReportController extends Controller
     public function index(): Response
     {
         $user = Auth::user();
-        
+
         // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
+        if (!$user->hasAnyRole(['Super Admin', 'Sub Super Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
             abort(403, 'Unauthorized access');
         }
         
@@ -151,9 +151,9 @@ class ReportController extends Controller
     public function dashboardStats()
     {
         $user = Auth::user();
-        
+
         // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
+        if (!$user->hasAnyRole(['Super Admin', 'Sub Super Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
             abort(403, 'Unauthorized access');
         }
         
@@ -234,9 +234,9 @@ class ReportController extends Controller
     public function dailyStats()
     {
         $user = Auth::user();
-        
+
         // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
+        if (!$user->hasAnyRole(['Super Admin', 'Sub Super Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
             abort(403, 'Unauthorized access');
         }
         
@@ -253,9 +253,9 @@ class ReportController extends Controller
     public function doctorWorkload()
     {
         $user = Auth::user();
-        
+
         // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
+        if (!$user->hasAnyRole(['Super Admin', 'Sub Super Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
             abort(403, 'Unauthorized access');
         }
         
@@ -272,9 +272,9 @@ class ReportController extends Controller
     public function weeklyTrend()
     {
         $user = Auth::user();
-        
+
         // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
+        if (!$user->hasAnyRole(['Super Admin', 'Sub Super Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Doctor'])) {
             abort(403, 'Unauthorized access');
         }
         

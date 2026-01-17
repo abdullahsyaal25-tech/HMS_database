@@ -21,7 +21,10 @@ Route::get('/dashboard-redirect', function () {
     
     // Redirect based on user permissions and role
     if ($user->isSuperAdmin()) {
-        // Super admin (Hospital Admin) goes to main dashboard
+        // Super admin goes to main dashboard
+        return redirect()->intended(route('dashboard', absolute: false));
+    } elseif ($user->role === 'Sub Super Admin') {
+        // Sub Super Admin goes to main dashboard
         return redirect()->intended(route('dashboard', absolute: false));
     } elseif ($user->role === 'Reception') {
         // Reception role goes to patients section

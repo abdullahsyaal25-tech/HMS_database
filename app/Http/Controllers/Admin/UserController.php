@@ -150,10 +150,9 @@ class UserController extends Controller
             return redirect()->back()->with('error', 'You cannot delete your own account.');
         }
 
-        // Prevent deletion of Hospital Admin if only one exists
-        $adminCount = User::where('role', 'Hospital Admin')->count();
-        if ($user->role === 'Hospital Admin' && $adminCount <= 1) {
-            return redirect()->back()->with('error', 'Cannot delete the last Hospital Admin account.');
+        // Prevent deletion of Super Admin
+        if (!$user->isDeletable()) {
+            return redirect()->back()->with('error', 'Super Admin accounts cannot be deleted.');
         }
 
         $user->delete();

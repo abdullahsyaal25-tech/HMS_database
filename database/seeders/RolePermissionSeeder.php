@@ -13,7 +13,7 @@ class RolePermissionSeeder extends Seeder
     {
         // Define role-permission mappings
         $rolePermissions = [
-            'Hospital Admin' => [
+            'Super Admin' => [
                 'view-users', 'create-users', 'edit-users', 'delete-users',
                 'view-patients', 'create-patients', 'edit-patients', 'delete-patients',
                 'view-doctors', 'create-doctors', 'edit-doctors', 'delete-doctors',
@@ -22,6 +22,16 @@ class RolePermissionSeeder extends Seeder
                 'view-pharmacy', 'create-medicines', 'edit-medicines', 'delete-medicines',
                 'view-laboratory', 'create-lab-tests', 'edit-lab-tests', 'delete-lab-tests',
                 'view-dashboard', 'view-reports', 'view-settings',
+            ],
+            'Sub Super Admin' => [
+                'view-users',
+                'view-patients', 'create-patients', 'edit-patients', 'delete-patients',
+                'view-doctors', 'create-doctors', 'edit-doctors', 'delete-doctors',
+                'view-appointments', 'create-appointments', 'edit-appointments', 'delete-appointments',
+                'view-billing', 'create-billing', 'edit-billing', 'delete-billing',
+                'view-pharmacy', 'create-medicines', 'edit-medicines', 'delete-medicines',
+                'view-laboratory', 'create-lab-tests', 'edit-lab-tests', 'delete-lab-tests',
+                'view-dashboard', 'view-reports',
             ],
             'Pharmacy Admin' => [
                 'view-pharmacy', 'create-medicines', 'edit-medicines', 'delete-medicines',
