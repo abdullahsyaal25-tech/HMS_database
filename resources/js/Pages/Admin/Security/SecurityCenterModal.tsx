@@ -101,7 +101,7 @@ export default function SecurityCenterModal({ isOpen, onClose, currentUser }: Se
 
     // Fetch users when modal opens (only for super admins)
     useEffect(() => {
-        if (isOpen && (currentUser.role === 'Hospital Admin' || currentUser.permissions?.includes('manage-users'))) {
+        if (isOpen && (currentUser.role === 'Super Admin' || currentUser.permissions?.includes('manage-users'))) {
             fetchUsers();
         }
     }, [isOpen, currentUser]);
