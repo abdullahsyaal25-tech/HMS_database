@@ -431,7 +431,6 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                         value={ownName}
                                                         onChange={(e) => setOwnName(e.target.value)}
                                                         placeholder="Enter your full name"
-                                                        className="bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500"
                                                     />
                                                 </div>
 
@@ -445,7 +444,6 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                         value={ownUsername}
                                                         onChange={(e) => setOwnUsername(e.target.value)}
                                                         placeholder="Enter your username"
-                                                        className="bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500"
                                                     />
                                                 </div>
 
@@ -457,16 +455,16 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                 )}
 
                                                 {ownProfileMessage && (
-                                                    <Alert className="border-success/50 bg-success/10">
+                                                    <Alert className="border-green-200 bg-green-50">
                                                         <CheckCircle className="h-4 w-4 text-green-600" />
-                                                        <AlertDescription className="text-success-foreground">{ownProfileMessage}</AlertDescription>
+                                                        <AlertDescription className="text-green-600">{ownProfileMessage}</AlertDescription>
                                                     </Alert>
                                                 )}
 
                                                 <Button
                                                     type="submit"
                                                     disabled={updatingOwnProfile}
-                                                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-2.5 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                                                    className="w-full"
                                                 >
                                                     {updatingOwnProfile ? (
                                                         <>
@@ -480,7 +478,7 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                             </form>
                                         </div>
 
-                                        <div className="bg-gray-50 rounded-lg p-6 border">
+                                        <div className="bg-muted/30 rounded-xl p-6 border border-input">
                                             <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
                                                 <Lock className="h-5 w-5" />
                                                 Security Settings
@@ -498,7 +496,7 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                             value={currentPassword}
                                                             onChange={(e) => setCurrentPassword(e.target.value)}
                                                             placeholder="Enter your current password"
-                                                            className="pr-12 bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                                                            className="pr-12"
                                                         />
                                                         <button
                                                             type="button"
@@ -522,7 +520,7 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                             value={newPassword}
                                                             onChange={(e) => setNewPassword(e.target.value)}
                                                             placeholder="Create a strong password"
-                                                            className="pr-12 bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                                                            className="pr-12"
                                                         />
                                                         <button
                                                             type="button"
@@ -546,16 +544,16 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                 <div
                                                                     className={`h-2 rounded-full transition-all duration-300 ${
                                                                         passwordStrength < 50 ? 'bg-destructive' :
-                                                                        passwordStrength < 75 ? 'bg-warning' : 'bg-success'
+                                                                        passwordStrength < 75 ? 'bg-yellow-500' : 'bg-green-500'
                                                                     }`}
                                                                     style={{ width: `${passwordStrength}%` }}
                                                                 ></div>
                                                             </div>
                                                             <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
-                                                                <span className={passwordStrength >= 25 ? 'text-success' : ''}>• 8+ chars</span>
-                                                                <span className={passwordStrength >= 50 ? 'text-success' : ''}>• Uppercase</span>
-                                                                <span className={passwordStrength >= 75 ? 'text-success' : ''}>• Number</span>
-                                                                <span className={passwordStrength >= 100 ? 'text-success' : ''}>• Symbol</span>
+                                                                <span className={passwordStrength >= 25 ? 'text-green-600' : ''}>• 8+ chars</span>
+                                                                <span className={passwordStrength >= 50 ? 'text-green-600' : ''}>• Uppercase</span>
+                                                                <span className={passwordStrength >= 75 ? 'text-green-600' : ''}>• Number</span>
+                                                                <span className={passwordStrength >= 100 ? 'text-green-600' : ''}>• Symbol</span>
                                                             </div>
                                                         </div>
                                                     )}
@@ -573,7 +571,7 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                             value={confirmNewPassword}
                                                             onChange={(e) => setConfirmNewPassword(e.target.value)}
                                                             placeholder="Re-enter your new password"
-                                                            className={`pr-12 bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500 ${
+                                                            className={`pr-12 ${
                                                                 confirmNewPassword && newPassword !== confirmNewPassword
                                                                     ? 'border-destructive focus:ring-destructive'
                                                                     : ''
@@ -670,7 +668,6 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                 value={userName}
                                                                 onChange={(e) => setUserName(e.target.value)}
                                                                 placeholder="Enter user's full name"
-                                                                className="bg-white border-gray-300 focus:ring-green-500 focus:border-green-500"
                                                             />
                                                         </div>
                                                         <div className="space-y-2">
@@ -683,7 +680,6 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                 value={userUsername}
                                                                 onChange={(e) => setUserUsername(e.target.value)}
                                                                 placeholder="Enter user's username"
-                                                                className="bg-white border-gray-300 focus:ring-green-500 focus:border-green-500"
                                                             />
                                                         </div>
                                                         <div className="space-y-2">
@@ -694,7 +690,7 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                 id="userRole"
                                                                 value={userRole}
                                                                 onChange={(e) => setUserRole(e.target.value)}
-                                                                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-success focus:border-success transition-colors"
+                                                                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring transition-colors"
                                                             >
                                                                 <option value="">Select a role...</option>
                                                                 <option value="Hospital Admin">🏥 Hospital Admin</option>
@@ -716,14 +712,14 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                     {userManagementMessage && showSuccessAnimation && (
                                                         <Alert className="border-green-200 bg-green-50 animate-pulse">
                                                             <CheckCircle className="h-4 w-4 text-green-600" />
-                                                            <AlertDescription className="text-success-foreground">{userManagementMessage}</AlertDescription>
+                                                            <AlertDescription className="text-green-600">{userManagementMessage}</AlertDescription>
                                                         </Alert>
                                                     )}
 
                                                     <Button
                                                         type="submit"
                                                         disabled={creatingUser || !userName.trim() || !userUsername.trim() || !userRole.trim()}
-                                                        className="w-full"
+                                                        className="w-full bg-green-600 hover:bg-green-700"
                                                     >
                                                         {creatingUser ? (
                                                             <>
@@ -760,11 +756,11 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                     <td className="py-3 px-2">{user.username}</td>
                                                                     <td className="py-3 px-2">
                                                                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                                            user.role === 'Hospital Admin' ? 'bg-destructive/10 text-destructive-foreground' :
-                                                                            user.role === 'Doctor' ? 'bg-primary/10 text-primary-foreground' :
-                                                                            user.role === 'Reception' ? 'bg-success/10 text-success-foreground' :
-                                                                            user.role === 'Pharmacy Admin' ? 'bg-secondary/10 text-secondary-foreground' :
-                                                                            user.role === 'Laboratory Admin' ? 'bg-warning/10 text-warning-foreground' :
+                                                                            user.role === 'Hospital Admin' ? 'bg-red-100 text-red-600' :
+                                                                            user.role === 'Doctor' ? 'bg-red-100 text-red-600' :
+                                                                            user.role === 'Reception' ? 'bg-green-100 text-green-600' :
+                                                                            user.role === 'Pharmacy Admin' ? 'bg-purple-100 text-purple-600' :
+                                                                            user.role === 'Laboratory Admin' ? 'bg-yellow-100 text-yellow-600' :
                                                                             'bg-muted text-muted-foreground'
                                                                         }`}>
                                                                             {user.role || 'User'}
@@ -790,7 +786,7 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                                 variant="outline"
                                                                                 onClick={() => handleResetPassword(user.id)}
                                                                                 disabled={resettingPassword}
-                                                                                className="text-warning border-warning/20 hover:bg-warning/10"
+                                                                                className="text-yellow-600 border-yellow-200 hover:bg-yellow-100"
                                                                             >
                                                                                 <KeyRound className="h-3 w-3" />
                                                                             </Button>
@@ -813,9 +809,9 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
 
                                             {/* Edit User Form */}
                                             {editingUserId && (
-                                                <div className="border rounded-lg p-6 bg-warning/10 border-warning/20">
+                                                <div className="border rounded-lg p-6 bg-yellow-100 border-yellow-200">
                                                     <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
-                                                        <Edit3 className="h-5 w-5 text-warning" />
+                                                        <Edit3 className="h-5 w-5 text-yellow-600" />
                                                         Edit User
                                                     </h3>
                                                     <form onSubmit={handleUpdateUserProfile} className="space-y-4">
@@ -827,7 +823,6 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                     value={editingUserName}
                                                                     onChange={(e) => setEditingUserName(e.target.value)}
                                                                     placeholder="Enter user name"
-                                                                    className="bg-white border-gray-300"
                                                                 />
                                                             </div>
                                                             <div className="space-y-2">
@@ -837,7 +832,6 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                     value={editingUserUsername}
                                                                     onChange={(e) => setEditingUserUsername(e.target.value)}
                                                                     placeholder="Enter user username"
-                                                                    className="bg-white border-gray-300"
                                                                 />
                                                             </div>
                                                             <div className="space-y-2">
@@ -850,7 +844,6 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                 >
                                                                     <option value="">Select role...</option>
                                                                     <option value="Hospital Admin">Hospital Admin</option>
-                                                                    <option value="Doctor">Doctor</option>
                                                                     <option value="Reception">Reception</option>
                                                                     <option value="Pharmacy Admin">Pharmacy Admin</option>
                                                                     <option value="Laboratory Admin">Laboratory Admin</option>
@@ -876,7 +869,7 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                             <Button
                                                                 type="submit"
                                                                 disabled={updatingUserProfile}
-                                                                className="flex-1"
+                                                                className="flex-1 bg-amber-600 hover:bg-amber-700"
                                                             >
                                                                 {updatingUserProfile ? (
                                                                     <>

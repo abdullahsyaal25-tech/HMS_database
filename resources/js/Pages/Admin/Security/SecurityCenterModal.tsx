@@ -737,7 +737,7 @@ export default function SecurityCenterModal({ isOpen, onClose, currentUser }: Se
                                                 <Button
                                                     type="submit"
                                                     disabled={creatingUser || !userName.trim() || !userEmail.trim() || !userRole.trim()}
-                                                    className="w-full bg-green-600 hover:bg-green-700"
+                                                    className="w-full"
                                                 >
                                                     {creatingUser ? (
                                                         <>
@@ -873,7 +873,7 @@ export default function SecurityCenterModal({ isOpen, onClose, currentUser }: Se
                                                         <Button
                                                             type="submit"
                                                             disabled={updatingUserProfile}
-                                                            className="flex-1 bg-amber-600 hover:bg-amber-700"
+                                                            className="flex-1"
                                                         >
                                                             {updatingUserProfile ? (
                                                                 <>
