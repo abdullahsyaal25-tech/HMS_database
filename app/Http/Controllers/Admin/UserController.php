@@ -77,7 +77,7 @@ class UserController extends Controller
     public function show(string $id): Response
     {
         $currentUser = \Illuminate\Support\Facades\Auth::user();
-        $user = User::with('rolePermissions.permission')->findOrFail($id);
+        $user = User::with(['rolePermissions.permission', 'userPermissions.permission'])->findOrFail($id);
         
         // Security check: Only users with view-users permission can view user details
         if (!$currentUser->isSuperAdmin() && !$currentUser->hasPermission('view-users')) {
