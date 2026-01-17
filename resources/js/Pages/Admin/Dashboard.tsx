@@ -87,8 +87,12 @@ export default function AdminDashboard({ auth }: Props) {
     
     const getUserRoleBadge = (role: string) => {
         switch(role.toLowerCase()) {
-            case 'hospital admin':
+            case 'super admin':
                 return <Badge variant="destructive" className="ml-2">SUPER ADMIN</Badge>;
+            case 'sub super admin':
+                return <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-800">SUB SUPER ADMIN</Badge>;
+            case 'reception admin':
+                return <Badge variant="secondary" className="ml-2 bg-teal-100 text-teal-800">RECEPTION ADMIN</Badge>;
             case 'reception':
                 return <Badge variant="secondary" className="ml-2 bg-green-100 text-green-800">RECEPTION</Badge>;
             case 'pharmacy admin':
@@ -179,7 +183,7 @@ export default function AdminDashboard({ auth }: Props) {
                                 </Card>
                             </Link>
                         
-                        {(auth.user.role === 'Hospital Admin' || auth.user.role === 'Super Admin' || auth.user.permissions?.includes('manage-permissions')) && (
+                        {(auth.user.role === 'Super Admin' || auth.user.role === 'Sub Super Admin' || auth.user.permissions?.includes('manage-permissions')) && (
                             <Link href="/admin/permissions" className="block">
                                 <Card className="hover:shadow-md transition-shadow">
                                     <CardHeader className="flex flex-row items-center justify-between pb-4">
@@ -335,7 +339,7 @@ export default function AdminDashboard({ auth }: Props) {
                             <Link href="/admin/users">
                                 <Button className="bg-blue-50 text-blue-800 border border-blue-200 px-6 py-3 rounded-lg font-medium hover:bg-blue-100 transition-colors">Go to User Management</Button>
                             </Link>
-                            {(auth.user.role === 'Hospital Admin' || auth.user.role === 'Super Admin' || auth.user.permissions?.includes('view-activity-logs')) && (
+                            {(auth.user.role === 'Super Admin' || auth.user.permissions?.includes('view-activity-logs')) && (
                                 <Link href="/admin/activity-logs">
                                     <Button className="bg-blue-50 text-blue-800 border border-blue-200 px-6 py-3 rounded-lg font-medium hover:bg-blue-100 transition-colors">View Activity Logs</Button>
                                 </Link>
