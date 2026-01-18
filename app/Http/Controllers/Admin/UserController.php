@@ -23,7 +23,7 @@ class UserController extends Controller
     {
         $users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_at')
                      ->paginate(10);
-        
+
         return Inertia::render('Admin/Users/Index', [
             'users' => $users,
         ]);
@@ -39,7 +39,7 @@ class UserController extends Controller
                               ->distinct()
                               ->where('role', '!=', 'Super Admin')
                               ->pluck('role');
-        
+
         return Inertia::render('Admin/Users/Create', [
             'roles' => $roles,
         ]);
@@ -67,7 +67,7 @@ class UserController extends Controller
             'password' => Hash::make($request->password),
             'role' => $request->role,
         ]);
-        
+
         // Automatically assign default permissions based on role for NEW users only
         $this->assignDefaultPermissions($user, $request->role);
 
@@ -82,18 +82,18 @@ class UserController extends Controller
         $currentUser = \Illuminate\Support\Facades\Auth::user();
         $user = User::with(['userPermissions.permission'])->findOrFail($id);
         $rolePermissions = RolePermission::where('role', $user->role)->with('permission')->get();
-        
+
         // Security check: Only users with view-users permission can view user details
         if (!$currentUser->isSuperAdmin() && !$currentUser->hasPermission('view-users')) {
             abort(403, 'Unauthorized to view user details');
         }
-        
+
         // Check if current user can delete this user
         $canDelete = $this->canCurrentUserDelete($currentUser, $user);
-        
+
         // Check if current user can edit this user
         $canEdit = $this->canCurrentUserEdit($currentUser, $user);
-        
+
         return Inertia::render('Admin/Users/Show', [
             'user' => [
                 'id' => $user->id,
@@ -126,13 +126,13 @@ class UserController extends Controller
     public function edit(string $id): Response
     {
         $user = User::findOrFail($id);
-        
+
         // Get all available roles from role_permissions table, excluding Super Admin
         $roles = RolePermission::select('role')
                               ->distinct()
                               ->where('role', '!=', 'Super Admin')
                               ->pluck('role');
-        
+
         return Inertia::render('Admin/Users/Edit', [
             'user' => $user,
             'roles' => $roles,
@@ -229,13 +229,13 @@ class UserController extends Controller
     public function editPermissions(string $id): Response
     {
         $user = User::with('userPermissions.permission')->findOrFail($id);
-        
+
         // Get all available permissions
         $allPermissions = Permission::all();
-        
+
         // Get permissions currently assigned to the user
         $userPermissionIds = $user->userPermissions->pluck('permission_id')->toArray();
-        
+
         return Inertia::render('Admin/Users/EditPermissions', [
             'user' => [
                 'id' => $user->id,
@@ -254,35 +254,44 @@ class UserController extends Controller
      */
     public function updatePermissions(Request $request, string $id): RedirectResponse
     {
+        $startTime = microtime(true);
+        $startMemory = memory_get_usage();
+
         $currentUser = \Illuminate\Support\Facades\Auth::user();
         $user = User::findOrFail($id);
-        
+
         // Authorization check
         if (!$currentUser->isSuperAdmin() && !$currentUser->hasPermission('manage-users')) {
             abort(403, 'Unauthorized to manage user permissions');
         }
-        
+
         // Prevent modifying own permissions unless Super Admin
         if ($user->id === $currentUser->id && $currentUser->role !== 'Super Admin') {
             return redirect()->back()->with('error', 'Non-super admins cannot modify their own permissions.');
         }
-        
+
         // Prevent modifying Super Admin permissions unless current user is Super Admin
         if ($user->role === 'Super Admin' && $currentUser->role !== 'Super Admin') {
             return redirect()->back()->with('error', 'Only Super Admin can modify Super Admin permissions.');
         }
-        
+
         $request->validate([
             'permissions' => 'array',
             'permissions.*' => 'integer|exists:permissions,id'
         ]);
-        
+
+        // Validate permission dependencies
+        $dependencyErrors = $user->validatePermissionDependencies($request->permissions ?? []);
+        if (!empty($dependencyErrors)) {
+            return redirect()->back()->withErrors(['permissions' => $dependencyErrors])->withInput();
+        }
+
         // Get the permissions before the update for audit logging
         $previousPermissions = $user->userPermissions->pluck('permission_id')->toArray();
-        
+
         // Clear existing user-specific permissions
         $user->userPermissions()->delete();
-        
+
         // Add new permissions if provided
         if ($request->has('permissions') && is_array($request->permissions)) {
             foreach ($request->permissions as $permissionId) {
@@ -295,14 +304,21 @@ class UserController extends Controller
                 }
             }
         }
-        
+
+        // Clear permission cache for this user
+        $allPermissions = \App\Models\Permission::all()->pluck('name');
+        foreach ($allPermissions as $permissionName) {
+            \Illuminate\Support\Facades\Cache::forget("user_permission:{$user->id}:{$permissionName}");
+        }
+
         // Log the permission changes
         $newPermissions = $request->input('permissions', []);
-        
+        $allPermissions = \App\Models\Permission::all()->pluck('name', 'id');
+
         // Find added and removed permissions for audit log
         $addedPermissions = array_diff($newPermissions, $previousPermissions);
         $removedPermissions = array_diff($previousPermissions, $newPermissions);
-        
+
         $description = "Updated permissions for user {$user->name} (ID: {$user->id}). ";
         if (!empty($addedPermissions)) {
             $addedPermissionNames = Permission::whereIn('id', $addedPermissions)->pluck('name')->toArray();
@@ -315,7 +331,11 @@ class UserController extends Controller
         if (empty($addedPermissions) && empty($removedPermissions)) {
             $description .= "No changes made.";
         }
-        
+
+        // Calculate performance metrics
+        $endTime = microtime(true);
+        $endMemory = memory_get_usage();
+
         \App\Models\AuditLog::create([
             'user_id' => $currentUser->id,
             'user_name' => $currentUser->name,
@@ -324,15 +344,15 @@ class UserController extends Controller
             'description' => $description,
             'module' => 'User Management',
             'severity' => 'medium',
-            'response_time' => 0.1, // placeholder
-            'memory_usage' => 1000000, // placeholder
+            'response_time' => round(($endTime - $startTime) * 1000, 2), // in milliseconds
+            'memory_usage' => $endMemory - $startMemory,
             'request_method' => 'PUT',
             'request_url' => request()->fullUrl(),
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
             'logged_at' => now(),
         ]);
-        
+
         return redirect()->route('admin.users.show', $user->id)->with('success', 'User permissions updated successfully.');
     }
 
@@ -349,16 +369,16 @@ class UserController extends Controller
             'Laboratory Admin' => ['view-lab-tests', 'create-lab-tests', 'view-patients'],
             'Sub Super Admin' => ['view-users', 'manage-users', 'view-permissions'],
         ];
-        
+
         // Super Admin gets all permissions implicitly, so no need to assign
         if ($role === 'Super Admin') {
             return;
         }
-        
+
         // Get permission IDs for default permissions
         if (isset($defaultPermissions[$role])) {
             $permissionIds = Permission::whereIn('name', $defaultPermissions[$role])->pluck('id')->toArray();
-            
+
             // Assign permissions to the user
             foreach ($permissionIds as $permissionId) {
                 $user->userPermissions()->create([
@@ -368,7 +388,7 @@ class UserController extends Controller
             }
         }
     }
-    
+
     /**
      * Check if current user can delete the target user
      */
@@ -378,25 +398,25 @@ class UserController extends Controller
         if ($currentUser->id === $targetUser->id) {
             return false;
         }
-        
+
         // Super Admin can delete anyone except themselves
         if ($currentUser->isSuperAdmin()) {
             return true;
         }
-        
+
         // Sub Super Admin can delete regular users but not Super Admins
         if ($currentUser->role === 'Sub Super Admin') {
             return !$targetUser->isSuperAdmin();
         }
-        
+
         // Regular admins with manage-users permission can delete non-admin users
         if ($currentUser->hasPermission('manage-users')) {
             return !$targetUser->isSuperAdmin() && $targetUser->role !== 'Sub Super Admin';
         }
-        
+
         return false;
     }
-    
+
     /**
      * Check if current user can edit the target user
      */
@@ -406,25 +426,299 @@ class UserController extends Controller
         if ($currentUser->id === $targetUser->id) {
             return true;
         }
-        
+
         // Super Admin can edit anyone
         if ($currentUser->isSuperAdmin()) {
             return true;
         }
-        
+
         // Sub Super Admin can edit regular users but not Super Admins
         if ($currentUser->role === 'Sub Super Admin') {
             return !$targetUser->isSuperAdmin();
         }
-        
+
         // Regular admins with manage-users permission can edit non-admin users
         if ($currentUser->hasPermission('manage-users')) {
             return !$targetUser->isSuperAdmin() && $targetUser->role !== 'Sub Super Admin';
         }
-        
+
         return false;
     }
-    
+
+    /**
+     * Bulk update user permissions.
+     */
+    public function bulkUpdatePermissions(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $startTime = microtime(true);
+        $startMemory = memory_get_usage();
+
+        $currentUser = \Illuminate\Support\Facades\Auth::user();
+
+        // Authorization check
+        if (!$currentUser->isSuperAdmin() && !$currentUser->hasPermission('manage-users')) {
+            return response()->json(['error' => 'Unauthorized to manage user permissions'], 403);
+        }
+
+        $request->validate([
+            'user_ids' => 'required|array|min:1',
+            'user_ids.*' => 'integer|exists:users,id',
+            'permissions' => 'required|array',
+            'permissions.*' => 'integer|exists:permissions,id',
+            'operation' => 'required|in:add,remove,replace'
+        ]);
+
+        $userIds = $request->user_ids;
+        $permissionIds = $request->permissions;
+        $operation = $request->operation;
+
+        $users = User::whereIn('id', $userIds)->get();
+        $permissions = Permission::whereIn('id', $permissionIds)->get();
+
+        $results = [];
+        $errors = [];
+
+        foreach ($users as $user) {
+            // Prevent modifying own permissions unless Super Admin
+            if ($user->id === $currentUser->id && $currentUser->role !== 'Super Admin') {
+                $errors[] = "Cannot modify own permissions for user {$user->name}";
+                continue;
+            }
+
+            // Prevent modifying Super Admin permissions unless current user is Super Admin
+            if ($user->role === 'Super Admin' && $currentUser->role !== 'Super Admin') {
+                $errors[] = "Cannot modify Super Admin permissions for user {$user->name}";
+                continue;
+            }
+
+            // Get current permissions for audit logging
+            $previousPermissions = $user->userPermissions->pluck('permission_id')->toArray();
+
+            // Perform the operation
+            if ($operation === 'add') {
+                // Add permissions (avoid duplicates)
+                foreach ($permissionIds as $permissionId) {
+                    $existing = $user->userPermissions()->where('permission_id', $permissionId)->first();
+                    if (!$existing) {
+                        $user->userPermissions()->create([
+                            'permission_id' => $permissionId,
+                            'allowed' => true,
+                        ]);
+                    }
+                }
+            } elseif ($operation === 'remove') {
+                // Remove specified permissions
+                $user->userPermissions()->whereIn('permission_id', $permissionIds)->delete();
+            } elseif ($operation === 'replace') {
+                // Replace all permissions
+                $user->userPermissions()->delete();
+                foreach ($permissionIds as $permissionId) {
+                    $user->userPermissions()->create([
+                        'permission_id' => $permissionId,
+                        'allowed' => true,
+                    ]);
+                }
+            }
+
+            // Clear permission cache
+            $allPermissions = Permission::all()->pluck('name');
+            foreach ($allPermissions as $permissionName) {
+                \Illuminate\Support\Facades\Cache::forget("user_permission:{$user->id}:{$permissionName}");
+            }
+
+            // Log the changes
+            $newPermissions = $user->userPermissions->pluck('permission_id')->toArray();
+            $addedPermissions = array_diff($newPermissions, $previousPermissions);
+            $removedPermissions = array_diff($previousPermissions, $newPermissions);
+
+            $description = "Bulk {$operation} permissions for user {$user->name} (ID: {$user->id}). ";
+            if (!empty($addedPermissions)) {
+                $addedPermissionNames = Permission::whereIn('id', $addedPermissions)->pluck('name')->toArray();
+                $description .= "Added: " . implode(', ', $addedPermissionNames) . ". ";
+            }
+            if (!empty($removedPermissions)) {
+                $removedPermissionNames = Permission::whereIn('id', $removedPermissions)->pluck('name')->toArray();
+                $description .= "Removed: " . implode(', ', $removedPermissionNames) . ". ";
+            }
+
+            $results[] = [
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'success' => true,
+                'added' => count($addedPermissions),
+                'removed' => count($removedPermissions)
+            ];
+
+            // Calculate performance metrics
+            $endTime = microtime(true);
+            $endMemory = memory_get_usage();
+
+            AuditLog::create([
+                'user_id' => $currentUser->id,
+                'user_name' => $currentUser->name,
+                'user_role' => $currentUser->role,
+                'action' => 'Bulk Update User Permissions',
+                'description' => $description,
+                'module' => 'User Management',
+                'severity' => 'medium',
+                'response_time' => round(($endTime - $startTime) * 1000, 2),
+                'memory_usage' => $endMemory - $startMemory,
+                'request_method' => 'POST',
+                'request_url' => request()->fullUrl(),
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'logged_at' => now(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'results' => $results,
+            'errors' => $errors,
+            'message' => count($results) . ' users updated successfully' . (count($errors) > 0 ? ', ' . count($errors) . ' errors' : '')
+        ]);
+    }
+
+    /**
+     * Get permission templates.
+     */
+    public function getPermissionTemplates(): \Illuminate\Http\JsonResponse
+    {
+        $templates = [
+            'read-only-user' => [
+                'name' => 'Read-Only User',
+                'description' => 'Basic read-only access to essential hospital data',
+                'permissions' => [
+                    'view-patients', 'view-appointments', 'view-dashboard', 'view-reports'
+                ]
+            ],
+            'power-user' => [
+                'name' => 'Power User',
+                'description' => 'Full access to most hospital operations except administration',
+                'permissions' => [
+                    'view-patients', 'create-patients', 'edit-patients', 'delete-patients',
+                    'view-appointments', 'create-appointments', 'edit-appointments', 'delete-appointments',
+                    'view-doctors', 'create-doctors', 'edit-doctors',
+                    'view-billing', 'create-billing', 'edit-billing',
+                    'view-pharmacy', 'view-medicines', 'create-medicines', 'edit-medicines',
+                    'view-laboratory', 'view-lab-tests', 'create-lab-tests', 'edit-lab-tests',
+                    'view-reports', 'view-dashboard'
+                ]
+            ],
+            'department-admin' => [
+                'name' => 'Department Admin',
+                'description' => 'Administrative access limited to specific department operations',
+                'permissions' => [
+                    'view-users', 'manage-users', 'view-permissions', 'manage-permissions',
+                    'view-departments', 'create-departments', 'edit-departments', 'delete-departments'
+                ]
+            ],
+            'clinical-staff' => [
+                'name' => 'Clinical Staff',
+                'description' => 'Access for nurses, technicians, and other clinical support staff',
+                'permissions' => [
+                    'view-patients', 'create-patients', 'edit-patients',
+                    'view-appointments', 'create-appointments', 'edit-appointments',
+                    'view-lab-tests', 'create-lab-tests', 'edit-lab-tests',
+                    'view-medicines', 'create-medicines'
+                ]
+            ],
+            'billing-specialist' => [
+                'name' => 'Billing Specialist',
+                'description' => 'Specialized access for billing and financial operations',
+                'permissions' => [
+                    'view-billing', 'create-billing', 'edit-billing', 'delete-billing',
+                    'view-reports', 'view-dashboard'
+                ]
+            ]
+        ];
+
+        // Convert permission names to IDs
+        foreach ($templates as &$template) {
+            $permissionIds = Permission::whereIn('name', $template['permissions'])->pluck('id')->toArray();
+            $template['permission_ids'] = $permissionIds;
+            unset($template['permissions']);
+        }
+
+        return response()->json([
+            'success' => true,
+            'templates' => $templates
+        ]);
+    }
+
+    /**
+     * Analyze permission change impact.
+     */
+    public function analyzePermissionImpact(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'proposed_permissions' => 'required|array',
+            'proposed_permissions.*' => 'integer|exists:permissions,id'
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+        $proposedPermissionIds = $request->proposed_permissions;
+        $currentPermissionIds = $user->userPermissions->pluck('permission_id')->toArray();
+
+        // Find added and removed permissions
+        $addedPermissions = array_diff($proposedPermissionIds, $currentPermissionIds);
+        $removedPermissions = array_diff($currentPermissionIds, $proposedPermissionIds);
+
+        $impact = [
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'role' => $user->role
+            ],
+            'changes' => [
+                'added' => Permission::whereIn('id', $addedPermissions)->get(['id', 'name', 'category', 'resource'])->toArray(),
+                'removed' => Permission::whereIn('id', $removedPermissions)->get(['id', 'name', 'category', 'resource'])->toArray(),
+                'unchanged' => Permission::whereIn('id', $currentPermissionIds)->whereIn('id', $proposedPermissionIds)->get(['id', 'name', 'category', 'resource'])->toArray()
+            ],
+            'dependency_warnings' => [],
+            'security_risks' => [],
+            'impact_level' => 'low'
+        ];
+
+        // Check for dependency violations
+        $dependencyErrors = $user->validatePermissionDependencies($proposedPermissionIds);
+        if (!empty($dependencyErrors)) {
+            $impact['dependency_warnings'] = $dependencyErrors;
+            $impact['impact_level'] = 'medium';
+        }
+
+        // Analyze security risks
+        $highRiskPermissions = ['manage-users', 'manage-permissions', 'delete-users', 'view-server-management'];
+        $addedHighRisk = Permission::whereIn('id', $addedPermissions)->whereIn('name', $highRiskPermissions)->pluck('name')->toArray();
+
+        if (!empty($addedHighRisk)) {
+            $impact['security_risks'][] = "Adding high-risk permissions: " . implode(', ', $addedHighRisk);
+            $impact['impact_level'] = 'high';
+        }
+
+        // Check if removing critical permissions that other permissions depend on
+        foreach ($removedPermissions as $permissionId) {
+            $dependencies = PermissionDependency::where('depends_on_permission_id', $permissionId)->get();
+            if ($dependencies->count() > 0) {
+                $dependentPermissions = $dependencies->pluck('permission.name')->toArray();
+                $impact['dependency_warnings'][] = "Removing permission that others depend on. Affected permissions: " . implode(', ', $dependentPermissions);
+                $impact['impact_level'] = 'high';
+            }
+        }
+
+        // Calculate permission counts by category
+        $impact['category_summary'] = [
+            'current' => Permission::whereIn('id', $currentPermissionIds)->selectRaw('category, COUNT(*) as count')->groupBy('category')->pluck('count', 'category')->toArray(),
+            'proposed' => Permission::whereIn('id', $proposedPermissionIds)->selectRaw('category, COUNT(*) as count')->groupBy('category')->pluck('count', 'category')->toArray()
+        ];
+
+        return response()->json([
+            'success' => true,
+            'impact' => $impact
+        ]);
+    }
+
     /**
      * Get all available roles from the role permissions, excluding Super Admin.
      */

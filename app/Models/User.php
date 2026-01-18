@@ -8,7 +8,10 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Patient;
+use App\Models\PermissionDependency;
+use App\Models\TemporaryPermission;
 
 class User extends Authenticatable
 {
@@ -58,7 +61,7 @@ class User extends Authenticatable
         if (is_array($roles)) {
             return in_array($this->role, $roles);
         }
-        
+
         return $this->role === $roles;
     }
 
@@ -66,58 +69,77 @@ class User extends Authenticatable
     {
         return $this->hasMany(Patient::class);
     }
-    
+
     public function rolePermissions()
     {
         return $this->hasManyThrough(RolePermission::class, Permission::class, 'id', 'permission_id');
     }
-    
+
     public function userPermissions()
     {
         return $this->hasMany(UserPermission::class);
     }
-    
+
+    public function temporaryPermissions()
+    {
+        return $this->hasMany(TemporaryPermission::class);
+    }
+
     public function hasPermission($permissionName): bool
     {
         // Debug: Log permission check
-      
-        
+
+
         // Super admin check: Super Admin has all permissions
         if ($this->role === 'Super Admin') {
-
             return true;
         }
-        
+
+        $cacheKey = "user_permission:{$this->id}:{$permissionName}";
+
+        return Cache::remember($cacheKey, 900, function () use ($permissionName) {
+
         // First, check if there's a specific user permission override
         $userPermission = $this->userPermissions()
             ->whereHas('permission', function ($query) use ($permissionName) {
                 $query->where('name', $permissionName);
             })
             ->first();
-        
+
         if ($userPermission) {
-        
-            
+
+
             // If there's a specific user permission, return its allowed status
             return $userPermission->allowed;
         }
-        
+
         // If no specific user permission exists, fall back to role-based permissions
         $rolePermissionExists = RolePermission::where('role', $this->role)
             ->whereHas('permission', function ($query) use ($permissionName) {
                 $query->where('name', $permissionName);
             })
             ->exists();
-        
+
         if ($rolePermissionExists) {
-           
             return true;
         }
-        
-    
+
+        // Check for active temporary permissions
+        $temporaryPermissionExists = $this->temporaryPermissions()
+            ->active()
+            ->whereHas('permission', function ($query) use ($permissionName) {
+                $query->where('name', $permissionName);
+            })
+            ->exists();
+
+        if ($temporaryPermissionExists) {
+            return true;
+        }
+
         return false;
+        });
     }
-    
+
     public function hasAnyPermission($permissions): bool
     {
         foreach ($permissions as $permission) {
@@ -125,10 +147,10 @@ class User extends Authenticatable
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     public function hasAllPermissions($permissions): bool
     {
         foreach ($permissions as $permission) {
@@ -136,10 +158,10 @@ class User extends Authenticatable
                 return false;
             }
         }
-        
+
         return true;
     }
-    
+
     /**
      * Check if the user is a super admin
      */
@@ -155,5 +177,28 @@ class User extends Authenticatable
     public function isDeletable(): bool
     {
         return !$this->isSuperAdmin();
+    }
+
+    /**
+     * Validate permission dependencies for a set of permissions
+     */
+    public function validatePermissionDependencies(array $permissionIds): array
+    {
+        $errors = [];
+        $currentPermissions = collect($permissionIds);
+
+        foreach ($permissionIds as $permissionId) {
+            $dependencies = PermissionDependency::where('permission_id', $permissionId)
+                ->with('dependsOnPermission')
+                ->get();
+
+            foreach ($dependencies as $dependency) {
+                if (!$currentPermissions->contains($dependency->depends_on_permission_id)) {
+                    $errors[] = "Permission '{$dependency->permission->name}' requires '{$dependency->dependsOnPermission->name}'";
+                }
+            }
+        }
+
+        return $errors;
     }
 }

@@ -12,8 +12,9 @@ class Permission extends Model
         'description',
         'resource',
         'action',
+        'category',
     ];
-    
+
     public function rolePermissions(): HasMany
     {
         return $this->hasMany(RolePermission::class, 'permission_id');

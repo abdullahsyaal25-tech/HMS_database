@@ -147,7 +147,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/billing', [ReportController::class, 'billingReport'])->name('reports.billing');
         Route::get('/pharmacy-sales', [ReportController::class, 'pharmacySalesReport'])->name('reports.pharmacy-sales');
         Route::get('/lab-test', [ReportController::class, 'labTestReport'])->name('reports.lab-test');
-        
+
         // Additional statistics reports
         Route::get('/daily-stats', [ReportController::class, 'dailyStats'])->name('reports.daily-stats');
         Route::get('/doctor-workload', [ReportController::class, 'doctorWorkload'])->name('reports.doctor-workload');
@@ -180,9 +180,14 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{user}/permissions', [App\Http\Controllers\Admin\UserController::class, 'editPermissions'])->name('admin.users.permissions.edit')->middleware('auth');
             Route::put('/{user}/permissions', [App\Http\Controllers\Admin\UserController::class, 'updatePermissions'])->name('admin.users.permissions.update')->middleware('auth');
 
+            // Bulk operations and templates
+            Route::post('/bulk-permissions', [App\Http\Controllers\Admin\UserController::class, 'bulkUpdatePermissions'])->name('admin.users.bulk-permissions')->middleware('auth');
+            Route::get('/permission-templates', [App\Http\Controllers\Admin\UserController::class, 'getPermissionTemplates'])->name('admin.users.permission-templates')->middleware('auth');
+            Route::post('/analyze-permission-impact', [App\Http\Controllers\Admin\UserController::class, 'analyzePermissionImpact'])->name('admin.users.analyze-permission-impact')->middleware('auth');
+
             Route::delete('/{user}', [App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('admin.users.destroy')->middleware('auth');
         });
-        
+
         // Permissions Management Routes
         Route::prefix('permissions')->group(function () {
             Route::get('/', [App\Http\Controllers\Admin\PermissionsController::class, 'index'])->name('admin.permissions.index')->middleware('auth');
@@ -192,7 +197,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/users/{user}/edit', [App\Http\Controllers\Admin\PermissionsController::class, 'editUserPermissions'])->name('admin.permissions.users.edit')->middleware('auth');
             Route::put('/users/{user}', [App\Http\Controllers\Admin\PermissionsController::class, 'updateUserPermissions'])->name('admin.permissions.users.update')->middleware('auth');
         });
-        
+
         // Security Center Route
         Route::get('/security', function () {
             $user = Auth::user();
