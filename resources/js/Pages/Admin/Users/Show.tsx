@@ -316,39 +316,66 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {user.rolePermissions && user.rolePermissions.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {user.rolePermissions.map((rolePermission) => (
-                                    <div 
-                                        key={rolePermission.permission.id} 
-                                        className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-white"
-                                    >
-                                        <div className="flex items-start justify-between mb-2">
-                                            <h4 className="font-semibold text-gray-900">{rolePermission.permission.name}</h4>
-                                            <Badge variant="outline" className="text-xs">
-                                                {rolePermission.permission.action}
-                                            </Badge>
+                        {(() => {
+                            // Combine role-based and user-specific permissions
+                            const allPermissions = [
+                                ...user.rolePermissions.map(rp => ({
+                                    ...rp.permission,
+                                    type: 'role-based',
+                                    id: `role-${rp.permission.id}`
+                                })),
+                                ...user.userPermissions.map(up => ({
+                                    ...up,
+                                    type: 'user-specific',
+                                    id: `user-${up.id}`
+                                }))
+                            ];
+                            
+                            return allPermissions.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {allPermissions.map((permission) => (
+                                        <div 
+                                            key={permission.id}
+                                            className={`border rounded-lg p-4 hover:shadow-md transition-shadow bg-white ${
+                                                permission.type === 'user-specific' 
+                                                    ? 'border-green-200 bg-green-50' 
+                                                    : 'border-gray-200'
+                                            }`}
+                                        >
+                                            <div className="flex items-start justify-between mb-2">
+                                                <h4 className="font-semibold text-gray-900">{permission.name}</h4>
+                                                <div className="flex gap-1">
+                                                    {permission.type === 'user-specific' && (
+                                                        <Badge variant="outline" className="text-xs bg-green-100 border-green-300">
+                                                            User
+                                                        </Badge>
+                                                    )}
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {permission.action}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                            <p className="text-sm text-gray-600 mb-3">
+                                                {permission.description}
+                                            </p>
+                                            <div className="flex flex-wrap gap-1">
+                                                <Badge variant="secondary" className="text-xs">
+                                                    {permission.resource}
+                                                </Badge>
+                                            </div>
                                         </div>
-                                        <p className="text-sm text-gray-600 mb-3">
-                                            {rolePermission.permission.description}
-                                        </p>
-                                        <div className="flex flex-wrap gap-1">
-                                            <Badge variant="secondary" className="text-xs">
-                                                {rolePermission.permission.resource}
-                                            </Badge>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-8">
-                                <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                                    <Key className="h-6 w-6 text-gray-400" />
+                                    ))}
                                 </div>
-                                <h3 className="text-lg font-medium text-gray-900 mb-1">No Permissions Assigned</h3>
-                                <p className="text-gray-500">This user currently has no specific permissions assigned.</p>
-                            </div>
-                        )}
+                            ) : (
+                                <div className="text-center py-8">
+                                    <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                                        <Key className="h-6 w-6 text-gray-400" />
+                                    </div>
+                                    <h3 className="text-lg font-medium text-gray-900 mb-1">No Permissions Assigned</h3>
+                                    <p className="text-gray-500">This user currently has no specific permissions assigned.</p>
+                                </div>
+                            );
+                        })()}
                     </CardContent>
                 </Card>
             </div>
