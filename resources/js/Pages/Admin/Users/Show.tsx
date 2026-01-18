@@ -200,8 +200,7 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                 <Link href={`/admin/users/${user.id}/permissions`}>
                                     <Button 
                                         variant="outline" 
-                                        className="w-full gap-2 justify-start h-12"
-                                    >
+                                        className="hover:bg-gray-100  w-full gap-2 justify-start h-12">
                                         <Key className="h-4 w-4" />
                                         Manage Permissions
                                     </Button>
@@ -210,15 +209,16 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                 {canDelete ? (
                                     <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                                         <DialogTrigger asChild>
+                                            
                                             <Button 
                                                 variant="destructive" 
-                                                className="w-full gap-2 justify-start h-12"
+                                                className="text-red-600 border-1 border-red-600 hover:bg-red-50 w-full gap-2 justify-start h-12 "
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                                 Delete User
                                             </Button>
                                         </DialogTrigger>
-                                        <DialogContent>
+                                        <DialogContent className="bg-white">
                                             <DialogHeader>
                                                 <DialogTitle className="flex items-center gap-2">
                                                     <Trash2 className="h-5 w-5 text-red-600" />
@@ -241,7 +241,7 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                                     variant="destructive" 
                                                     onClick={handleDelete}
                                                     disabled={isDeleting}
-                                                    className="gap-2"
+                                                    className="gap-2 border-2 border-red-600 text-red-600 hover:bg-red-50"
                                                 >
                                                     {isDeleting ? (
                                                         <>
