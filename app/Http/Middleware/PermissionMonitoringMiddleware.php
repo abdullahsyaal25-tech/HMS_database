@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use App\Services\PermissionMonitoringService;
 use App\Services\PermissionAlertService;
 use Symfony\Component\HttpFoundation\Response;
@@ -39,35 +40,53 @@ class PermissionMonitoringMiddleware
             'method' => $request->method(),
         ];
 
-        $response = $next($request);
+        try {
+            $response = $next($request);
+        } catch (\Exception $e) {
+            Log::error('Exception in PermissionMonitoringMiddleware during request handling', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'data' => $permissionCheckData,
+            ]);
+            throw $e;
+        }
 
         $endTime = microtime(true);
         $executionTime = round(($endTime - $startTime) * 1000, 2); // in milliseconds
 
-        // Log permission check performance
-        $this->monitoringService->logPermissionCheckTime($executionTime, $permissionCheckData);
+        try {
+            // Log permission check performance
+            $this->monitoringService->logPermissionCheckTime($executionTime, $permissionCheckData);
 
-        // Check for permission-related errors (403, 401)
-        if ($response->getStatusCode() === 403) {
-            // Permission denied - log as failed attempt
-            $this->monitoringService->logFailedAttempt(array_merge($permissionCheckData, [
-                'error_type' => 'permission_denied',
-                'status_code' => 403,
-            ]));
+            // Check for permission-related errors (403, 401)
+            if ($response->getStatusCode() === 403) {
+                // Permission denied - log as failed attempt
+                $this->monitoringService->logFailedAttempt(array_merge($permissionCheckData, [
+                    'error_type' => 'permission_denied',
+                    'status_code' => 403,
+                ]));
 
-            // Check if this looks like suspicious activity
-            $this->checkForSuspiciousActivity($request, $user);
-        } elseif ($response->getStatusCode() === 401) {
-            // Unauthorized - could be authentication issue
-            $this->monitoringService->logFailedAttempt(array_merge($permissionCheckData, [
-                'error_type' => 'unauthorized',
-                'status_code' => 401,
-            ]));
-        }
+                // Check if this looks like suspicious activity
+                $this->checkForSuspiciousActivity($request, $user);
+            } elseif ($response->getStatusCode() === 401) {
+                // Unauthorized - could be authentication issue
+                $this->monitoringService->logFailedAttempt(array_merge($permissionCheckData, [
+                    'error_type' => 'unauthorized',
+                    'status_code' => 401,
+                ]));
+            }
 
-        // Log successful permission checks (for audit trail)
-        if ($response->getStatusCode() === 200 && str_contains($request->path(), 'permissions')) {
-            $this->monitoringService->logMetric('permission_check_success', 1, $permissionCheckData);
+            // Log successful permission checks (for audit trail)
+            if ($response->getStatusCode() === 200 && str_contains($request->path(), 'permissions')) {
+                $this->monitoringService->logMetric('permission_check_success', 1, $permissionCheckData);
+            }
+        } catch (\Exception $e) {
+            Log::error('Exception in PermissionMonitoringMiddleware during monitoring', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'data' => $permissionCheckData,
+            ]);
+            // Don't throw here, as the response is already generated
         }
 
         // Add monitoring headers

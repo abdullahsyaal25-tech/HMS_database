@@ -7,8 +7,10 @@ use App\Models\User;
 use App\Models\RolePermission;
 use App\Models\Permission;
 use App\Models\AuditLog;
+use App\Models\PermissionDependency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,12 +23,24 @@ class UserController extends Controller
      */
     public function index(): Response
     {
-        $users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_at')
-                     ->paginate(10);
+        Log::debug('UserController index method called');
 
-        return Inertia::render('Admin/Users/Index', [
-            'users' => $users,
-        ]);
+        try {
+            $users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_at')
+                         ->paginate(10);
+
+            Log::debug('User query executed successfully', ['user_count' => $users->count()]);
+
+            return Inertia::render('Admin/Users/Index', [
+                'users' => $users,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in UserController index', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -699,11 +713,19 @@ class UserController extends Controller
 
         // Check if removing critical permissions that other permissions depend on
         foreach ($removedPermissions as $permissionId) {
-            $dependencies = PermissionDependency::where('depends_on_permission_id', $permissionId)->get();
-            if ($dependencies->count() > 0) {
-                $dependentPermissions = $dependencies->pluck('permission.name')->toArray();
-                $impact['dependency_warnings'][] = "Removing permission that others depend on. Affected permissions: " . implode(', ', $dependentPermissions);
-                $impact['impact_level'] = 'high';
+            Log::debug("Checking dependencies for permission ID: {$permissionId}");
+            try {
+                $dependencies = PermissionDependency::where('depends_on_permission_id', $permissionId)->with('permission')->get();
+                Log::debug("Found {$dependencies->count()} dependencies for permission ID: {$permissionId}");
+                if ($dependencies->count() > 0) {
+                    $dependentPermissions = $dependencies->pluck('permission.name')->toArray();
+                    Log::debug("Dependent permissions: " . implode(', ', $dependentPermissions));
+                    $impact['dependency_warnings'][] = "Removing permission that others depend on. Affected permissions: " . implode(', ', $dependentPermissions);
+                    $impact['impact_level'] = 'high';
+                }
+            } catch (\Exception $e) {
+                Log::error("Error checking dependencies for permission ID {$permissionId}: " . $e->getMessage());
+                throw $e;
             }
         }
 
