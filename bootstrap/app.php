@@ -25,6 +25,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'check.permission' => \App\Http\Middleware\CheckPermission::class,
+            'permission.monitoring' => \App\Http\Middleware\PermissionMonitoringMiddleware::class,
+            'permission.ip.restriction' => \App\Http\Middleware\PermissionIpRestrictionMiddleware::class,
+            'permission.rate.limit' => \App\Http\Middleware\PermissionRateLimitMiddleware::class,
+            'permission.session' => \App\Http\Middleware\PermissionSessionMiddleware::class,
         ]);
 
         $middleware->web(append: [
