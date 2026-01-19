@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, Save, Shield, CheckCircle, XCircle, Settings, Filter, Search, ChevronDown, ChevronRight, AlertTriangle, Link, Zap, Clock, Undo, Template, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Save, Shield, CheckCircle, XCircle, Settings, Filter, Search, ChevronDown, ChevronRight, AlertTriangle, Link, Zap, Undo, Layout } from 'lucide-react';
 import { PageProps } from '@/types';
 import HospitalLayout from '@/layouts/HospitalLayout';
 import { useState, useEffect, useCallback } from 'react';
@@ -69,7 +69,6 @@ interface PermissionCategory {
 
 export default function UserEditPermissions({ user, allPermissions, userPermissionIds }: EditPermissionsProps) {
     const [selectedPermissions, setSelectedPermissions] = useState<number[]>(userPermissionIds);
-    const [originalPermissions, setOriginalPermissions] = useState<number[]>(userPermissionIds);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('all');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -251,7 +250,6 @@ export default function UserEditPermissions({ user, allPermissions, userPermissi
         }, {
             onSuccess: () => {
                 setIsSubmitting(false);
-                setOriginalPermissions(selectedPermissions);
             },
             onError: () => {
                 setIsSubmitting(false);
@@ -285,7 +283,7 @@ export default function UserEditPermissions({ user, allPermissions, userPermissi
 
                         <div className="flex flex-wrap gap-3">
                             <Button variant="outline" onClick={() => setShowTemplateDialog(true)} className="gap-2">
-                                <Template className="h-4 w-4" />
+                                <Layout className="h-4 w-4" />
                                 Templates
                             </Button>
                             {canUndo && (
@@ -346,7 +344,7 @@ export default function UserEditPermissions({ user, allPermissions, userPermissi
                                             return (
                                                 <div key={permission.id} className="flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
                                                     <div className="flex items-center gap-1">
-                                                        <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                                        <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
                                                         {riskLevel === 'high' && <AlertTriangle className="h-3 w-3 text-red-500" />}
                                                         {riskLevel === 'medium' && <AlertTriangle className="h-3 w-3 text-orange-500" />}
                                                     </div>
@@ -639,7 +637,7 @@ export default function UserEditPermissions({ user, allPermissions, userPermissi
                     <DialogContent className="max-w-2xl">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
-                                <Template className="h-5 w-5" />
+                                <Layout className="h-5 w-5" />
                                 Permission Templates
                             </DialogTitle>
                             <DialogDescription>
