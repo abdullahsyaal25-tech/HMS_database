@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, User, Calendar, Shield, Key, Trash2, Edit, Lock, Info } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Shield, Key, Trash2, Edit, Lock, Info, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { PageProps } from '@/types';
 import HospitalLayout from '@/layouts/HospitalLayout';
@@ -344,7 +344,7 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                         >
                                             <div className="flex items-start justify-between mb-2">
                                                 <h4 className="font-semibold text-gray-900">{permission.name}</h4>
-                                                <div className="flex gap-1">
+                                                <div className="flex items-center gap-1">
                                                     {permission.type === 'user-specific' && (
                                                         <Badge variant="outline" className="text-xs bg-green-100 border-green-300">
                                                             User
@@ -353,6 +353,21 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                                     <Badge variant="outline" className="text-xs">
                                                         {permission.action}
                                                     </Badge>
+                                                    {permission.type === 'user-specific' && (
+                                                        <Button
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                router.delete(`/admin/users/${user.id}/permissions/${permission.id}`, {
+                                                                    preserveScroll: true,
+                                                                });
+                                                            }}
+                                                            className="shrink-0"
+                                                        >
+                                                            <XCircle className="h-4 w-4 mr-1" />
+                                                            Remove
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </div>
                                             <p className="text-sm text-gray-600 mb-3">

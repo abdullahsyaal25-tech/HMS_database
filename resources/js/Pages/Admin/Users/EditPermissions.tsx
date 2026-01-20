@@ -399,7 +399,7 @@ export default function UserEditPermissions({ user, allPermissions, userPermissi
 
                             <CardContent>
                                 {/* Filters */}
-                                <div className="mb-6 flex flex-col sm:flex-row gap-4">
+                                <div className="bg-white mb-6 flex flex-col sm:flex-row gap-4">
                                     <div className="flex-1">
                                         <div className="relative">
                                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -630,7 +630,7 @@ export default function UserEditPermissions({ user, allPermissions, userPermissi
 
                 {/* Confirmation Dialog */}
                 <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-                    <DialogContent>
+                    <DialogContent className='bg-white p-6 rounded-lg'>
                         <DialogHeader>
                             <DialogTitle>Confirm Permission Changes</DialogTitle>
                             <DialogDescription>
@@ -650,7 +650,7 @@ export default function UserEditPermissions({ user, allPermissions, userPermissi
 
                 {/* Template Dialog */}
                 <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
-                    <DialogContent className="max-w-2xl">
+                    <DialogContent className="max-w-2xl bg-white p-6 rounded-lg">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
                                 <Layout className="h-5 w-5" />
