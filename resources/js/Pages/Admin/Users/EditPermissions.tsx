@@ -363,7 +363,7 @@ export default function UserEditPermissions({ user, allPermissions, userPermissi
                                                                 preserveScroll: true,
                                                             });
                                                         }}
-                                                        className="shrink-0"
+                                                        className="bg-red-500 hover:bg-red-600 text-white shrink-0"
                                                     >
                                                         <XCircle className="h-4 w-4 mr-1" />
                                                         Remove
