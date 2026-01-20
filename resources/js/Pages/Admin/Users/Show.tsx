@@ -41,7 +41,7 @@ interface ShowUserProps extends PageProps {
 export default function UserShow({ user, canDelete, canEdit, currentUserRole }: ShowUserProps) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
-    
+
     const handleDelete = () => {
         setIsDeleting(true);
         router.delete(`/admin/users/${user.id}`, {
@@ -67,7 +67,7 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
     return (
         <HospitalLayout header="User Details">
             <Head title={`User Details - ${user.name}`} />
-            
+
             <div className="container mx-auto px-4 py-6 max-w-7xl">
                 {/* Header Section */}
                 <div className="mb-8">
@@ -83,7 +83,7 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                     Back to Users
                                 </Button>
                             </Link>
-                            
+
                             {canEdit && (
                                 <Link href={`/admin/users/${user.id}/edit`}>
                                     <Button className="gap-2 bg-blue-600 hover:bg-blue-700">
@@ -94,7 +94,7 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                             )}
                         </div>
                     </div>
-                    
+
                     {/* Security Status Banner */}
                     <div className="mb-6">
                         <Alert className={`${user.isSuperAdmin ? 'border-red-200 bg-red-50' : 'border-blue-200 bg-blue-50'}`}>
@@ -127,7 +127,7 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                     <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Full Name</h3>
                                     <p className="text-lg font-semibold text-gray-900">{user.name}</p>
                                 </div>
-                                
+
                                 <div className="space-y-2">
                                     <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Username</h3>
                                     <div className="flex items-center gap-2">
@@ -135,11 +135,11 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                         <Badge variant="secondary" className="text-xs">@{user.username}</Badge>
                                     </div>
                                 </div>
-                                
+
                                 <div className="space-y-2">
                                     <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Role & Permissions</h3>
                                     <div className="flex items-center gap-2">
-                                        <Badge 
+                                        <Badge
                                             variant={user.isSuperAdmin ? "destructive" : "default"}
                                             className="px-3 py-1 text-sm"
                                         >
@@ -150,13 +150,13 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                         )}
                                     </div>
                                 </div>
-                                
+
                                 <div className="space-y-2">
                                     <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Account ID</h3>
                                     <p className="text-lg font-mono text-gray-700">#{user.id}</p>
                                 </div>
                             </div>
-                            
+
                             <div className="border-t pt-6">
                                 <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-4">Account Timeline</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -169,7 +169,7 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                             <p className="text-sm text-gray-600">{formatDate(user.created_at)}</p>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-blue-100 rounded-full">
                                             <Calendar className="h-5 w-5 text-blue-600" />
@@ -198,20 +198,20 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <Link href={`/admin/users/${user.id}/permissions`}>
-                                    <Button 
-                                        variant="outline" 
+                                    <Button
+                                        variant="outline"
                                         className="hover:bg-gray-100  w-full gap-2 justify-start h-12">
                                         <Key className="h-4 w-4" />
                                         Manage Permissions
                                     </Button>
                                 </Link>
-                                
+
                                 {canDelete ? (
                                     <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                                         <DialogTrigger asChild>
-                                            
-                                            <Button 
-                                                variant="destructive" 
+
+                                            <Button
+                                                variant="destructive"
                                                 className="text-red-600 border-1 border-red-600 hover:bg-red-50 w-full gap-2 justify-start h-12 "
                                             >
                                                 <Trash2 className="h-4 w-4" />
@@ -225,20 +225,20 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                                     Confirm Account Deletion
                                                 </DialogTitle>
                                                 <DialogDescription>
-                                                    Are you sure you want to delete the account for <strong>{user.name}</strong>? 
+                                                    Are you sure you want to delete the account for <strong>{user.name}</strong>?
                                                     This action cannot be undone and will permanently remove all associated data.
                                                 </DialogDescription>
                                             </DialogHeader>
                                             <DialogFooter className="gap-3">
-                                                <Button 
-                                                    variant="outline" 
+                                                <Button
+                                                    variant="outline"
                                                     onClick={() => setIsDeleteDialogOpen(false)}
                                                     disabled={isDeleting}
                                                 >
                                                     Cancel
                                                 </Button>
-                                                <Button 
-                                                    variant="destructive" 
+                                                <Button
+                                                    variant="destructive"
                                                     onClick={handleDelete}
                                                     disabled={isDeleting}
                                                     className="gap-2 border-2 border-red-600 text-red-600 hover:bg-red-50"
@@ -259,9 +259,9 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                         </DialogContent>
                                     </Dialog>
                                 ) : (
-                                    <Button 
-                                        variant="outline" 
-                                        disabled 
+                                    <Button
+                                        variant="outline"
+                                        disabled
                                         className="w-full gap-2 justify-start h-12 opacity-50 cursor-not-allowed"
                                     >
                                         <Lock className="h-4 w-4" />
@@ -285,13 +285,13 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                     <div>
                                         <p className="font-medium">Account Protection</p>
                                         <p className="text-blue-700">
-                                            {user.isSuperAdmin 
-                                                ? 'This is a Super Admin account and cannot be deleted by other users.' 
+                                            {user.isSuperAdmin
+                                                ? 'This is a Super Admin account and cannot be deleted by other users.'
                                                 : 'Standard account with normal deletion permissions.'}
                                         </p>
                                     </div>
                                 </div>
-                                
+
                                 <div className="flex items-start gap-2">
                                     <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
                                     <div>
@@ -330,15 +330,15 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                     id: `user-${up.id}`
                                 }))
                             ];
-                            
+
                             return allPermissions.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {allPermissions.map((permission) => (
-                                        <div 
+                                        <div
                                             key={permission.id}
                                             className={`border rounded-lg p-4 hover:shadow-md transition-shadow bg-white ${
-                                                permission.type === 'user-specific' 
-                                                    ? 'border-green-200 bg-green-50' 
+                                                permission.type === 'user-specific'
+                                                    ? 'border-green-200 bg-green-50'
                                                     : 'border-gray-200'
                                             }`}
                                         >
@@ -354,6 +354,7 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                                         {permission.action}
                                                     </Badge>
                                                     {permission.type === 'user-specific' && (
+
                                                         <Button
                                                             variant="destructive"
                                                             size="sm"
@@ -362,7 +363,7 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                                                     preserveScroll: true,
                                                                 });
                                                             }}
-                                                            className="shrink-0"
+                                                            className="bg-red-500 hover:bg-red-600 text-white shrink-0"
                                                         >
                                                             <XCircle className="h-4 w-4 mr-1" />
                                                             Remove
