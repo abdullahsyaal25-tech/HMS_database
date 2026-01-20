@@ -359,7 +359,8 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                                             variant="destructive"
                                                             size="sm"
                                                             onClick={() => {
-                                                                router.delete(`/admin/users/${user.id}/permissions/${permission.id}`, {
+                                                                const permissionId = permission.id.split('-')[1];
+                                                                 router.delete(`/admin/users/${user.id}/permissions/${permissionId}`, {
                                                                     preserveScroll: true,
                                                                 });
                                                             }}
