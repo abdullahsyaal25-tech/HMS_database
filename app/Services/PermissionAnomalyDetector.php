@@ -194,7 +194,7 @@ class PermissionAnomalyDetector
                         'description' => "User requested high-privilege permission they don't currently have: {$permission->name}",
                         'data' => [
                             'requested_permission' => $permission->name,
-                            'user_current_permissions' => $user->userPermissions->pluck('permission.name')->toArray(),
+                            'user_current_permissions' => $user->userPermissions()->where('allowed', true)->with('permission')->get()->pluck('permission.name')->toArray(),
                             'request_id' => $request->id,
                         ],
                         'detected_at' => now(),

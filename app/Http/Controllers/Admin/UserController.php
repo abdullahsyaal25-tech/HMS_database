@@ -115,7 +115,9 @@ class UserController extends Controller
     public function show(string $id): Response
     {
         $currentUser = \Illuminate\Support\Facades\Auth::user();
-        $user = User::with(['userPermissions.permission'])->findOrFail($id);
+        $user = User::with(['userPermissions' => function($query) {
+            $query->where('user_permissions.allowed', true)->with('permission');
+        }])->findOrFail($id);
         $rolePermissions = RolePermission::where('role', $user->role)->with('permission')->get();
 
         // Security check: Only users with view-users permission can view user details
@@ -263,7 +265,9 @@ class UserController extends Controller
      */
     public function editPermissions(string $id): Response
     {
-        $user = User::with('userPermissions.permission')->findOrFail($id);
+        $user = User::with(['userPermissions' => function($query) {
+            $query->where('user_permissions.allowed', true)->with('permission');
+        }])->findOrFail($id);
 
         // Get all available permissions
         $allPermissions = Permission::all();
@@ -542,8 +546,8 @@ class UserController extends Controller
                     }
                 }
             } elseif ($operation === 'remove') {
-                // Remove specified permissions
-                $user->userPermissions()->whereIn('permission_id', $permissionIds)->delete();
+                // Remove specified permissions by setting allowed to false
+                $user->userPermissions()->whereIn('permission_id', $permissionIds)->update(['allowed' => false]);
             } elseif ($operation === 'replace') {
                 // Replace all permissions
                 $user->userPermissions()->delete();
@@ -694,7 +698,7 @@ class UserController extends Controller
 
         $user = User::findOrFail($request->user_id);
         $proposedPermissionIds = $request->proposed_permissions;
-        $currentPermissionIds = $user->userPermissions->pluck('permission_id')->toArray();
+        $currentPermissionIds = $user->userPermissions()->where('allowed', true)->pluck('permission_id')->toArray();
 
         // Find added and removed permissions
         $addedPermissions = array_diff($proposedPermissionIds, $currentPermissionIds);

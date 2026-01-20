@@ -150,7 +150,10 @@ class PermissionsController extends Controller
      */
     public function editUserPermissions(string $userId): Response
     {
-        $user = User::with('userPermissions.permission')->findOrFail($userId);
+        $user = User::with(['userPermissions' => function($query) {
+            $query->where('user_permissions.allowed', true)->with('permission');
+        }])->findOrFail($userId);
+
         $allPermissions = Permission::all();
 
         // Get permissions currently assigned to the user
@@ -351,11 +354,14 @@ class PermissionsController extends Controller
 
         // Check for permission dependencies
         $user = User::findOrFail($request->user_id);
+        
+        // Load only allowed user permissions for dependency validation
+        $allowedUserPermissionIds = $user->userPermissions()->where('allowed', true)->pluck('permission_id');
         $allPermissions = collect($request->permissions_to_add ?? [])
-            ->merge($user->userPermissions->pluck('permission_id'))
+            ->merge($allowedUserPermissionIds)
             ->unique()
             ->toArray();
-
+        
         $errors = $user->validatePermissionDependencies($allPermissions);
         if (!empty($errors)) {
             return response()->json(['error' => 'Permission dependencies not satisfied: ' . implode(', ', $errors)], 400);
