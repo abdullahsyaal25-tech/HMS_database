@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\RolePermission;
 use App\Models\Permission;
+use App\Models\UserPermission;
 use App\Models\AuditLog;
 use App\Models\PermissionDependency;
 use Illuminate\Http\Request;
@@ -758,6 +759,93 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'impact' => $impact
+        ]);
+    }
+
+    /**
+     * Revoke a specific permission from a user.
+     */
+    public function revokePermission(Request $request, string $userId, string $permissionId): \Illuminate\Http\JsonResponse
+    {
+        $startTime = microtime(true);
+        $startMemory = memory_get_usage();
+
+        $currentUser = \Illuminate\Support\Facades\Auth::user();
+
+        // Authorization check
+        if (!$currentUser->isSuperAdmin() && !$currentUser->hasPermission('manage-users')) {
+            return response()->json(['error' => 'Unauthorized to revoke user permissions'], 403);
+        }
+
+        // Validate parameters
+        $request->merge(['user_id' => $userId, 'permission_id' => $permissionId]);
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'permission_id' => 'required|integer|exists:permissions,id'
+        ]);
+
+        $user = User::findOrFail($userId);
+        $permission = Permission::findOrFail($permissionId);
+
+        // Prevent modifying own permissions unless Super Admin
+        if ($user->id === $currentUser->id && $currentUser->role !== 'Super Admin') {
+            return response()->json(['error' => 'Non-super admins cannot revoke their own permissions'], 403);
+        }
+
+        // Prevent modifying Super Admin permissions unless current user is Super Admin
+        if ($user->role === 'Super Admin' && $currentUser->role !== 'Super Admin') {
+            return response()->json(['error' => 'Only Super Admin can revoke Super Admin permissions'], 403);
+        }
+
+        // Find the user permission record
+        $userPermission = UserPermission::where('user_id', $user->id)
+            ->where('permission_id', $permission->id)
+            ->first();
+
+        if (!$userPermission) {
+            return response()->json(['error' => 'User does not have this permission assigned'], 404);
+        }
+
+        if (!$userPermission->allowed) {
+            return response()->json(['error' => 'Permission is already revoked'], 400);
+        }
+
+        // Set allowed to false instead of deleting to maintain audit trail
+        $userPermission->update(['allowed' => false]);
+
+        // Clear permission cache for this user and permission
+        \Illuminate\Support\Facades\Cache::forget("user_permission:{$user->id}:{$permission->name}");
+
+        // Log the permission revocation
+        $endTime = microtime(true);
+        $endMemory = memory_get_usage();
+
+        AuditLog::create([
+            'user_id' => $currentUser->id,
+            'user_name' => $currentUser->name,
+            'user_role' => $currentUser->role,
+            'action' => 'Revoke User Permission',
+            'description' => "Revoked permission '{$permission->name}' from user {$user->name} (ID: {$user->id})",
+            'module' => 'User Management',
+            'severity' => 'medium',
+            'response_time' => round(($endTime - $startTime) * 1000, 2),
+            'memory_usage' => $endMemory - $startMemory,
+            'request_method' => $request->method(),
+            'request_url' => $request->fullUrl(),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'logged_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Permission revoked successfully',
+            'data' => [
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'permission_id' => $permission->id,
+                'permission_name' => $permission->name,
+            ]
         ]);
     }
 
