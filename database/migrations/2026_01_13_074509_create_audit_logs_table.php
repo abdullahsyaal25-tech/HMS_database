@@ -23,8 +23,7 @@ return new class extends Migration
             $table->string('module')->nullable();
             $table->string('severity')->default('info')->comment('info, warning, error, critical');
             $table->timestamp('logged_at')->useCurrent();
-            $table->timestamps(); // This includes created_at and updated_at
-            
+            $table->timestamps(); // This includes created_at and updated_at 
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
             $table->index(['user_id', 'logged_at']);
             $table->index(['action', 'logged_at']);
