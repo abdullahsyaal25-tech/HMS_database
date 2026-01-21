@@ -396,39 +396,6 @@ class UserController extends Controller
     }
 
     /**
-     * Assign default permissions to a new user based on their role
-     */
-    private function assignDefaultPermissions($user, $role): void
-    {
-        // Define default permissions for each role
-        $defaultPermissions = [
-            'Reception' => ['view-patients', 'create-patients', 'view-appointments', 'create-appointments'],
-            'Doctor' => ['view-patients', 'view-appointments', 'view-lab-tests', 'create-lab-tests'],
-            'Pharmacy Admin' => ['view-medicines', 'create-medicines', 'view-sales'],
-            'Laboratory Admin' => ['view-lab-tests', 'create-lab-tests', 'view-patients'],
-            'Sub Super Admin' => ['view-users', 'manage-users', 'view-permissions'],
-        ];
-
-        // Super Admin gets all permissions implicitly, so no need to assign
-        if ($role === 'Super Admin') {
-            return;
-        }
-
-        // Get permission IDs for default permissions
-        if (isset($defaultPermissions[$role])) {
-            $permissionIds = Permission::whereIn('name', $defaultPermissions[$role])->pluck('id')->toArray();
-
-            // Assign permissions to the user
-            foreach ($permissionIds as $permissionId) {
-                $user->userPermissions()->create([
-                    'permission_id' => $permissionId,
-                    'allowed' => true,
-                ]);
-            }
-        }
-    }
-
-    /**
      * Check if current user can delete the target user
      */
     private function canCurrentUserDelete($currentUser, $targetUser): bool
