@@ -171,6 +171,7 @@ Route::middleware(['auth'])->group(function () {
         Route::prefix('users')->group(function () {
             Route::get('/', [App\Http\Controllers\Admin\UserController::class, 'index'])->name('admin.users.index')->middleware('auth');
             Route::get('/create', [App\Http\Controllers\Admin\UserController::class, 'create'])->name('admin.users.create')->middleware('auth');
+            Route::get('/check-username', [App\Http\Controllers\Admin\UserController::class, 'checkUsername'])->name('admin.users.check-username')->middleware('auth');
             Route::post('/', [App\Http\Controllers\Admin\UserController::class, 'store'])->name('admin.users.store')->middleware('auth');
             Route::get('/{user}', [App\Http\Controllers\Admin\UserController::class, 'show'])->name('admin.users.show')->middleware('auth');
             Route::get('/{user}/edit', [App\Http\Controllers\Admin\UserController::class, 'edit'])->name('admin.users.edit')->middleware('auth');
@@ -180,7 +181,6 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{user}/permissions', [App\Http\Controllers\Admin\UserController::class, 'editPermissions'])->name('admin.users.permissions.edit')->middleware('auth');
             Route::put('/{user}/permissions', [App\Http\Controllers\Admin\UserController::class, 'updatePermissions'])->name('admin.users.permissions.update')->middleware('auth');
             Route::delete('/{user}/permissions/{permission}', [App\Http\Controllers\Admin\UserController::class, 'revokePermission'])->name('admin.users.permissions.revoke')->middleware('auth');
-            Route::post('/{user}/permissions/{permission}/override', [App\Http\Controllers\Admin\UserController::class, 'overrideRolePermission'])->name('admin.users.permissions.override')->middleware('auth');
 
             // Bulk operations and templates
             Route::post('/bulk-permissions', [App\Http\Controllers\Admin\UserController::class, 'bulkUpdatePermissions'])->name('admin.users.bulk-permissions')->middleware('auth');

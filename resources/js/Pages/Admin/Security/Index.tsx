@@ -20,11 +20,32 @@ import {
   AlertTriangle,
   Loader2,
   Syringe,
-  TestTube
+  TestTube,
+  Shield,
+  Activity,
+  Zap,
+  Globe,
+  Settings
 } from 'lucide-react';
 import axios from 'axios';
 import { useState, useEffect } from 'react';
 import HospitalLayout from '@/layouts/HospitalLayout';
+import { Switch } from '@/components/ui/switch';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 interface User {
     id: number;
@@ -85,7 +106,19 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
     const [resetPasswordMessage, setResetPasswordMessage] = useState('');
 
     // Tab state
-    const [activeTab, setActiveTab] = useState<'my-account' | 'admin-management'>('my-account');
+    const [activeTab, setActiveTab] = useState<'my-account' | 'admin-management' | 'security-settings'>('my-account');
+
+    // Security Settings State
+    const [settings, setSettings] = useState({
+        monitoringEnabled: true,
+        emailAlerts: true,
+        anomalyDetection: true,
+        rateLimiting: true,
+        healthChecks: true,
+        autoCleanup: true,
+    });
+    const [updatingSettings, setUpdatingSettings] = useState(false);
+    const [settingsMessage, setSettingsMessage] = useState('');
 
     // State for confirmation dialogs
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState<User | null>(null);
@@ -121,12 +154,30 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
 
     // Success animation handler
     useEffect(() => {
-        if (passwordMessage || ownProfileMessage || userManagementMessage || userProfileMessage || resetPasswordMessage) {
+        if (passwordMessage || ownProfileMessage || userManagementMessage || userProfileMessage || resetPasswordMessage || settingsMessage) {
             setShowSuccessAnimation(true);
             const timer = setTimeout(() => setShowSuccessAnimation(false), 3000);
             return () => clearTimeout(timer);
         }
-    }, [passwordMessage, ownProfileMessage, userManagementMessage, userProfileMessage, resetPasswordMessage]);
+    }, [passwordMessage, ownProfileMessage, userManagementMessage, userProfileMessage, resetPasswordMessage, settingsMessage]);
+
+    const handleToggleSetting = (setting: keyof typeof settings) => {
+        setSettings(prev => ({ ...prev, [setting]: !prev[setting] }));
+    };
+
+    const handleSaveSettings = async () => {
+        setUpdatingSettings(true);
+        setSettingsMessage('');
+        try {
+            // In a real app, this would be an API call
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            setSettingsMessage('Security settings updated successfully');
+        } catch (error) {
+            console.error('Error saving settings:', error);
+        } finally {
+            setUpdatingSettings(false);
+        }
+    };
 
     const fetchUsers = async () => {
         setLoadingUsers(true);
@@ -385,12 +436,12 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                     </div>
 
                     <Tabs value={activeTab} onValueChange={(value) => {
-                        if (value === 'admin-management' && !(auth.user.role === 'Super Admin' || auth.user.permissions?.includes('manage-users'))) {
+                        if ((value === 'admin-management' || value === 'security-settings') && !(auth.user.role === 'Super Admin' || auth.user.permissions?.includes('manage-users'))) {
                             return;
                         }
-                        setActiveTab(value as 'my-account' | 'admin-management');
+                        setActiveTab(value as 'my-account' | 'admin-management' | 'security-settings');
                     }} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 bg-muted p-1 rounded-xl h-12 mb-6">
+                        <TabsList className="grid w-full grid-cols-3 bg-muted p-1 rounded-xl h-12 mb-6">
                             <TabsTrigger
                                 value="my-account"
                                 className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-lg h-10 flex items-center gap-2"
@@ -404,7 +455,15 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                 className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-lg h-10 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <Users className="h-4 w-4" />
-                                Admin Management
+                                User Management
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="security-settings"
+                                disabled={!(auth.user.role === 'Super Admin' || auth.user.permissions?.includes('manage-users'))}
+                                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-lg h-10 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Shield className="h-4 w-4" />
+                                Security Config
                             </TabsTrigger>
                         </TabsList>
 
@@ -694,29 +753,37 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                             <Label htmlFor="userRole" className="font-medium">
                                                                 User Role
                                                             </Label>
-                                                            <select
-                                                                id="userRole"
-                                                                value={userRole}
-                                                                onChange={(e) => setUserRole(e.target.value)}
-                                                                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring transition-colors flex items-center"
-                                                            >
-                                                                <option value="" className="flex items-center">
-                                                                    <User className="h-4 w-4 mr-2" /> Select a role...
-                                                                </option>
-                                                                
-                                                                <option value="Sub Super Admin" className="flex items-center">
-                                                                    <User className="h-4 w-4 mr-2" /> Sub Super Admin
-                                                                </option>
-                                                                <option value="Reception Admin" className="flex items-center">
-                                                                    <User className="h-4 w-4 mr-2" /> Reception Admin
-                                                                </option>
-                                                                <option value="Pharmacy Admin" className="flex items-center">
-                                                                    <Syringe className="h-4 w-4 mr-2" /> Pharmacy Admin
-                                                                </option>
-                                                                <option value="Laboratory Admin" className="flex items-center">
-                                                                    <TestTube className="h-4 w-4 mr-2" /> Laboratory Admin
-                                                                </option>
-                                                            </select>
+                                                            <Select value={userRole} onValueChange={setUserRole}>
+                                                                <SelectTrigger id="userRole" className="w-full">
+                                                                    <SelectValue placeholder="Select a role..." />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="Sub Super Admin">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <User className="h-4 w-4" />
+                                                                            Sub Super Admin
+                                                                        </div>
+                                                                    </SelectItem>
+                                                                    <SelectItem value="Reception Admin">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <User className="h-4 w-4" />
+                                                                            Reception Admin
+                                                                        </div>
+                                                                    </SelectItem>
+                                                                    <SelectItem value="Pharmacy Admin">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Syringe className="h-4 w-4" />
+                                                                            Pharmacy Admin
+                                                                        </div>
+                                                                    </SelectItem>
+                                                                    <SelectItem value="Laboratory Admin">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <TestTube className="h-4 w-4" />
+                                                                            Laboratory Admin
+                                                                        </div>
+                                                                    </SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
                                                         </div>
                                                     </div>
 
@@ -737,7 +804,8 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                     <Button
                                                         type="submit"
                                                         disabled={creatingUser || !userName.trim() || !userUsername.trim() || !userRole.trim()}
-                                                        className="w-full bg-green-600 hover:bg-green-700 text-white transition-colors"
+                                                        variant="success"
+                                                        className="w-full transition-colors"
                                                     >
                                                         {creatingUser ? (
                                                             <>
@@ -795,7 +863,8 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                                     setEditingUserUsername(user.username);
                                                                                     setEditingUserRole(user.role || '');
                                                                                 }}
-                                                                                className="text-primary border-primary hover:bg-primary/10 transition-colors"
+                                                                                disabled={user.role === 'Super Admin' && auth.user.role !== 'Super Admin'}
+                                                                                className="text-primary border-primary hover:bg-primary/10 transition-colors disabled:opacity-30"
                                                                             >
                                                                                 <Edit3 className="h-3 w-3" />
                                                                             </Button>
@@ -803,8 +872,8 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                                 size="sm"
                                                                                 variant="outline"
                                                                                 onClick={() => handleResetPassword(user.id)}
-                                                                                disabled={resettingPassword}
-                                                                                className="text-yellow-600 border-yellow-200 hover:bg-yellow-100 transition-colors"
+                                                                                disabled={resettingPassword || (user.role === 'Super Admin' && auth.user.role !== 'Super Admin')}
+                                                                                className="text-yellow-600 border-yellow-200 hover:bg-yellow-100 transition-colors disabled:opacity-30"
                                                                             >
                                                                                 <KeyRound className="h-3 w-3" />
                                                                             </Button>
@@ -812,8 +881,8 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                                 size="sm"
                                                                                 variant="destructive"
                                                                                 onClick={() => setShowDeleteConfirmation(user)}
-                                                                                disabled={deletingUser}
-                                                                                className="transition-colors"
+                                                                                disabled={deletingUser || user.role === 'Super Admin'}
+                                                                                className="transition-colors disabled:opacity-30"
                                                                             >
                                                                                 <Trash2 className="h-3 w-3" />
                                                                             </Button>
@@ -828,15 +897,15 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
 
                                             {/* Edit User Form */}
                                             {editingUserId && (
-                                                <div className="border rounded-lg p-6 bg-yellow-100 border-yellow-200">
+                                                <div className="border rounded-lg p-6 bg-muted/30 border-input mt-8">
                                                     <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
-                                                        <Edit3 className="h-5 w-5 text-yellow-600" />
-                                                        Edit User
+                                                        <Edit3 className="h-5 w-5 text-primary" />
+                                                        Edit User Account
                                                     </h3>
                                                     <form onSubmit={handleUpdateUserProfile} className="space-y-4">
                                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                             <div className="space-y-2">
-                                                                <Label htmlFor="editUserName" className="text-gray-700 font-medium">Name</Label>
+                                                                <Label htmlFor="editUserName" className="font-medium">Full Name</Label>
                                                                 <Input
                                                                     id="editUserName"
                                                                     value={editingUserName}
@@ -845,7 +914,7 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                 />
                                                             </div>
                                                             <div className="space-y-2">
-                                                                <Label htmlFor="editUserUsername" className="text-gray-700 font-medium">Username</Label>
+                                                                <Label htmlFor="editUserUsername" className="font-medium">Username</Label>
                                                                 <Input
                                                                     id="editUserUsername"
                                                                     value={editingUserUsername}
@@ -854,32 +923,42 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                 />
                                                             </div>
                                                             <div className="space-y-2">
-                                                                <Label htmlFor="editUserRole" className="text-gray-700 font-medium">Role</Label>
-                                                                <select
-                                                                    id="editUserRole"
-                                                                    value={editingUserRole}
-                                                                    onChange={(e) => setEditingUserRole(e.target.value)}
-                                                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors flex items-center"
+                                                                <Label htmlFor="editUserRole" className="font-medium">Role</Label>
+                                                                <Select 
+                                                                    value={editingUserRole} 
+                                                                    onValueChange={setEditingUserRole}
+                                                                    disabled={editingUserRole === 'Super Admin'}
                                                                 >
-                                                                    <option value="" className="flex items-center">
-                                                                        <User className="h-4 w-4 mr-2" /> Select role...
-                                                                    </option>
-                                                                    <option value="Super Admin" className="flex items-center">
-                                                                        <KeyRound className="h-4 w-4 mr-2" /> Super Admin
-                                                                    </option>
-                                                                    <option value="Sub Super Admin" className="flex items-center">
-                                                                        <User className="h-4 w-4 mr-2" /> Sub Super Admin
-                                                                    </option>
-                                                                    <option value="Reception Admin" className="flex items-center">
-                                                                        <User className="h-4 w-4 mr-2" /> Reception Admin
-                                                                    </option>
-                                                                    <option value="Pharmacy Admin" className="flex items-center">
-                                                                        <Syringe className="h-4 w-4 mr-2" /> Pharmacy Admin
-                                                                    </option>
-                                                                    <option value="Laboratory Admin" className="flex items-center">
-                                                                        <TestTube className="h-4 w-4 mr-2" /> Laboratory Admin
-                                                                    </option>
-                                                                </select>
+                                                                    <SelectTrigger id="editUserRole" className="w-full disabled:bg-muted disabled:cursor-not-allowed">
+                                                                        <SelectValue placeholder="Select role..." />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="Sub Super Admin">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <User className="h-4 w-4" />
+                                                                                Sub Super Admin
+                                                                            </div>
+                                                                        </SelectItem>
+                                                                        <SelectItem value="Reception Admin">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <User className="h-4 w-4" />
+                                                                                Reception Admin
+                                                                            </div>
+                                                                        </SelectItem>
+                                                                        <SelectItem value="Pharmacy Admin">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Syringe className="h-4 w-4" />
+                                                                                Pharmacy Admin
+                                                                            </div>
+                                                                        </SelectItem>
+                                                                        <SelectItem value="Laboratory Admin">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <TestTube className="h-4 w-4" />
+                                                                                Laboratory Admin
+                                                                            </div>
+                                                                        </SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
                                                             </div>
                                                         </div>
 
@@ -901,7 +980,8 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                             <Button
                                                                 type="submit"
                                                                 disabled={updatingUserProfile}
-                                                                className="flex-1 bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+                                                                variant="warning"
+                                                                className="flex-1 transition-colors"
                                                             >
                                                                 {updatingUserProfile ? (
                                                                     <>
@@ -916,7 +996,7 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                                                 type="button"
                                                                 variant="outline"
                                                                 onClick={() => setEditingUserId(null)}
-                                                                className="flex-1 border-input text-foreground hover:bg-muted transition-colors"
+                                                                className="flex-1 transition-colors"
                                                             >
                                                                 Cancel
                                                             </Button>
@@ -926,46 +1006,183 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                                             )}
 
                                             {/* Delete Confirmation Dialog */}
-                                            {showDeleteConfirmation && (
-                                                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                                                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 border border-input">
-                                                        <div className="flex items-center gap-3 mb-4">
-                                                            <AlertTriangle className="h-6 w-6 text-red-600" />
-                                                            <h3 className="text-lg font-semibold">Confirm Deletion</h3>
+                                            <Dialog open={!!showDeleteConfirmation} onOpenChange={(open) => !open && setShowDeleteConfirmation(null)}>
+                                                <DialogContent className="max-w-md">
+                                                    <DialogHeader>
+                                                        <div className="flex items-center gap-3 mb-2">
+                                                            <div className="p-2 bg-destructive/10 rounded-full">
+                                                                <AlertTriangle className="h-6 w-6 text-destructive" />
+                                                            </div>
+                                                            <DialogTitle className="text-xl">Confirm Deletion</DialogTitle>
                                                         </div>
-                                                        <p className="text-muted-foreground mb-6">
-                                                            Are you sure you want to delete this user? This action cannot be undone.
-                                                        </p>
-                                                        <div className="flex space-x-3 justify-end">
-                                                            <Button
-                                                                variant="outline"
-                                                                onClick={() => setShowDeleteConfirmation(null)}
-                                                                disabled={deletingUser}
-                                                                className="border-input text-foreground hover:bg-muted transition-colors"
-                                                            >
-                                                                Cancel
-                                                            </Button>
-                                                            <Button
-                                                                variant="destructive"
-                                                                onClick={() => handleDeleteUser(showDeleteConfirmation!)}
-                                                                disabled={deletingUser}
-                                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                            >
-                                                                {deletingUser ? (
-                                                                    <>
-                                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                                        Deleting...
-                                                                    </>
-                                                                ) : (
-                                                                    'Delete User'
-                                                                )}
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
+                                                        <DialogDescription className="text-base py-2">
+                                                            Are you sure you want to delete <span className="font-bold text-foreground">{showDeleteConfirmation?.name}</span>'s account? This action cannot be undone and will revoke all access.
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <DialogFooter className="mt-6 gap-3">
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() => setShowDeleteConfirmation(null)}
+                                                            disabled={deletingUser}
+                                                            className="flex-1"
+                                                        >
+                                                            Cancel
+                                                        </Button>
+                                                        <Button
+                                                            variant="destructive"
+                                                            onClick={() => handleDeleteUser(showDeleteConfirmation!)}
+                                                            disabled={deletingUser}
+                                                            className="flex-1"
+                                                        >
+                                                            {deletingUser ? (
+                                                                <>
+                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                    Deleting...
+                                                                </>
+                                                            ) : (
+                                                                'Delete Account'
+                                                            )}
+                                                        </Button>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
                                         </div>
                                     )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                        <TabsContent value="security-settings" className="space-y-6">
+                            <Card className="border border-input bg-background shadow-sm rounded-xl">
+                                <CardHeader className="border-b border-gray-100 pb-6">
+                                    <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+                                        <div className="p-2 bg-primary/10 rounded-lg">
+                                            <Shield className="h-5 w-5 text-primary" />
+                                        </div>
+                                        Global Security Configuration
+                                    </CardTitle>
+                                    <CardDescription className="text-gray-600">
+                                        Configure system-wide security policies, monitoring and automated maintenance
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="pt-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Monitoring Section */}
+                                        <div className="space-y-4 p-6 bg-muted/30 rounded-xl border border-input">
+                                            <h3 className="text-lg font-medium flex items-center gap-2 mb-2">
+                                                <Activity className="h-5 w-5 text-blue-600" />
+                                                Monitoring & Alerts
+                                            </h3>
+                                            <div className="flex items-center justify-between py-2">
+                                                <div className="space-y-0.5">
+                                                    <Label className="text-base font-semibold">Permission Monitoring</Label>
+                                                    <p className="text-sm text-muted-foreground">Track all permission checks and access attempts</p>
+                                                </div>
+                                                <Switch 
+                                                    checked={settings.monitoringEnabled} 
+                                                    onCheckedChange={() => handleToggleSetting('monitoringEnabled')}
+                                                />
+                                            </div>
+                                            <div className="flex items-center justify-between py-2">
+                                                <div className="space-y-0.5">
+                                                    <Label className="text-base font-semibold">Email Notifications</Label>
+                                                    <p className="text-sm text-muted-foreground">Receive critical security alerts via email</p>
+                                                </div>
+                                                <Switch 
+                                                    checked={settings.emailAlerts} 
+                                                    onCheckedChange={() => handleToggleSetting('emailAlerts')}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Advanced Protection */}
+                                        <div className="space-y-4 p-6 bg-muted/30 rounded-xl border border-input">
+                                            <h3 className="text-lg font-medium flex items-center gap-2 mb-2">
+                                                <Zap className="h-5 w-5 text-amber-500" />
+                                                Advanced Protection
+                                            </h3>
+                                            <div className="flex items-center justify-between py-2">
+                                                <div className="space-y-0.5">
+                                                    <Label className="text-base font-semibold">Anomaly Detection</Label>
+                                                    <p className="text-sm text-muted-foreground">Detect unusual access patterns using AI</p>
+                                                </div>
+                                                <Switch 
+                                                    checked={settings.anomalyDetection} 
+                                                    onCheckedChange={() => handleToggleSetting('anomalyDetection')}
+                                                />
+                                            </div>
+                                            <div className="flex items-center justify-between py-2">
+                                                <div className="space-y-0.5">
+                                                    <Label className="text-base font-semibold">Rate Limiting</Label>
+                                                    <p className="text-sm text-muted-foreground">Prevent brute-force attacks on sensitive endpoints</p>
+                                                </div>
+                                                <Switch 
+                                                    checked={settings.rateLimiting} 
+                                                    onCheckedChange={() => handleToggleSetting('rateLimiting')}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* System Health */}
+                                        <div className="space-y-4 p-6 bg-muted/30 rounded-xl border border-input">
+                                            <h3 className="text-lg font-medium flex items-center gap-2 mb-2">
+                                                <Globe className="h-5 w-5 text-green-600" />
+                                                System Integrity
+                                            </h3>
+                                            <div className="flex items-center justify-between py-2">
+                                                <div className="space-y-0.5">
+                                                    <Label className="text-base font-semibold">Health Checks</Label>
+                                                    <p className="text-sm text-muted-foreground">Run automated security health audits every 15 min</p>
+                                                </div>
+                                                <Switch 
+                                                    checked={settings.healthChecks} 
+                                                    onCheckedChange={() => handleToggleSetting('healthChecks')}
+                                                />
+                                            </div>
+                                            <div className="flex items-center justify-between py-2">
+                                                <div className="space-y-0.5">
+                                                    <Label className="text-base font-semibold">Auto-Cleanup</Label>
+                                                    <p className="text-sm text-muted-foreground">Automatically purge old audit logs and sessions</p>
+                                                </div>
+                                                <Switch 
+                                                    checked={settings.autoCleanup} 
+                                                    onCheckedChange={() => handleToggleSetting('autoCleanup')}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Status & Save */}
+                                        <div className="p-6 bg-primary/5 rounded-xl border border-primary/20 flex flex-col justify-center items-center text-center space-y-4">
+                                            <div className="p-3 bg-primary/10 rounded-full">
+                                                <Settings className="h-8 w-8 text-primary animate-[spin_4s_linear_infinite]" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold text-lg">Apply Changes</h4>
+                                                <p className="text-sm text-muted-foreground px-4">Changes to security configuration affect all system components immediately.</p>
+                                            </div>
+                                            
+                                            {settingsMessage && (
+                                                <div className="text-green-600 text-sm font-medium flex items-center gap-1">
+                                                    <CheckCircle className="h-4 w-4" />
+                                                    {settingsMessage}
+                                                </div>
+                                            )}
+
+                                            <Button 
+                                                onClick={handleSaveSettings} 
+                                                disabled={updatingSettings}
+                                                className="w-full max-w-[200px]"
+                                            >
+                                                {updatingSettings ? (
+                                                    <>
+                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                        Saving...
+                                                    </>
+                                                ) : (
+                                                    'Update Configuration'
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </div>
                                 </CardContent>
                             </Card>
                         </TabsContent>

@@ -6,11 +6,12 @@ import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
-    SidebarGroup,
     SidebarHeader,
+    SidebarInset,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarTrigger,
 } from '@/components/ui/sidebar';
 import {
     Users,
@@ -26,7 +27,7 @@ import {
 } from 'lucide-react';
 import {  usePage } from '@inertiajs/react';
 import { type NavItem } from '@/types';
-import {  ReactNode } from 'react';
+import { ReactNode } from 'react';
 
 interface HospitalLayoutProps {
     header?: ReactNode;
@@ -38,9 +39,13 @@ function usePermissionChecker() {
     try {
         const page = usePage();
         console.log('usePage successful:', page);
-        const userPermissions = page.props.auth?.user?.permissions || [];
+        const user = page.props.auth?.user;
+        const userPermissions = user?.permissions || [];
+        const userRole = user?.role;
 
         const hasPermission = (permission: string): boolean => {
+            // Super Admin bypass
+            if (userRole === 'Super Admin') return true;
             return userPermissions.includes(permission);
         };
 
@@ -137,25 +142,22 @@ const footerNavItems: NavItem[] = [
 ];
 
 export default function HospitalLayout({ header, children }: HospitalLayoutProps) {
+    const filteredNavItems = useFilteredNavItems();
+    
     return (
         <AppShell variant="sidebar">
             <Sidebar collapsible="icon" variant="inset">
                 <SidebarHeader>
                     <SidebarMenu>
                         <SidebarMenuItem>
-                            <SidebarMenuButton size="lg" asChild className="h-16">
-                                <div className="grid flex-1 text-left text-sm leading-tight">
-                                    <span className="truncate text-xs">Hospital Management System</span>
-                                </div>
+                            <SidebarMenuButton size="lg" asChild>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarHeader>
 
                 <SidebarContent>
-                    <SidebarGroup className="py-0">
-                        <NavMain items={useFilteredNavItems()} />
-                    </SidebarGroup>
+                    <NavMain items={filteredNavItems} />
                 </SidebarContent>
 
                 <SidebarFooter>
@@ -164,18 +166,19 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                 </SidebarFooter>
             </Sidebar>
 
-            <main className="flex flex-1 flex-col">
-                {header && (
-                    <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-white px-4">
+            <SidebarInset>
+                <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-white px-4">
+                    <SidebarTrigger className="-ml-1" />
+                    {header && (
                         <h2 className="text-xl font-semibold leading-tight text-gray-800">
                             {header}
                         </h2>
-                    </header>
-                )}
+                    )}
+                </header>
                 <div className="flex-1 overflow-auto p-4">
                     {children}
                 </div>
-            </main>
+            </SidebarInset>
         </AppShell>
     );
 }

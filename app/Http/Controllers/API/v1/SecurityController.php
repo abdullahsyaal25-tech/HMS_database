@@ -225,11 +225,21 @@ class SecurityController extends Controller
             ], 403);
         }
 
-        // Prevent updating super admin profiles unless the current user is also a super admin
-        if ($user->isSuperAdmin() && !$authenticatedUser->isSuperAdmin()) {
-            return response()->json([
-                'message' => 'Only super admins can update other super admin accounts'
-            ], 403);
+        // Protect Super Admin accounts
+        if ($user->isSuperAdmin()) {
+            // Only allow changing name and username, never role
+            if ($request->has('role') && $request->role !== $user->role) {
+                return response()->json([
+                    'message' => 'Super Admin roles are protected and cannot be changed'
+                ], 403);
+            }
+
+            // Still prevent non-super admins from editing super admin details
+            if (!$authenticatedUser->isSuperAdmin()) {
+                return response()->json([
+                    'message' => 'Only super admins can update other super admin accounts'
+                ], 403);
+            }
         }
 
         $validator = Validator::make($request->all(), [
@@ -301,10 +311,10 @@ class SecurityController extends Controller
             ], 403);
         }
 
-        // Prevent deleting super admin accounts unless the current user is also a super admin
-        if ($user->isSuperAdmin() && !$authenticatedUser->isSuperAdmin()) {
+        // Prevent deleting super admin accounts entirely for security
+        if ($user->isSuperAdmin()) {
             return response()->json([
-                'message' => 'Only super admins can delete other super admin accounts'
+                'message' => 'Super Admin accounts are protected and cannot be deleted for system integrity'
             ], 403);
         }
 

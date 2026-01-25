@@ -18,13 +18,59 @@ class Patient extends Model
         'gender',
         'phone',
         'user_id',
+        'date_of_birth',
+        'blood_type',
+        'allergies',
+        'emergency_contact_name',
+        'emergency_contact_phone',
+        'medical_history',
     ];
 
     protected $casts = [
         'address' => 'array',
         'phone' => 'encrypted',
         'metadata' => 'array',
+        'date_of_birth' => 'date',
+        // Encrypt sensitive medical information
+        'allergies' => 'encrypted',
+        'medical_history' => 'encrypted',
+        'emergency_contact_phone' => 'encrypted',
     ];
+
+    /**
+     * Get full name of the patient.
+     */
+    public function getFullNameAttribute(): string
+    {
+        return trim("{$this->first_name} {$this->last_name}");
+    }
+
+    /**
+     * Get age of the patient.
+     */
+    public function getAgeAttribute(): ?int
+    {
+        return $this->date_of_birth?->age;
+    }
+
+    /**
+     * Scope to search patients by name.
+     */
+    public function scopeSearchByName($query, string $name)
+    {
+        return $query->where(function ($q) use ($name) {
+            $q->where('first_name', 'like', "%{$name}%")
+              ->orWhere('last_name', 'like', "%{$name}%");
+        });
+    }
+
+    /**
+     * Get medical records for this patient.
+     */
+    public function medicalRecords()
+    {
+        return $this->hasMany(MedicalRecord::class);
+    }
 
     public function user()
     {

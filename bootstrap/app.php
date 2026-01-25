@@ -29,6 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission.ip.restriction' => \App\Http\Middleware\PermissionIpRestrictionMiddleware::class,
             'permission.rate.limit' => \App\Http\Middleware\PermissionRateLimitMiddleware::class,
             'permission.session' => \App\Http\Middleware\PermissionSessionMiddleware::class,
+            'rate.limit' => \App\Http\Middleware\RateLimitMiddleware::class,
+            'login.throttle' => \App\Http\Middleware\LoginThrottleMiddleware::class,
         ]);
 
         $middleware->web(append: [

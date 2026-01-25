@@ -1,31 +1,27 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
     plugins: [
       laravel({
-      input: ['resources/css/app.css', 'resources/js/app.tsx'], // Adjust to your TS entry
+      input: ['resources/css/app.css', 'resources/js/app.tsx'],
       refresh: true,
     }),
     react(),
     ],
+    resolve: {
+        alias: {
+            '@': path.resolve(__dirname, './resources/js'),
+        },
+    },
     server: {
         host: '127.0.0.1',
         port: 5173,
-        strictPort: false,
-        // Proxy API requests to Laravel development server
-        proxy: {
-            '/api': {
-                target: 'http://127.0.0.1:8000',
-                ws: true,
-                changeOrigin: true,
-            },
-            '/sanctum': {
-                target: 'http://127.0.0.1:8000',
-                ws: true,
-                changeOrigin: true,
-            },
+        strictPort: true,
+        hmr: {
+            host: '127.0.0.1',
         },
     },
     esbuild: {

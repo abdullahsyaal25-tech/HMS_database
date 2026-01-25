@@ -355,15 +355,8 @@ export default function UserEditPermissions({ user, allPermissions, userPermissi
                                                     <Button
                                                         variant="destructive"
                                                         size="sm"
-                                                        onClick={() => {
-                                                            router.delete(`/admin/users/${user.id}/permissions/${permission.id}`, {
-                                                                onSuccess: () => {
-                                                                    setSelectedPermissions(prev => prev.filter(id => id !== permission.id));
-                                                                },
-                                                                preserveScroll: true,
-                                                            });
-                                                        }}
-                                                        className="bg-red-500 hover:bg-red-600 text-white shrink-0"
+                                                        onClick={() => togglePermission(permission.id)}
+                                                        className="bg-red-100 hover:bg-red-200 text-white shrink-0"
                                                     >
                                                         <XCircle className="h-4 w-4 mr-1" />
                                                         Remove

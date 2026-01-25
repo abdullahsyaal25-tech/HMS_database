@@ -12,11 +12,13 @@ use Illuminate\Support\Facades\Cache;
 use App\Models\Patient;
 use App\Models\PermissionDependency;
 use App\Models\TemporaryPermission;
+use App\Models\Role;
+use App\Traits\HasPermissions;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasApiTokens;
+    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasApiTokens, HasPermissions;
 
     /**
      * The attributes that are mass assignable.
@@ -28,6 +30,12 @@ class User extends Authenticatable
         'username',
         'password',
         'role',
+        'role_id',
+        'failed_login_attempts',
+        'locked_until',
+        'last_login_at',
+        'last_login_ip',
+        'password_changed_at',
     ];
 
     /**
@@ -50,19 +58,45 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'locked_until' => 'datetime',
+            'last_login_at' => 'datetime',
+            'password_changed_at' => 'datetime',
+            'failed_login_attempts' => 'integer',
         ];
     }
 
+    /**
+     * Check if user has any of the given roles.
+     */
     public function hasAnyRole($roles): bool
     {
         if (is_array($roles)) {
-            return in_array($this->role, $roles);
+            // Check both legacy role string and new role relationship
+            if (in_array($this->role, $roles)) {
+                return true;
+            }
+            
+            // Check normalized role
+            if ($this->roleModel) {
+                return in_array($this->roleModel->name, $roles) 
+                    || in_array($this->roleModel->slug, $roles);
+            }
+            
+            return false;
         }
 
-        return $this->role === $roles;
+        return $this->role === $roles 
+            || ($this->roleModel && ($this->roleModel->name === $roles || $this->roleModel->slug === $roles));
+    }
+
+    /**
+     * Get the role model relationship.
+     */
+    public function roleModel()
+    {
+        return $this->belongsTo(Role::class, 'role_id');
     }
 
     public function patients()
@@ -85,91 +119,6 @@ class User extends Authenticatable
         return $this->hasMany(TemporaryPermission::class);
     }
 
-    public function hasPermission($permissionName): bool
-    {
-        // Debug: Log permission check
-
-
-        // Super admin check: Super Admin has all permissions
-        if ($this->role === 'Super Admin') {
-            return true;
-        }
-
-        $cacheKey = "user_permission:{$this->id}:{$permissionName}";
-
-        return Cache::remember($cacheKey, 900, function () use ($permissionName) {
-
-        // First, check if there's a specific user permission override
-        $userPermission = $this->userPermissions()
-            ->whereHas('permission', function ($query) use ($permissionName) {
-                $query->where('name', $permissionName);
-            })
-            ->first();
-
-        if ($userPermission) {
-
-
-            // If there's a specific user permission, return its allowed status
-            return $userPermission->allowed;
-        }
-
-        // If no specific user permission exists, fall back to role-based permissions
-        $rolePermissionExists = RolePermission::where('role', $this->role)
-            ->whereHas('permission', function ($query) use ($permissionName) {
-                $query->where('name', $permissionName);
-            })
-            ->exists();
-
-        if ($rolePermissionExists) {
-            return true;
-        }
-
-        // Check for active temporary permissions
-        $temporaryPermissionExists = $this->temporaryPermissions()
-            ->active()
-            ->whereHas('permission', function ($query) use ($permissionName) {
-                $query->where('name', $permissionName);
-            })
-            ->exists();
-
-        if ($temporaryPermissionExists) {
-            return true;
-        }
-
-        return false;
-        });
-    }
-
-    public function hasAnyPermission($permissions): bool
-    {
-        foreach ($permissions as $permission) {
-            if ($this->hasPermission($permission)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public function hasAllPermissions($permissions): bool
-    {
-        foreach ($permissions as $permission) {
-            if (!$this->hasPermission($permission)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Check if the user is a super admin
-     */
-    public function isSuperAdmin(): bool
-    {
-        return $this->role === 'Super Admin';
-    }
-
     /**
      * Check if the user is deletable
      * Super Admin is immutable and cannot be deleted
@@ -177,6 +126,37 @@ class User extends Authenticatable
     public function isDeletable(): bool
     {
         return !$this->isSuperAdmin();
+    }
+
+    /**
+     * Check if the account is locked.
+     */
+    public function isLocked(): bool
+    {
+        return $this->locked_until && $this->locked_until->isFuture();
+    }
+
+    /**
+     * Unlock the account.
+     */
+    public function unlock(): bool
+    {
+        return $this->update([
+            'failed_login_attempts' => 0,
+            'locked_until' => null,
+        ]);
+    }
+
+    /**
+     * Check if password needs to be changed (e.g., older than 90 days).
+     */
+    public function passwordNeedsChange(int $maxAgeDays = 90): bool
+    {
+        if (!$this->password_changed_at) {
+            return true;
+        }
+
+        return $this->password_changed_at->addDays($maxAgeDays)->isPast();
     }
 
     /**
@@ -200,5 +180,13 @@ class User extends Authenticatable
         }
 
         return $errors;
+    }
+
+    /**
+     * Get audit logs for this user.
+     */
+    public function auditLogs()
+    {
+        return $this->hasMany(AuditLog::class);
     }
 }

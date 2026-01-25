@@ -56,17 +56,16 @@ interface DashboardProps {
     };
 }
 
-export default function Dashboard(props: DashboardProps) {
-    const {
-        total_patients,
-        total_doctors,
-        appointments_today,
-        revenue_today,
-        recent_activities,
-        monthly_data,
-        department_data,
-        flash
-    } = props;
+export default function Dashboard({
+    total_patients = 0,
+    total_doctors = 0,
+    appointments_today = 0,
+    revenue_today = 0,
+    recent_activities = [],
+    monthly_data = [],
+    department_data = [],
+    flash
+}: DashboardProps) {
 
     const ResponsiveGridLayout = WidthProvider(Responsive);
 

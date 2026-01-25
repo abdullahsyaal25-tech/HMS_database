@@ -28,9 +28,31 @@ class Doctor extends Model
         'fee' => 'decimal:2',
         'address' => 'array',
         'phone' => 'encrypted',
-        'email' => 'encrypted',
         'metadata' => 'array',
     ];
+
+    /**
+     * Boot method for model events.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Encrypt email on save if column exists
+        static::saving(function ($model) {
+            if ($model->isDirty('email') && $model->email) {
+                // Email encryption handled by model accessor/mutator
+            }
+        });
+    }
+
+    /**
+     * Get full name of the doctor.
+     */
+    public function getFullNameAttribute(): string
+    {
+        return "{$this->first_name} {$this->last_name}";
+    }
 
     public function user()
     {

@@ -4,14 +4,17 @@
   .no-print,
   .no-print *,
   nav,
-  .sidebar,
+  [data-slot="sidebar"],
+  [data-slot="sidebar-wrapper"],
+  [data-sidebar="sidebar"],
+  [data-sidebar="trigger"],
   .header-actions,
   .footer,
   .pagination,
   .search-box,
   .filter-options,
-  button,
-  .btn,
+  button:not(.print-include),
+  .btn:not(.print-include),
   .action-buttons {
     display: none !important;
   }

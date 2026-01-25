@@ -69,14 +69,45 @@ class UserController extends Controller
      */
     public function create(): Response
     {
-        // Get all available roles from role_permissions table, excluding Super Admin
-        $roles = RolePermission::select('role')
+        // Get roles from role_permissions table
+        $dbRoles = RolePermission::select('role')
                               ->distinct()
-                              ->where('role', '!=', 'Super Admin')
-                              ->pluck('role');
+                              ->pluck('role')
+                              ->toArray();
+
+        // Default roles requested by user if not in DB
+        $defaultRoles = [
+            'Sub Super Admin',
+            'Reception Admin',
+            'Laboratory Admin',
+            'Pharmacy Admin',
+        ];
+
+        // Merge and unique
+        $roles = array_unique(array_merge($dbRoles, $defaultRoles));
+        sort($roles);
 
         return Inertia::render('Admin/Users/Create', [
-            'roles' => $roles,
+            'roles' => array_values($roles),
+        ]);
+    }
+
+    /**
+     * Check if a username is available.
+     */
+    public function checkUsername(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $username = $request->query('username');
+        
+        if (!$username) {
+            return response()->json(['available' => false, 'message' => 'Username is required']);
+        }
+
+        $exists = User::where('username', $username)->exists();
+
+        return response()->json([
+            'available' => !$exists,
+            'message' => $exists ? 'Username is already taken' : 'Username is available'
         ]);
     }
 
@@ -118,7 +149,6 @@ class UserController extends Controller
         $user = User::with(['userPermissions' => function($query) {
             $query->where('user_permissions.allowed', true)->with('permission');
         }])->findOrFail($id);
-        $rolePermissions = RolePermission::where('role', $user->role)->with('permission')->get();
 
         // Security check: Only users with view-users permission can view user details
         if (!$currentUser->isSuperAdmin() && !$currentUser->hasPermission('view-users')) {
@@ -140,7 +170,6 @@ class UserController extends Controller
                 'isSuperAdmin' => $user->isSuperAdmin(),
                 'created_at' => $user->created_at,
                 'updated_at' => $user->updated_at,
-                'rolePermissions' => $rolePermissions,
                 'userPermissions' => $user->userPermissions->map(function ($userPermission) {
                     return [
                         'id' => $userPermission->permission->id,
@@ -164,15 +193,28 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
 
-        // Get all available roles from role_permissions table, excluding Super Admin
-        $roles = RolePermission::select('role')
+        // Get roles from role_permissions table
+        $dbRoles = RolePermission::select('role')
                               ->distinct()
                               ->where('role', '!=', 'Super Admin')
-                              ->pluck('role');
+                              ->pluck('role')
+                              ->toArray();
+
+        // Default roles requested by user if not in DB
+        $defaultRoles = [
+            'Sub Super Admin',
+            'Reception Admin',
+            'Laboratory Admin',
+            'Pharmacy Admin',
+        ];
+
+        // Merge and unique
+        $roles = array_unique(array_merge($dbRoles, $defaultRoles));
+        sort($roles);
 
         return Inertia::render('Admin/Users/Edit', [
             'user' => $user,
-            'roles' => $roles,
+            'roles' => array_values($roles),
         ]);
     }
 
@@ -349,6 +391,8 @@ class UserController extends Controller
         foreach ($allPermissions as $permissionName) {
             \Illuminate\Support\Facades\Cache::forget("user_permission:{$user->id}:{$permissionName}");
         }
+        // Also clear effective permissions cache
+        \Illuminate\Support\Facades\Cache::forget("user_effective_permissions:{$user->id}");
 
         // Log the permission changes
         $newPermissions = $request->input('permissions', []);
@@ -786,6 +830,8 @@ class UserController extends Controller
 
         // Clear permission cache for this user and permission
         \Illuminate\Support\Facades\Cache::forget("user_permission:{$user->id}:{$permission->name}");
+        // Also clear effective permissions cache
+        \Illuminate\Support\Facades\Cache::forget("user_effective_permissions:{$user->id}");
 
         // Log the permission revocation
         $endTime = microtime(true);
@@ -808,83 +854,27 @@ class UserController extends Controller
             'logged_at' => now(),
         ]);
 
-        return redirect()->back()->with('success', 'Permission revoked successfully');
+        return redirect()->route('admin.users.show', $user->id)->with('success', 'Permission revoked successfully');
     }
 
     /**
-     * Override a role-based permission with a user-specific permission.
-     */
-    public function overrideRolePermission(Request $request, string $userId, string $permissionId): RedirectResponse
-    {
-        $currentUser = \Illuminate\Support\Facades\Auth::user();
-
-        // Authorization check
-        if (!$currentUser->isSuperAdmin() && !$currentUser->hasPermission('manage-users')) {
-            return redirect()->back()->withErrors(['permission' => 'Unauthorized to override user permissions']);
-        }
-
-        $user = User::findOrFail($userId);
-        $permission = Permission::findOrFail($permissionId);
-
-        // Prevent modifying own permissions unless Super Admin
-        if ($user->id === $currentUser->id && $currentUser->role !== 'Super Admin') {
-            return redirect()->back()->withErrors(['permission' => 'Non-super admins cannot override their own permissions']);
-        }
-
-        // Prevent modifying Super Admin permissions unless current user is Super Admin
-        if ($user->role === 'Super Admin' && $currentUser->role !== 'Super Admin') {
-            return redirect()->back()->withErrors(['permission' => 'Only Super Admin can override Super Admin permissions']);
-        }
-
-        // Check if this permission is actually part of the user's role
-        $rolePermission = RolePermission::where('role', $user->role)
-            ->where('permission_id', $permission->id)
-            ->first();
-
-        if (!$rolePermission) {
-            return redirect()->back()->withErrors(['permission' => 'This permission is not part of the user\'s role']);
-        }
-
-        // Create or update user-specific permission to override the role-based one
-        // By default, we're creating an 'allowed' permission, but this could be extended to accept a parameter
-        $user->userPermissions()->updateOrCreate(
-            ['permission_id' => $permission->id],
-            ['allowed' => true]
-        );
-
-        // Clear permission cache for this user and permission
-        \Illuminate\Support\Facades\Cache::forget("user_permission:{$user->id}:{$permission->name}");
-
-        // Log the permission override
-        \App\Models\AuditLog::create([
-            'user_id' => $currentUser->id,
-            'user_name' => $currentUser->name,
-            'user_role' => $currentUser->role,
-            'action' => 'Override Role Permission',
-            'description' => "Overrode role-based permission '{$permission->name}' for user {$user->name} (ID: {$user->id}), making it user-specific",
-            'module' => 'User Management',
-            'severity' => 'medium',
-            'response_time' => 0.1,
-            'memory_usage' => 1000000,
-            'request_method' => $request->method(),
-            'request_url' => $request->fullUrl(),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'logged_at' => now(),
-        ]);
-
-        return redirect()->back()->with('success', 'Role-based permission successfully overridden with user-specific permission');
-    }
-
-    /**
-     * Get all available roles from the role permissions, excluding Super Admin.
+     * Get all available roles from the role permissions.
      */
     private function getAvailableRoles(): array
     {
-        return RolePermission::select('role')
+        $dbRoles = RolePermission::select('role')
                              ->distinct()
                              ->where('role', '!=', 'Super Admin')
                              ->pluck('role')
                              ->toArray();
+                             
+        $defaultRoles = [
+            'Sub Super Admin',
+            'Reception Admin',
+            'Laboratory Admin',
+            'Pharmacy Admin',
+        ];
+        
+        return array_unique(array_merge($dbRoles, $defaultRoles));
     }
 }

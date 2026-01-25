@@ -25,9 +25,6 @@ interface User {
     isSuperAdmin: boolean;
     created_at: string;
     updated_at: string;
-    rolePermissions: {
-        permission: UserPermission;
-    }[];
     userPermissions: UserPermission[];
 }
 
@@ -312,64 +309,12 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                             Assigned Permissions
                         </CardTitle>
                         <CardDescription>
-                            Permissions granted to this user based on their role and individual assignments
+                            User-specific permissions assigned to this account
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-8">
-                            {/* Role-Based Permissions Section */}
-                            {user.rolePermissions.length > 0 && (
-                                <div>
-                                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                                        <Shield className="h-5 w-5 text-blue-600" />
-                                        Role-Based Permissions
-                                    </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {user.rolePermissions.map((rp) => (
-                                            <div
-                                                key={`role-${rp.permission.id}`}
-                                                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white"
-                                            >
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <h4 className="font-semibold text-gray-900">{rp.permission.name}</h4>
-                                                    <div className="flex items-center gap-1">
-                                                        <Badge variant="outline" className="text-xs bg-blue-100 border-blue-300">
-                                                            Role
-                                                        </Badge>
-                                                        <Badge variant="outline" className="text-xs">
-                                                            {rp.permission.action}
-                                                        </Badge>
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => {
-                                                                // Confirm before overriding this role-based permission
-                                                                if (window.confirm(`Override role-based permission '${rp.permission.name}' for this user? This will allow you to manage this permission specifically for this user.`)) {
-                                                                    // Send a request to convert this to a user-specific permission
-                                                                    router.post(`/admin/users/${user.id}/permissions/${rp.permission.id}/override`);
-                                                                }
-                                                            }}
-                                                            className="text-blue-600 hover:bg-blue-50 border-blue-300 shrink-0"
-                                                        >
-                                                            Override
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                                <p className="text-sm text-gray-600 mb-3">
-                                                    {rp.permission.description}
-                                                </p>
-                                                <div className="flex flex-wrap gap-1">
-                                                    <Badge variant="secondary" className="text-xs">
-                                                        {rp.permission.resource}
-                                                    </Badge>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* User-Specific Permissions Section */}
+                            
                             {user.userPermissions.length > 0 && (
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -396,7 +341,14 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                                                             variant="destructive"
                                                             size="sm"
                                                             onClick={() => {
-                                                                router.delete(`/admin/users/${user.id}/permissions/${permission.id}`);
+                                                                if (window.confirm(`Remove permission '${permission.name}' from this user?`)) {
+                                                                    router.delete(`/admin/users/${user.id}/permissions/${permission.id}`, {
+                                                                        onSuccess: () => {
+                                                                            // Page will reload automatically with updated data
+                                                                        },
+                                                                        preserveScroll: false,
+                                                                    });
+                                                                }
                                                             }}
                                                             className="text-red-600 hover:bg-red-50 border-red-300 shrink-0"
                                                         >
@@ -420,7 +372,7 @@ export default function UserShow({ user, canDelete, canEdit, currentUserRole }: 
                             )}
 
                             {/* Message when no permissions are assigned */}
-                            {user.rolePermissions.length === 0 && user.userPermissions.length === 0 && (
+                            {user.userPermissions.length === 0 && (
                                 <div className="text-center py-8">
                                     <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                                         <Key className="h-6 w-6 text-gray-400" />

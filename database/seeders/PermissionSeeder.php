@@ -19,31 +19,36 @@ class PermissionSeeder extends Seeder
                 'name' => 'view-users',
                 'description' => 'View user list',
                 'resource' => 'users',
-                'action' => 'view'
+                'action' => 'view',
+                'category' => 'User Management'
             ],
             [
                 'name' => 'create-users',
                 'description' => 'Create new users',
                 'resource' => 'users',
-                'action' => 'create'
+                'action' => 'create',
+                'category' => 'User Management'
             ],
             [
                 'name' => 'edit-users',
                 'description' => 'Edit existing users',
                 'resource' => 'users',
-                'action' => 'edit'
+                'action' => 'edit',
+                'category' => 'User Management'
             ],
             [
                 'name' => 'delete-users',
                 'description' => 'Delete users',
                 'resource' => 'users',
-                'action' => 'delete'
+                'action' => 'delete',
+                'category' => 'User Management'
             ],
             [
                 'name' => 'view-dashboard',
                 'description' => 'View main dashboard',
                 'resource' => 'dashboard',
-                'action' => 'view'
+                'action' => 'view',
+                'category' => 'Dashboard'
             ],
             
             // Patient Management Permissions
@@ -51,25 +56,29 @@ class PermissionSeeder extends Seeder
                 'name' => 'view-patients',
                 'description' => 'View patient list',
                 'resource' => 'patients',
-                'action' => 'view'
+                'action' => 'view',
+                'category' => 'Patient Management'
             ],
             [
                 'name' => 'create-patients',
                 'description' => 'Create new patients',
                 'resource' => 'patients',
-                'action' => 'create'
+                'action' => 'create',
+                'category' => 'Patient Management'
             ],
             [
                 'name' => 'edit-patients',
                 'description' => 'Edit existing patients',
                 'resource' => 'patients',
-                'action' => 'edit'
+                'action' => 'edit',
+                'category' => 'Patient Management'
             ],
             [
                 'name' => 'delete-patients',
                 'description' => 'Delete patients',
                 'resource' => 'patients',
-                'action' => 'delete'
+                'action' => 'delete',
+                'category' => 'Patient Management'
             ],
             
             // Doctor Management Permissions
@@ -77,25 +86,29 @@ class PermissionSeeder extends Seeder
                 'name' => 'view-doctors',
                 'description' => 'View doctor list',
                 'resource' => 'doctors',
-                'action' => 'view'
+                'action' => 'view',
+                'category' => 'Doctor Management'
             ],
             [
                 'name' => 'create-doctors',
                 'description' => 'Create new doctors',
                 'resource' => 'doctors',
-                'action' => 'create'
+                'action' => 'create',
+                'category' => 'Doctor Management'
             ],
             [
                 'name' => 'edit-doctors',
                 'description' => 'Edit existing doctors',
                 'resource' => 'doctors',
-                'action' => 'edit'
+                'action' => 'edit',
+                'category' => 'Doctor Management'
             ],
             [
                 'name' => 'delete-doctors',
                 'description' => 'Delete doctors',
                 'resource' => 'doctors',
-                'action' => 'delete'
+                'action' => 'delete',
+                'category' => 'Doctor Management'
             ],
             
             // Appointment Management Permissions
@@ -103,25 +116,29 @@ class PermissionSeeder extends Seeder
                 'name' => 'view-appointments',
                 'description' => 'View appointment list',
                 'resource' => 'appointments',
-                'action' => 'view'
+                'action' => 'view',
+                'category' => 'Appointment Management'
             ],
             [
                 'name' => 'create-appointments',
                 'description' => 'Create new appointments',
                 'resource' => 'appointments',
-                'action' => 'create'
+                'action' => 'create',
+                'category' => 'Appointment Management'
             ],
             [
                 'name' => 'edit-appointments',
                 'description' => 'Edit existing appointments',
                 'resource' => 'appointments',
-                'action' => 'edit'
+                'action' => 'edit',
+                'category' => 'Appointment Management'
             ],
             [
                 'name' => 'delete-appointments',
                 'description' => 'Delete appointments',
                 'resource' => 'appointments',
-                'action' => 'delete'
+                'action' => 'delete',
+                'category' => 'Appointment Management'
             ],
             
             // Billing Management Permissions
@@ -129,25 +146,29 @@ class PermissionSeeder extends Seeder
                 'name' => 'view-billing',
                 'description' => 'View billing information',
                 'resource' => 'billing',
-                'action' => 'view'
+                'action' => 'view',
+                'category' => 'Billing Management'
             ],
             [
                 'name' => 'create-billing',
                 'description' => 'Create new billing records',
                 'resource' => 'billing',
-                'action' => 'create'
+                'action' => 'create',
+                'category' => 'Billing Management'
             ],
             [
                 'name' => 'edit-billing',
                 'description' => 'Edit existing billing records',
                 'resource' => 'billing',
-                'action' => 'edit'
+                'action' => 'edit',
+                'category' => 'Billing Management'
             ],
             [
                 'name' => 'delete-billing',
                 'description' => 'Delete billing records',
                 'resource' => 'billing',
-                'action' => 'delete'
+                'action' => 'delete',
+                'category' => 'Billing Management'
             ],
             
             // Pharmacy Management Permissions
@@ -155,25 +176,29 @@ class PermissionSeeder extends Seeder
                 'name' => 'view-pharmacy',
                 'description' => 'View pharmacy section',
                 'resource' => 'pharmacy',
-                'action' => 'view'
+                'action' => 'view',
+                'category' => 'Pharmacy Management'
             ],
             [
                 'name' => 'create-medicines',
                 'description' => 'Create new medicines',
                 'resource' => 'medicines',
-                'action' => 'create'
+                'action' => 'create',
+                'category' => 'Pharmacy Management'
             ],
             [
                 'name' => 'edit-medicines',
                 'description' => 'Edit existing medicines',
                 'resource' => 'medicines',
-                'action' => 'edit'
+                'action' => 'edit',
+                'category' => 'Pharmacy Management'
             ],
             [
                 'name' => 'delete-medicines',
                 'description' => 'Delete medicines',
                 'resource' => 'medicines',
-                'action' => 'delete'
+                'action' => 'delete',
+                'category' => 'Pharmacy Management'
             ],
             
             // Laboratory Management Permissions
@@ -181,25 +206,29 @@ class PermissionSeeder extends Seeder
                 'name' => 'view-laboratory',
                 'description' => 'View laboratory section',
                 'resource' => 'laboratory',
-                'action' => 'view'
+                'action' => 'view',
+                'category' => 'Laboratory Management'
             ],
             [
                 'name' => 'create-lab-tests',
                 'description' => 'Create new lab tests',
                 'resource' => 'lab-tests',
-                'action' => 'create'
+                'action' => 'create',
+                'category' => 'Laboratory Management'
             ],
             [
                 'name' => 'edit-lab-tests',
                 'description' => 'Edit existing lab tests',
                 'resource' => 'lab-tests',
-                'action' => 'edit'
+                'action' => 'edit',
+                'category' => 'Laboratory Management'
             ],
             [
                 'name' => 'delete-lab-tests',
                 'description' => 'Delete lab tests',
                 'resource' => 'lab-tests',
-                'action' => 'delete'
+                'action' => 'delete',
+                'category' => 'Laboratory Management'
             ],
             
             // Reports Management Permissions
@@ -207,7 +236,8 @@ class PermissionSeeder extends Seeder
                 'name' => 'view-reports',
                 'description' => 'View reports section',
                 'resource' => 'reports',
-                'action' => 'view'
+                'action' => 'view',
+                'category' => 'Reports Management'
             ],
             
             // Settings Management Permissions
@@ -215,7 +245,8 @@ class PermissionSeeder extends Seeder
                 'name' => 'view-settings',
                 'description' => 'View settings section',
                 'resource' => 'settings',
-                'action' => 'view'
+                'action' => 'view',
+                'category' => 'Settings Management'
             ],
 
             // Admin Management Permissions
@@ -223,25 +254,29 @@ class PermissionSeeder extends Seeder
                 'name' => 'manage-users',
                 'description' => 'Full user management access',
                 'resource' => 'admin',
-                'action' => 'manage'
+                'action' => 'manage',
+                'category' => 'Admin Management'
             ],
             [
                 'name' => 'manage-permissions',
                 'description' => 'Manage user permissions and roles',
                 'resource' => 'admin',
-                'action' => 'manage'
+                'action' => 'manage',
+                'category' => 'Admin Management'
             ],
             [
                 'name' => 'view-activity-logs',
                 'description' => 'View system activity logs',
                 'resource' => 'admin',
-                'action' => 'view'
+                'action' => 'view',
+                'category' => 'Admin Management'
             ],
             [
                 'name' => 'manage-departments',
                 'description' => 'Manage hospital departments',
                 'resource' => 'departments',
-                'action' => 'manage'
+                'action' => 'manage',
+                'category' => 'Department Management'
             ],
 
             // Department Management Permissions
@@ -249,25 +284,29 @@ class PermissionSeeder extends Seeder
                 'name' => 'view-departments',
                 'description' => 'View department list',
                 'resource' => 'departments',
-                'action' => 'view'
+                'action' => 'view',
+                'category' => 'Department Management'
             ],
             [
                 'name' => 'create-departments',
                 'description' => 'Create new departments',
                 'resource' => 'departments',
-                'action' => 'create'
+                'action' => 'create',
+                'category' => 'Department Management'
             ],
             [
                 'name' => 'edit-departments',
                 'description' => 'Edit existing departments',
                 'resource' => 'departments',
-                'action' => 'edit'
+                'action' => 'edit',
+                'category' => 'Department Management'
             ],
             [
                 'name' => 'delete-departments',
                 'description' => 'Delete departments',
                 'resource' => 'departments',
-                'action' => 'delete'
+                'action' => 'delete',
+                'category' => 'Department Management'
             ],
             
 
