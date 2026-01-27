@@ -33,11 +33,11 @@ return new class extends Migration
 
         // Add critical patient fields
         Schema::table('patients', function (Blueprint $table) {
-            if (!Schema::hasColumn('patients', 'date_of_birth')) {
-                $table->date('date_of_birth')->nullable()->after('gender');
+            if (!Schema::hasColumn('patients', 'age')) {
+                $table->unsignedTinyInteger('age')->nullable()->after('gender');
             }
             if (!Schema::hasColumn('patients', 'blood_type')) {
-                $table->string('blood_type', 5)->nullable()->after('date_of_birth');
+                $table->string('blood_type', 5)->nullable()->after('age');
             }
             if (!Schema::hasColumn('patients', 'allergies')) {
                 $table->text('allergies')->nullable()->after('blood_type');
@@ -52,8 +52,8 @@ return new class extends Migration
                 $table->text('medical_history')->nullable()->after('emergency_contact_phone');
             }
             
-            if (!$this->indexExists('patients', 'idx_patients_dob')) {
-                $table->index('date_of_birth', 'idx_patients_dob');
+            if (!$this->indexExists('patients', 'idx_patients_age')) {
+                $table->index('age', 'idx_patients_age');
             }
             if (!$this->indexExists('patients', 'idx_patients_blood_type')) {
                 $table->index('blood_type', 'idx_patients_blood_type');
@@ -150,7 +150,7 @@ return new class extends Migration
 
         Schema::table('patients', function (Blueprint $table) {
             $table->dropColumn([
-                'date_of_birth', 'blood_type', 'allergies',
+                'age', 'blood_type', 'allergies',
                 'emergency_contact_name', 'emergency_contact_phone', 'medical_history'
             ]);
         });

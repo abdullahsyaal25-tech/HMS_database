@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
 use App\Models\Department;
+use App\Models\Doctor;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,7 +31,24 @@ class DepartmentController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Department/Create');
+        $doctors = Doctor::select('id', 'doctor_id', 'full_name', 'specialization')
+            ->orderBy('full_name')
+            ->get()
+            ->map(function ($doctor) {
+                // Split full_name into first_name and last_name for frontend compatibility
+                $nameParts = explode(' ', $doctor->full_name, 2);
+                return [
+                    'id' => $doctor->id,
+                    'doctor_id' => $doctor->doctor_id,
+                    'first_name' => $nameParts[0] ?? '',
+                    'last_name' => $nameParts[1] ?? '',
+                    'specialization' => $doctor->specialization,
+                ];
+            });
+
+        return Inertia::render('Department/Create', [
+            'doctors' => $doctors
+        ]);
     }
 
     /**
@@ -76,9 +94,25 @@ class DepartmentController extends Controller
     public function edit(string $id): Response
     {
         $department = Department::findOrFail($id);
+        
+        $doctors = Doctor::select('id', 'doctor_id', 'full_name', 'specialization')
+            ->orderBy('full_name')
+            ->get()
+            ->map(function ($doctor) {
+                // Split full_name into first_name and last_name for frontend compatibility
+                $nameParts = explode(' ', $doctor->full_name, 2);
+                return [
+                    'id' => $doctor->id,
+                    'doctor_id' => $doctor->doctor_id,
+                    'first_name' => $nameParts[0] ?? '',
+                    'last_name' => $nameParts[1] ?? '',
+                    'specialization' => $doctor->specialization,
+                ];
+            });
 
         return Inertia::render('Department/Edit', [
-            'department' => $department
+            'department' => $department,
+            'doctors' => $doctors
         ]);
     }
 

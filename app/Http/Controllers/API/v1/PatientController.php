@@ -84,7 +84,7 @@ class PatientController extends Controller
                 'email' => 'nullable|email|unique:patients,email',
                 'phone' => 'nullable|string|max:20|regex:/^[\+]?[0-9\s\-\(\)]+$/',
                 'address' => 'nullable|string|max:500',
-                'date_of_birth' => 'nullable|date|before:today|after:1900-01-01',
+                'age' => 'nullable|integer|min:0|max:150',
                 'gender' => 'nullable|in:male,female,other',
                 'blood_group' => 'nullable|string|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
                 'emergency_contact_name' => 'nullable|string|max:255',
@@ -183,7 +183,7 @@ class PatientController extends Controller
             'email' => 'sometimes|required|email|unique:patients,email,' . $id,
             'phone' => 'sometimes|nullable|string|max:20',
             'address' => 'nullable|string',
-            'date_of_birth' => 'sometimes|nullable|date|before:today',
+            'age' => 'sometimes|nullable|integer|min:0|max:150',
             'gender' => 'sometimes|nullable|in:male,female,other',
             'blood_group' => 'sometimes|nullable|string|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
         ]);

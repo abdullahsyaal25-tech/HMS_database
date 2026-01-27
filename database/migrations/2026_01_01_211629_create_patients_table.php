@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('patient_id')->unique();
             $table->string('first_name')->nullable(); // Name
             $table->string('father_name')->nullable(); // Father's name
-            $table->date('date_of_birth')->nullable(); // For calculating age
+            $table->unsignedTinyInteger('age')->nullable(); // Patient age
             $table->enum('gender', ['male', 'female', 'other'])->nullable();
             $table->string('phone')->nullable(); // Phone number
             $table->text('address')->nullable(); // Address

@@ -44,7 +44,7 @@ class PatientController extends Controller
             'gender' => 'nullable|in:male,female,other',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
-            'date_of_birth' => 'nullable|date|before:today',
+            'age' => 'nullable|integer|min:0|max:150',
             'blood_group' => 'nullable|string|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
         ]);
 
@@ -82,7 +82,7 @@ class PatientController extends Controller
                 'gender' => $request->gender,
                 'phone' => $request->phone,
                 'address' => $request->address,
-                'date_of_birth' => $request->date_of_birth,
+                'age' => $request->age,
                 'blood_group' => $request->blood_group,
                 'user_id' => $user->id,
             ]);
@@ -131,7 +131,7 @@ class PatientController extends Controller
             'gender' => 'nullable|in:male,female,other',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
-            'date_of_birth' => 'nullable|date|before:today',
+            'age' => 'nullable|integer|min:0|max:150',
             'blood_group' => 'nullable|string|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
         ]);
 
@@ -150,7 +150,7 @@ class PatientController extends Controller
             'gender' => $request->gender,
             'phone' => $request->phone,
             'address' => $request->address,
-            'date_of_birth' => $request->date_of_birth,
+            'age' => $request->age,
             'blood_group' => $request->blood_group,
         ]);
 

@@ -23,7 +23,7 @@ export default function PatientEdit({ patient }: PatientEditProps) {
         gender: patient.gender || '',
         phone: patient.phone || '',
         address: patient.address || '',
-        date_of_birth: patient.date_of_birth || '',
+        age: patient.age?.toString() || '',
         blood_group: patient.blood_group || '',
     });
 
@@ -126,17 +126,19 @@ export default function PatientEdit({ patient }: PatientEditProps) {
                                 </div>
                                 
                                 <div className="space-y-2">
-                                    <Label htmlFor="date_of_birth">Date of Birth</Label>
+                                    <Label htmlFor="age">Age</Label>
                                     <Input
-                                        id="date_of_birth"
-                                        name="date_of_birth"
-                                        type="date"
-                                        value={data.date_of_birth}
+                                        id="age"
+                                        name="age"
+                                        type="number"
+                                        min="0"
+                                        max="150"
+                                        value={data.age}
                                         onChange={handleChange}
-                                        max={new Date().toISOString().split('T')[0]}
+                                        placeholder="Enter age"
                                     />
-                                    {errors.date_of_birth && (
-                                        <p className="text-sm text-red-600">{errors.date_of_birth}</p>
+                                    {errors.age && (
+                                        <p className="text-sm text-red-600">{errors.age}</p>
                                     )}
                                 </div>
                                 

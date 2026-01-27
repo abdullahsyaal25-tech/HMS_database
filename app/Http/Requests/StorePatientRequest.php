@@ -26,7 +26,7 @@ class StorePatientRequest extends FormRequest
             'email' => 'required|email|unique:patients,email|unique:users,username',
             'phone' => 'required|string|max:20',
             'address' => 'nullable|string',
-            'date_of_birth' => 'nullable|date',
+            'age' => 'nullable|integer|min:0|max:150',
             'gender' => 'nullable|in:male,female,other',
             'emergency_contact_name' => 'nullable|string|max:255',
             'emergency_contact_phone' => 'nullable|string|max:20',

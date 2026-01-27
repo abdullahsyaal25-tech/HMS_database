@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import {
     Table,
@@ -8,9 +8,10 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import Heading from '@/components/heading';
-import { Building, Users, Phone, PlusCircle, Search } from 'lucide-react';
+import { Building, Users, Phone, PlusCircle, Search, Eye, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import HospitalLayout from '@/layouts/HospitalLayout';
 
@@ -45,6 +46,7 @@ interface DepartmentIndexProps {
 
 export default function DepartmentIndex({ departments }: DepartmentIndexProps) {
     const [searchTerm, setSearchTerm] = useState('');
+    const [deletingId, setDeletingId] = useState<number | null>(null);
 
     const filteredDepartments = departments.data.filter(department => {
         const searchLower = searchTerm.toLowerCase();
@@ -56,14 +58,29 @@ export default function DepartmentIndex({ departments }: DepartmentIndexProps) {
         );
     });
 
+    const handleDelete = (id: number, name: string) => {
+        if (confirm(`Are you sure you want to delete ${name}? This action cannot be undone.`)) {
+            setDeletingId(id);
+            router.delete(`/departments/${id}`, {
+                onFinish: () => setDeletingId(null),
+            });
+        }
+    };
+
 
 
     return (
         <HospitalLayout>
+            <Head title="Departments" />
+            
             <div className="space-y-6">
-                <Head title="Departments" />
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <Heading title="Department Management" />
+                    <div>
+                        <Heading title="Departments" />
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Manage hospital departments and their information
+                        </p>
+                    </div>
                     
                     <Link href="/departments/create">
                         <Button className="bg-blue-600 hover:bg-blue-700">
@@ -75,7 +92,10 @@ export default function DepartmentIndex({ departments }: DepartmentIndexProps) {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Departments List</CardTitle>
+                        <CardTitle>All Departments</CardTitle>
+                        <CardDescription>
+                            View and manage all hospital departments
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="mb-4 flex flex-col sm:flex-row gap-4">
@@ -95,11 +115,12 @@ export default function DepartmentIndex({ departments }: DepartmentIndexProps) {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="w-[100px]">Department ID</TableHead>
+                                        <TableHead className="w-[100px]">ID</TableHead>
                                         <TableHead>Name</TableHead>
                                         <TableHead>Description</TableHead>
                                         <TableHead>Head Doctor</TableHead>
                                         <TableHead>Contact</TableHead>
+                                        <TableHead>Status</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -113,7 +134,7 @@ export default function DepartmentIndex({ departments }: DepartmentIndexProps) {
                                                 <TableCell>
                                                     <div className="flex items-center">
                                                         <Building className="mr-2 h-4 w-4 text-muted-foreground" />
-                                                        {department.name}
+                                                        <span className="font-semibold">{department.name}</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
@@ -133,25 +154,40 @@ export default function DepartmentIndex({ departments }: DepartmentIndexProps) {
                                                         {department.phone || 'N/A'}
                                                     </div>
                                                 </TableCell>
+                                                <TableCell>
+                                                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                                                        Active
+                                                    </Badge>
+                                                </TableCell>
                                                 <TableCell className="text-right">
-                                                    <div className="flex justify-end space-x-2">
-                                                        <Link href={`/departments/${department.id}/edit`}>
-                                                            <Button variant="outline" size="sm">
-                                                                Edit
-                                                            </Button>
-                                                        </Link>
+                                                    <div className="flex justify-end gap-2">
                                                         <Link href={`/departments/${department.id}`}>
-                                                            <Button variant="outline" size="sm">
-                                                                View
+                                                            <Button variant="ghost" size="sm" title="View details">
+                                                                <Eye className="h-4 w-4" />
                                                             </Button>
                                                         </Link>
+                                                        <Link href={`/departments/${department.id}/edit`}>
+                                                            <Button variant="ghost" size="sm" title="Edit">
+                                                                <Pencil className="h-4 w-4" />
+                                                            </Button>
+                                                        </Link>
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm"
+                                                            title="Delete"
+                                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                            onClick={() => handleDelete(department.id, department.name)}
+                                                            disabled={deletingId === department.id}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="h-24 text-center">
+                                            <TableCell colSpan={7} className="h-24 text-center">
                                                 No departments found
                                             </TableCell>
                                         </TableRow>

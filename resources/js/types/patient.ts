@@ -24,6 +24,6 @@ export interface PatientFormData {
     gender: string;
     phone: string;
     address: string;
-    date_of_birth: string;
+    age: string;
     blood_group: string;
 }

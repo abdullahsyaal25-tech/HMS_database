@@ -18,7 +18,7 @@ class Patient extends Model
         'gender',
         'phone',
         'user_id',
-        'date_of_birth',
+        'age',
         'blood_group',
         'blood_type',
         'allergies',
@@ -32,7 +32,7 @@ class Patient extends Model
         'address' => 'array',
         'phone' => 'encrypted',
         'metadata' => 'array',
-        'date_of_birth' => 'date',
+        'age' => 'integer',
         // Encrypt sensitive medical information
         'allergies' => 'encrypted',
         'medical_history' => 'encrypted',
@@ -45,14 +45,6 @@ class Patient extends Model
     public function getFullNameAttribute(): string
     {
         return trim("{$this->first_name} {$this->last_name}");
-    }
-
-    /**
-     * Get age of the patient.
-     */
-    public function getAgeAttribute(): ?int
-    {
-        return $this->date_of_birth?->age;
     }
 
     /**

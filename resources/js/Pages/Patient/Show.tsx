@@ -108,6 +108,7 @@ export default function PatientShow({ patient }: PatientShowProps) {
                                         ) : (
                                             <Badge variant="outline">N/A</Badge>
                                         )}
+
                                     </div>
                                 </div>
                                 

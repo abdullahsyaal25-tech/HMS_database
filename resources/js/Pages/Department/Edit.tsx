@@ -1,12 +1,14 @@
 import { Head, useForm, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import Heading from '@/components/heading';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
+import HospitalLayout from '@/layouts/HospitalLayout';
 
 interface Doctor {
     id: number;
@@ -47,7 +49,12 @@ export default function DepartmentEdit({ department, doctors = [] }: DepartmentE
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(`/departments/${department.id}`);
+        put(`/departments/${department.id}`, {
+            preserveScroll: true,
+            onError: (errors) => {
+                console.error('Form submission errors:', errors);
+            },
+        });
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -60,12 +67,12 @@ export default function DepartmentEdit({ department, doctors = [] }: DepartmentE
     };
 
     return (
-        <>
+        <HospitalLayout>
             <Head title={`Edit Department - ${department.department_id}`} />
             
             <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <Heading title={`Editing Department: ${department.department_id}`} />
+                    <Heading title={`Edit Department: ${department.department_id}`} />
                     
                     <Link href={`/departments/${department.id}`}>
                         <Button variant="outline">
@@ -75,15 +82,28 @@ export default function DepartmentEdit({ department, doctors = [] }: DepartmentE
                     </Link>
                 </div>
 
+                {/* Error Alert */}
+                {Object.keys(errors).length > 0 && (
+                    <Alert className="bg-red-50 border-red-200">
+                        <AlertCircle className="h-4 w-4 text-red-600" />
+                        <AlertDescription className="text-red-800">
+                            Please fix the errors below before submitting.
+                        </AlertDescription>
+                    </Alert>
+                )}
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Department Information</CardTitle>
+                        <CardDescription>
+                            Update the department's details and contact information.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="name">Department Name *</Label>
+                                    <Label htmlFor="name">Department Name</Label>
                                     <Input
                                         id="name"
                                         name="name"
@@ -97,7 +117,7 @@ export default function DepartmentEdit({ department, doctors = [] }: DepartmentE
                                 </div>
                                 
                                 <div className="space-y-2">
-                                    <Label htmlFor="head_doctor_id">Head Doctor *</Label>
+                                    <Label htmlFor="head_doctor_id">Head Doctor</Label>
                                     <Select 
                                         value={data.head_doctor_id} 
                                         onValueChange={(value) => handleSelectChange('head_doctor_id', value)}
@@ -199,6 +219,6 @@ export default function DepartmentEdit({ department, doctors = [] }: DepartmentE
                     </CardContent>
                 </Card>
             </div>
-        </>
+        </HospitalLayout>
     );
 }
