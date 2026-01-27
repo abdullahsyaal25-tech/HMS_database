@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import {
     Table,
@@ -10,27 +10,13 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import Heading from '@/components/heading';
 import { PageProps } from '@/types';
-import { PlusCircle, Search, Calendar, Phone, MapPin } from 'lucide-react';
+import { PlusCircle, Search, Phone, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import HospitalLayout from '@/layouts/HospitalLayout';
-
-interface Patient {
-    id: number;
-    patient_id: string;
-    first_name: string;
-    last_name: string;
-    gender: string;
-    phone: string;
-    address: string;
-    created_at: string;
-    user: {
-        id: number;
-        name: string;
-        username: string;
-    };
-}
+import { Patient } from '@/types/patient';
 
 interface PatientIndexProps extends PageProps {
     patients: {
@@ -49,22 +35,14 @@ interface PatientIndexProps extends PageProps {
 }
 
 export default function PatientIndex({ patients }: PatientIndexProps) {
+    const { flash } = usePage<PageProps>().props;
     const [searchTerm, setSearchTerm] = useState('');
 
     const filteredPatients = patients.data.filter(patient =>
         patient.patient_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient.user.name.toLowerCase().includes(searchTerm.toLowerCase())
+        (patient.first_name && patient.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (patient.user && patient.user.name.toLowerCase().includes(searchTerm.toLowerCase()))
     );
-
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-        });
-    };
 
     const getGenderBadgeVariant = (gender: string) => {
         switch (gender.toLowerCase()) {
@@ -81,6 +59,17 @@ export default function PatientIndex({ patients }: PatientIndexProps) {
         <HospitalLayout>
             <div className="space-y-6">
                 <Head title="Patients" />
+                
+                {/* Success/Error Alerts */}
+                {flash?.success && (
+                    <Alert className="bg-green-50 border-green-200">
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        <AlertDescription className="text-green-800">
+                            {flash.success}
+                        </AlertDescription>
+                    </Alert>
+                )}
+                
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <Heading title="Patient Management" />
                     
@@ -114,46 +103,63 @@ export default function PatientIndex({ patients }: PatientIndexProps) {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="w-[100px]">Patient ID</TableHead>
+                                        <TableHead className="w-25">Patient ID</TableHead>
                                         <TableHead>Name</TableHead>
+                                        <TableHead>Father's Name</TableHead>
                                         <TableHead>Gender</TableHead>
+                                        <TableHead>Age</TableHead>
+                                        <TableHead>Blood Group</TableHead>
                                         <TableHead>Contact</TableHead>
-                                        <TableHead>Address</TableHead>
-                                        <TableHead>Date Added</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {filteredPatients.length > 0 ? (
-                                        filteredPatients.map((patient) => (
+                                        filteredPatients.map((patient) => {
+                                            const calculateAge = (dob: string | null) => {
+                                                if (!dob) return 'N/A';
+                                                const birthDate = new Date(dob);
+                                                const today = new Date();
+                                                let age = today.getFullYear() - birthDate.getFullYear();
+                                                const monthDiff = today.getMonth() - birthDate.getMonth();
+                                                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                                                    age--;
+                                                }
+                                                return age;
+                                            };
+                                            
+                                            return (
                                             <TableRow key={patient.id}>
                                                 <TableCell className="font-medium">
                                                     {patient.patient_id}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {patient.first_name} {patient.last_name}
+                                                    {patient.first_name || 'N/A'}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge variant={getGenderBadgeVariant(patient.gender)}>
-                                                        {patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1)}
-                                                    </Badge>
+                                                    {patient.father_name || 'N/A'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {patient.gender ? (
+                                                        <Badge variant={getGenderBadgeVariant(patient.gender as string)}>
+                                                            {(patient.gender as string).charAt(0).toUpperCase() + (patient.gender as string).slice(1)}
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="outline">N/A</Badge>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {calculateAge(patient.date_of_birth)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {patient.blood_group ? (
+                                                        <Badge variant="outline">{patient.blood_group}</Badge>
+                                                    ) : 'N/A'}
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center">
                                                         <Phone className="mr-2 h-4 w-4 text-muted-foreground" />
                                                         {patient.phone || 'N/A'}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center">
-                                                        <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                                                        {patient.address || 'N/A'}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center">
-                                                        <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                                                        {formatDate(patient.created_at)}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-right">
@@ -171,10 +177,11 @@ export default function PatientIndex({ patients }: PatientIndexProps) {
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
-                                        ))
+                                        );
+                                        })
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="h-24 text-center">
+                                            <TableCell colSpan={8} className="h-24 text-center">
                                                 No patients found
                                             </TableCell>
                                         </TableRow>

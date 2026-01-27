@@ -14,14 +14,16 @@ return new class extends Migration
         Schema::create('doctors', function (Blueprint $table) {
             $table->id();
             $table->string('doctor_id')->unique();
-            $table->string('first_name');
-            $table->string('last_name');
+            $table->string('full_name');
+            $table->string('father_name')->nullable();
+            $table->integer('age')->nullable();
             $table->string('specialization');
-            $table->string('phone')->nullable();
-            $table->string('email')->nullable();
+            $table->string('phone_number')->nullable();
             $table->text('address')->nullable();
             $table->text('bio')->nullable();
-            $table->decimal('fee', 8, 2)->default(0.00);
+            $table->decimal('fees', 8, 2)->default(0.00);
+            $table->decimal('salary', 10, 2)->default(0.00);
+            $table->decimal('bonus', 10, 2)->default(0.00);
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('department_id')->nullable();

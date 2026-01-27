@@ -14,11 +14,14 @@ return new class extends Migration
         Schema::create('patients', function (Blueprint $table) {
             $table->id();
             $table->string('patient_id')->unique();
-            $table->string('first_name');
-            $table->string('last_name')->nullable();
-            $table->enum('gender', ['male', 'female', 'other']);
-            $table->string('phone')->nullable();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('first_name')->nullable(); // Name
+            $table->string('father_name')->nullable(); // Father's name
+            $table->date('date_of_birth')->nullable(); // For calculating age
+            $table->enum('gender', ['male', 'female', 'other'])->nullable();
+            $table->string('phone')->nullable(); // Phone number
+            $table->text('address')->nullable(); // Address
+            $table->string('blood_group')->nullable(); // Blood group
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }

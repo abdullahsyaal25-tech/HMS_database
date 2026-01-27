@@ -18,12 +18,12 @@ interface Department {
     id: number;
     department_id: string;
     name: string;
-    description: string;
-    head_doctor_id: number;
-    head_doctor_name: string;
-    phone: string;
-    email: string;
-    address: string;
+    description?: string | null;
+    head_doctor_id?: number | null;
+    head_doctor_name?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
     created_at: string;
 }
 
@@ -46,12 +46,15 @@ interface DepartmentIndexProps {
 export default function DepartmentIndex({ departments }: DepartmentIndexProps) {
     const [searchTerm, setSearchTerm] = useState('');
 
-    const filteredDepartments = departments.data.filter(department =>
-        department.department_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        department.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        department.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        department.head_doctor_name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredDepartments = departments.data.filter(department => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+            (department.department_id?.toLowerCase() || '').includes(searchLower) ||
+            (department.name?.toLowerCase() || '').includes(searchLower) ||
+            (department.description?.toLowerCase() || '').includes(searchLower) ||
+            (department.head_doctor_name?.toLowerCase() || '').includes(searchLower)
+        );
+    });
 
 
 
@@ -114,14 +117,14 @@ export default function DepartmentIndex({ departments }: DepartmentIndexProps) {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div className="max-w-xs truncate" title={department.description}>
-                                                        {department.description}
+                                                    <div className="max-w-xs truncate" title={department.description || 'N/A'}>
+                                                        {department.description || 'N/A'}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center">
                                                         <Users className="mr-2 h-4 w-4 text-muted-foreground" />
-                                                        {department.head_doctor_name}
+                                                        {department.head_doctor_name || 'N/A'}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>

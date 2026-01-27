@@ -43,21 +43,36 @@ class DoctorController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
+            'full_name' => 'required|string|max:255',
+            'father_name' => 'nullable|string|max:255',
+            'age' => 'nullable|integer|min:18|max:100',
             'specialization' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:20',
+            'phone_number' => 'required|string|max:20',
             'address' => 'nullable|string',
             'bio' => 'nullable|string',
-            'fee' => 'required|numeric|min:0',
+            'fees' => 'required|numeric|min:0',
+            'salary' => 'nullable|numeric|min:0',
+            'bonus' => 'nullable|numeric|min:0',
             'department_id' => 'required|exists:departments,id',
         ]);
 
         DB::beginTransaction();
         try {
+            // Generate a unique username from the doctor's name
+            $baseUsername = strtolower(str_replace(' ', '.', $request->full_name));
+            $username = $baseUsername;
+            $counter = 1;
+            
+            // Ensure username is unique
+            while (User::where('username', $username)->exists()) {
+                $username = $baseUsername . $counter;
+                $counter++;
+            }
+            
             // Create a user for the doctor
             $user = User::create([
-                'name' => $request->first_name . ' ' . $request->last_name,
+                'name' => $request->full_name,
+                'username' => $username,
                 'password' => 'password', // Default password - will be automatically hashed by model cast
                 'role' => 'doctor',
             ]);
@@ -65,13 +80,16 @@ class DoctorController extends Controller
             // Create doctor record
             $doctor = Doctor::create([
                 'doctor_id' => 'D' . date('Y') . str_pad(Doctor::count() + 1, 5, '0', STR_PAD_LEFT),
-                'first_name' => $request->first_name,
-                'last_name' => $request->last_name,
+                'full_name' => $request->full_name,
+                'father_name' => $request->father_name,
+                'age' => $request->age,
                 'specialization' => $request->specialization,
-                'phone' => $request->phone,
+                'phone_number' => $request->phone_number,
                 'address' => $request->address,
                 'bio' => $request->bio,
-                'fee' => $request->fee,
+                'fees' => $request->fees,
+                'salary' => $request->salary ?? 0,
+                'bonus' => $request->bonus ?? 0,
                 'user_id' => $user->id,
                 'department_id' => $request->department_id,
             ]);
@@ -115,13 +133,16 @@ class DoctorController extends Controller
     public function update(Request $request, string $id): RedirectResponse
     {
         $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
+            'full_name' => 'required|string|max:255',
+            'father_name' => 'nullable|string|max:255',
+            'age' => 'nullable|integer|min:18|max:100',
             'specialization' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:20',
+            'phone_number' => 'required|string|max:20',
             'address' => 'nullable|string',
             'bio' => 'nullable|string',
-            'fee' => 'required|numeric|min:0',
+            'fees' => 'required|numeric|min:0',
+            'salary' => 'nullable|numeric|min:0',
+            'bonus' => 'nullable|numeric|min:0',
             'department_id' => 'required|exists:departments,id',
         ]);
 
@@ -130,18 +151,21 @@ class DoctorController extends Controller
 
         // Update user information
         $user->update([
-            'name' => $request->first_name . ' ' . $request->last_name,
+            'name' => $request->full_name,
         ]);
 
         // Update doctor information
         $doctor->update([
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
+            'full_name' => $request->full_name,
+            'father_name' => $request->father_name,
+            'age' => $request->age,
             'specialization' => $request->specialization,
-            'phone' => $request->phone,
+            'phone_number' => $request->phone_number,
             'address' => $request->address,
             'bio' => $request->bio,
-            'fee' => $request->fee,
+            'fees' => $request->fees,
+            'salary' => $request->salary ?? 0,
+            'bonus' => $request->bonus ?? 0,
             'department_id' => $request->department_id,
         ]);
 

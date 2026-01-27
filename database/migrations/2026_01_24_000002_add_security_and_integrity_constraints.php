@@ -33,23 +33,34 @@ return new class extends Migration
 
         // Add critical patient fields
         Schema::table('patients', function (Blueprint $table) {
-            $table->date('date_of_birth')->nullable()->after('gender');
-            $table->string('blood_type', 5)->nullable()->after('date_of_birth');
-            $table->text('allergies')->nullable()->after('blood_type');
-            $table->string('emergency_contact_name')->nullable()->after('allergies');
-            $table->string('emergency_contact_phone')->nullable()->after('emergency_contact_name');
-            $table->text('medical_history')->nullable()->after('emergency_contact_phone');
+            if (!Schema::hasColumn('patients', 'date_of_birth')) {
+                $table->date('date_of_birth')->nullable()->after('gender');
+            }
+            if (!Schema::hasColumn('patients', 'blood_type')) {
+                $table->string('blood_type', 5)->nullable()->after('date_of_birth');
+            }
+            if (!Schema::hasColumn('patients', 'allergies')) {
+                $table->text('allergies')->nullable()->after('blood_type');
+            }
+            if (!Schema::hasColumn('patients', 'emergency_contact_name')) {
+                $table->string('emergency_contact_name')->nullable()->after('allergies');
+            }
+            if (!Schema::hasColumn('patients', 'emergency_contact_phone')) {
+                $table->string('emergency_contact_phone')->nullable()->after('emergency_contact_name');
+            }
+            if (!Schema::hasColumn('patients', 'medical_history')) {
+                $table->text('medical_history')->nullable()->after('emergency_contact_phone');
+            }
             
-            $table->index('date_of_birth');
-            $table->index('blood_type');
+            if (!$this->indexExists('patients', 'idx_patients_dob')) {
+                $table->index('date_of_birth', 'idx_patients_dob');
+            }
+            if (!$this->indexExists('patients', 'idx_patients_blood_type')) {
+                $table->index('blood_type', 'idx_patients_blood_type');
+            }
         });
 
-        // Add email field to doctors if missing
-        if (!Schema::hasColumn('doctors', 'email')) {
-            Schema::table('doctors', function (Blueprint $table) {
-                $table->string('email')->nullable()->after('phone');
-            });
-        }
+        // Email field is no longer needed in doctors table - removed in schema redesign
 
         // Add missing indexes for permission system optimization
         Schema::table('user_permissions', function (Blueprint $table) {
@@ -94,8 +105,8 @@ return new class extends Migration
             // Appointment fee constraint
             DB::statement('ALTER TABLE appointments ADD CONSTRAINT chk_appointment_fee CHECK (fee >= 0)');
 
-            // Doctor fee constraint
-            DB::statement('ALTER TABLE doctors ADD CONSTRAINT chk_doctor_fee CHECK (fee >= 0)');
+            // Doctor fees constraint (updated field name from 'fee' to 'fees')
+            DB::statement('ALTER TABLE doctors ADD CONSTRAINT chk_doctor_fees CHECK (fees >= 0 AND salary >= 0 AND bonus >= 0)');
 
             // Medicine quantity and price constraints
             DB::statement('ALTER TABLE medicines ADD CONSTRAINT chk_medicine_values CHECK (
@@ -119,7 +130,7 @@ return new class extends Migration
         try {
             DB::statement('ALTER TABLE bills DROP CONSTRAINT IF EXISTS chk_bill_amounts');
             DB::statement('ALTER TABLE appointments DROP CONSTRAINT IF EXISTS chk_appointment_fee');
-            DB::statement('ALTER TABLE doctors DROP CONSTRAINT IF EXISTS chk_doctor_fee');
+            DB::statement('ALTER TABLE doctors DROP CONSTRAINT IF EXISTS chk_doctor_fees');
             DB::statement('ALTER TABLE medicines DROP CONSTRAINT IF EXISTS chk_medicine_values');
         } catch (\Exception $e) {
             // Ignore if constraints don't exist

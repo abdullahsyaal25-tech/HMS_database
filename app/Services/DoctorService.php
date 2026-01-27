@@ -45,9 +45,9 @@ class DoctorService
         try {
             // Create user first
             $user = User::create([
-                'name' => $data['name'],
-                'username' => $data['email'],
-                'password' => bcrypt($data['phone']),
+                'name' => $data['full_name'],
+                'username' => $data['phone_number'],
+                'password' => bcrypt($data['phone_number']),
                 'role' => 'Doctor',
             ]);
 
@@ -55,16 +55,17 @@ class DoctorService
             $doctor = Doctor::create([
                 'user_id' => $user->id,
                 'doctor_id' => 'DOC' . date('Y') . str_pad(Doctor::count() + 1, 5, '0', STR_PAD_LEFT),
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'phone' => $data['phone'],
+                'full_name' => $data['full_name'],
+                'father_name' => $data['father_name'] ?? null,
+                'age' => $data['age'] ?? null,
+                'phone_number' => $data['phone_number'],
                 'address' => $data['address'] ?? null,
-                'date_of_birth' => $data['date_of_birth'] ?? null,
-                'gender' => $data['gender'] ?? null,
                 'specialization' => $data['specialization'],
                 'department_id' => $data['department_id'],
-                'license_number' => $data['license_number'] ?? null,
                 'bio' => $data['bio'] ?? null,
+                'fees' => $data['fees'] ?? 0,
+                'salary' => $data['salary'] ?? 0,
+                'bonus' => $data['bonus'] ?? 0,
             ]);
 
             DB::commit();
@@ -84,23 +85,24 @@ class DoctorService
         $doctor = Doctor::findOrFail($id);
         
         $doctor->update([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'phone' => $data['phone'],
+            'full_name' => $data['full_name'],
+            'father_name' => $data['father_name'] ?? null,
+            'age' => $data['age'] ?? null,
+            'phone_number' => $data['phone_number'],
             'address' => $data['address'] ?? null,
-            'date_of_birth' => $data['date_of_birth'] ?? null,
-            'gender' => $data['gender'] ?? null,
             'specialization' => $data['specialization'],
             'department_id' => $data['department_id'],
-            'license_number' => $data['license_number'] ?? null,
             'bio' => $data['bio'] ?? null,
+            'fees' => $data['fees'] ?? 0,
+            'salary' => $data['salary'] ?? 0,
+            'bonus' => $data['bonus'] ?? 0,
         ]);
 
         // Update the associated user
         if ($doctor->user) {
             $doctor->user->update([
-                'name' => $data['name'],
-                'username' => $data['email'],
+                'name' => $data['full_name'],
+                'username' => $data['phone_number'],
             ]);
         }
 

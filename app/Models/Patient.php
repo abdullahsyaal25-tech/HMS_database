@@ -14,16 +14,18 @@ class Patient extends Model
     protected $fillable = [
         'patient_id',
         'first_name',
-        'last_name',
+        'father_name',
         'gender',
         'phone',
         'user_id',
         'date_of_birth',
+        'blood_group',
         'blood_type',
         'allergies',
         'emergency_contact_name',
         'emergency_contact_phone',
         'medical_history',
+        'address',
     ];
 
     protected $casts = [

@@ -60,7 +60,7 @@ return new class extends Migration
                 $table->index('user_id', 'idx_patients_user');
             }
             if (!$this->indexExists('patients', 'idx_patients_name')) {
-                $table->index(['first_name', 'last_name'], 'idx_patients_name');
+                $table->index('first_name', 'idx_patients_name');
             }
         });
 

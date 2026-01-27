@@ -12,22 +12,28 @@ class Doctor extends Model
 {
     protected $fillable = [
         'doctor_id',
-        'first_name',
-        'last_name',
+        'full_name',
+        'father_name',
+        'age',
         'specialization',
-        'phone',
+        'phone_number',
         'address',
         'bio',
-        'fee',
+        'fees',
+        'salary',
+        'bonus',
         'status',
         'user_id',
         'department_id',
     ];
 
     protected $casts = [
-        'fee' => 'decimal:2',
+        'fees' => 'decimal:2',
+        'salary' => 'decimal:2',
+        'bonus' => 'decimal:2',
+        'age' => 'integer',
         'address' => 'array',
-        'phone' => 'encrypted',
+        'phone_number' => 'encrypted',
         'metadata' => 'array',
     ];
 
@@ -51,7 +57,7 @@ class Doctor extends Model
      */
     public function getFullNameAttribute(): string
     {
-        return "{$this->first_name} {$this->last_name}";
+        return $this->attributes['full_name'] ?? '';
     }
 
     public function user()

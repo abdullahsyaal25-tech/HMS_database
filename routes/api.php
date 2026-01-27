@@ -27,16 +27,16 @@ Route::prefix('v1')->group(function () {
     // Protected routes with sanctum middleware
     Route::middleware('auth:sanctum')->group(function () {
         // Patient routes
-        Route::apiResource('patients', PatientController::class);
+        Route::apiResource('patients', PatientController::class)->names('api.patients');
 
         // Doctor routes
-        Route::apiResource('doctors', DoctorController::class);
+        Route::apiResource('doctors', DoctorController::class)->names('api.doctors');
 
         // Appointment routes
-        Route::apiResource('appointments', AppointmentController::class);
+        Route::apiResource('appointments', AppointmentController::class)->names('api.appointments');
 
         // Department routes
-        Route::apiResource('departments', DepartmentController::class);
+        Route::apiResource('departments', DepartmentController::class)->names('api.departments');
 
         // Additional appointment routes
         Route::put('/appointments/{id}/cancel', [AppointmentController::class, 'cancel']);

@@ -79,13 +79,14 @@ class PatientController extends Controller
     {
         try {
             $validatedData = $request->validate([
-                'first_name' => 'required|string|max:255|min:2',
-                'last_name' => 'nullable|string|max:255',
+                'first_name' => 'nullable|string|max:255|min:2',
+                'father_name' => 'nullable|string|max:255',
                 'email' => 'nullable|email|unique:patients,email',
                 'phone' => 'nullable|string|max:20|regex:/^[\+]?[0-9\s\-\(\)]+$/',
                 'address' => 'nullable|string|max:500',
                 'date_of_birth' => 'nullable|date|before:today|after:1900-01-01',
-                'gender' => 'required|in:male,female,other',
+                'gender' => 'nullable|in:male,female,other',
+                'blood_group' => 'nullable|string|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
                 'emergency_contact_name' => 'nullable|string|max:255',
                 'emergency_contact_phone' => 'nullable|string|max:20',
                 'medical_conditions' => 'nullable|string|max:1000',
@@ -177,12 +178,14 @@ class PatientController extends Controller
         $patient = Patient::findOrFail($id);
 
         $request->validate([
-            'name' => 'sometimes|required|string|max:255',
+            'first_name' => 'sometimes|nullable|string|max:255',
+            'father_name' => 'sometimes|nullable|string|max:255',
             'email' => 'sometimes|required|email|unique:patients,email,' . $id,
-            'phone' => 'sometimes|required|string|max:20',
+            'phone' => 'sometimes|nullable|string|max:20',
             'address' => 'nullable|string',
-            'date_of_birth' => 'sometimes|required|date',
-            'gender' => 'sometimes|required|in:male,female,other',
+            'date_of_birth' => 'sometimes|nullable|date|before:today',
+            'gender' => 'sometimes|nullable|in:male,female,other',
+            'blood_group' => 'sometimes|nullable|string|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
         ]);
 
         $patient->update($request->all());

@@ -39,11 +39,13 @@ class PatientController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'nullable|string|max:255',
-            'gender' => 'required|in:male,female,other',
+            'first_name' => 'nullable|string|max:255',
+            'father_name' => 'nullable|string|max:255',
+            'gender' => 'nullable|in:male,female,other',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
+            'date_of_birth' => 'nullable|date|before:today',
+            'blood_group' => 'nullable|string|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
         ]);
 
 
@@ -51,39 +53,37 @@ class PatientController extends Controller
         try {
             
             // Create a user for the patient
-            $username = strtolower($request->first_name . '.' . $request->last_name . '.' . time());
+            $username = strtolower(($request->first_name ?: 'patient') . '.' . time());
            
             $user = User::create([
-                'name' => $request->first_name . ' ' . $request->last_name,
+                'name' => $request->first_name ?: 'Patient',
                 'username' => $username,
                 'password' => 'password', // Default password - will be automatically hashed by model cast
                 'role' => 'patient',
             ]);
             
 
-            // Generate a unique patient ID using optimized query
-            $year = date('Y');
-            $yearPrefix = 'P' . $year;
-
-            // Use database function for better performance
+            // Generate a simple sequential patient ID starting from P00001
             $maxNumber = DB::selectOne("
-                SELECT MAX(CAST(SUBSTRING(patient_id, 6) AS UNSIGNED)) as max_num
+                SELECT MAX(CAST(SUBSTRING(patient_id, 2) AS UNSIGNED)) as max_num
                 FROM patients
-                WHERE patient_id LIKE ?
-            ", [$yearPrefix . '%'])->max_num ?? 0;
+                WHERE patient_id LIKE 'P%'
+            ")->max_num ?? 0;
 
             $nextNumber = $maxNumber + 1;
-            $patientId = $yearPrefix . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+            $patientId = 'P' . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
             
             
             // Create patient record
             $patient = Patient::create([
                 'patient_id' => $patientId,
                 'first_name' => $request->first_name,
-                'last_name' => $request->last_name,
+                'father_name' => $request->father_name,
                 'gender' => $request->gender,
                 'phone' => $request->phone,
                 'address' => $request->address,
+                'date_of_birth' => $request->date_of_birth,
+                'blood_group' => $request->blood_group,
                 'user_id' => $user->id,
             ]);
             
@@ -126,11 +126,13 @@ class PatientController extends Controller
     public function update(Request $request, string $id): RedirectResponse
     {
         $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'nullable|string|max:255',
-            'gender' => 'required|in: male,female,other',
+            'first_name' => 'nullable|string|max:255',
+            'father_name' => 'nullable|string|max:255',
+            'gender' => 'nullable|in:male,female,other',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
+            'date_of_birth' => 'nullable|date|before:today',
+            'blood_group' => 'nullable|string|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
         ]);
 
         $patient = Patient::findOrFail($id);
@@ -138,16 +140,18 @@ class PatientController extends Controller
 
         // Update user information
         $user->update([
-            'name' => $request->first_name . ' ' . $request->last_name,
+            'name' => $request->first_name ?: 'Patient',
         ]);
 
         // Update patient information
         $patient->update([
             'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
+            'father_name' => $request->father_name,
             'gender' => $request->gender,
             'phone' => $request->phone,
             'address' => $request->address,
+            'date_of_birth' => $request->date_of_birth,
+            'blood_group' => $request->blood_group,
         ]);
 
         return redirect()->route('patients.index')->with('success', 'Patient updated successfully.');

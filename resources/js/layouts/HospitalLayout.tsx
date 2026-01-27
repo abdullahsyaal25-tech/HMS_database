@@ -146,37 +146,53 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
     
     return (
         <AppShell variant="sidebar">
-            <Sidebar collapsible="icon" variant="inset">
-                <SidebarHeader>
+            <Sidebar collapsible="icon" variant="inset" className="border-r border-sidebar-border">
+                <SidebarHeader className="border-b border-sidebar-border/50">
                     <SidebarMenu>
                         <SidebarMenuItem>
-                            <SidebarMenuButton size="lg" asChild>
+                            <SidebarMenuButton size="lg" asChild className="hover:bg-sidebar-accent transition-colors">
+                                <div className="flex items-center gap-2 py-2">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md">
+                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-sidebar-foreground">HMS</span>
+                                        <span className="text-xs text-muted-foreground">Hospital Management</span>
+                                    </div>
+                                </div>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarHeader>
 
-                <SidebarContent>
+                <SidebarContent className="px-2">
                     <NavMain items={filteredNavItems} />
                 </SidebarContent>
 
-                <SidebarFooter>
+                <SidebarFooter className="border-t border-sidebar-border/50 p-2">
                     <NavFooter items={footerNavItems} className="mt-auto" />
                     <NavUser />
                 </SidebarFooter>
             </Sidebar>
 
-            <SidebarInset>
-                <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-white px-4">
-                    <SidebarTrigger className="-ml-1" />
+            <SidebarInset className="bg-gradient-to-br from-background via-background to-muted/20">
+                <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 px-6 shadow-sm">
+                    <SidebarTrigger className="-ml-1 hover:bg-accent transition-colors" />
                     {header && (
-                        <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                            {header}
-                        </h2>
+                        <div className="flex items-center gap-3">
+                            <div className="h-6 w-[2px] bg-primary/30 rounded-full" />
+                            <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                                {header}
+                            </h2>
+                        </div>
                     )}
                 </header>
-                <div className="flex-1 overflow-auto p-4">
-                    {children}
+                <div className="flex-1 overflow-auto p-6 animate-fade-in">
+                    <div className="mx-auto max-w-7xl space-y-6">
+                        {children}
+                    </div>
                 </div>
             </SidebarInset>
         </AppShell>

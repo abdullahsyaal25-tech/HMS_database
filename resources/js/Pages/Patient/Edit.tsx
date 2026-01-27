@@ -1,40 +1,30 @@
 import { Head, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import Heading from '@/components/heading';
 import { Link } from '@inertiajs/react';
-import { ArrowLeft, Save } from 'lucide-react';
-
-interface Patient {
-    id: number;
-    patient_id: string;
-    first_name: string;
-    last_name: string;
-    gender: string;
-    phone: string;
-    address: string;
-    user: {
-        id: number;
-        name: string;
-        username: string;
-    };
-}
+import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
+import HospitalLayout from '@/layouts/HospitalLayout';
+import { Patient, PatientFormData } from '@/types/patient';
 
 interface PatientEditProps {
     patient: Patient;
 }
 
 export default function PatientEdit({ patient }: PatientEditProps) {
-    const { data, setData, put, processing, errors } = useForm({
-        first_name: patient.first_name,
-        last_name: patient.last_name,
-        gender: patient.gender,
+    const { data, setData, put, processing, errors } = useForm<PatientFormData>({
+        first_name: patient.first_name || '',
+        father_name: patient.father_name || '',
+        gender: patient.gender || '',
         phone: patient.phone || '',
         address: patient.address || '',
+        date_of_birth: patient.date_of_birth || '',
+        blood_group: patient.blood_group || '',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -52,7 +42,7 @@ export default function PatientEdit({ patient }: PatientEditProps) {
     };
 
     return (
-        <>
+        <HospitalLayout>
             <Head title={`Edit Patient - ${patient.patient_id}`} />
             
             <div className="space-y-6">
@@ -67,21 +57,34 @@ export default function PatientEdit({ patient }: PatientEditProps) {
                     </Link>
                 </div>
 
+                {/* Error Alert */}
+                {Object.keys(errors).length > 0 && (
+                    <Alert className="bg-red-50 border-red-200">
+                        <AlertCircle className="h-4 w-4 text-red-600" />
+                        <AlertDescription className="text-red-800">
+                            Please fix the errors below before submitting.
+                        </AlertDescription>
+                    </Alert>
+                )}
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Patient Information</CardTitle>
+                        <CardDescription>
+                            Update the patient's information. All fields are optional.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="first_name">First Name *</Label>
+                                    <Label htmlFor="first_name">Name</Label>
                                     <Input
                                         id="first_name"
                                         name="first_name"
                                         value={data.first_name}
                                         onChange={handleChange}
-                                        placeholder="Enter first name"
+                                        placeholder="Enter patient name"
                                     />
                                     {errors.first_name && (
                                         <p className="text-sm text-red-600">{errors.first_name}</p>
@@ -89,21 +92,21 @@ export default function PatientEdit({ patient }: PatientEditProps) {
                                 </div>
                                 
                                 <div className="space-y-2">
-                                    <Label htmlFor="last_name">Last Name</Label>
+                                    <Label htmlFor="father_name">Father's Name</Label>
                                     <Input
-                                        id="last_name"
-                                        name="last_name"
-                                        value={data.last_name}
+                                        id="father_name"
+                                        name="father_name"
+                                        value={data.father_name}
                                         onChange={handleChange}
-                                        placeholder="Enter last name"
+                                        placeholder="Enter father's name"
                                     />
-                                    {errors.last_name && (
-                                        <p className="text-sm text-red-600">{errors.last_name}</p>
+                                    {errors.father_name && (
+                                        <p className="text-sm text-red-600">{errors.father_name}</p>
                                     )}
                                 </div>
                                 
                                 <div className="space-y-2">
-                                    <Label htmlFor="gender">Gender *</Label>
+                                    <Label htmlFor="gender">Gender</Label>
                                     <Select 
                                         value={data.gender} 
                                         onValueChange={(value) => handleSelectChange('gender', value)}
@@ -119,6 +122,46 @@ export default function PatientEdit({ patient }: PatientEditProps) {
                                     </Select>
                                     {errors.gender && (
                                         <p className="text-sm text-red-600">{errors.gender}</p>
+                                    )}
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <Label htmlFor="date_of_birth">Date of Birth</Label>
+                                    <Input
+                                        id="date_of_birth"
+                                        name="date_of_birth"
+                                        type="date"
+                                        value={data.date_of_birth}
+                                        onChange={handleChange}
+                                        max={new Date().toISOString().split('T')[0]}
+                                    />
+                                    {errors.date_of_birth && (
+                                        <p className="text-sm text-red-600">{errors.date_of_birth}</p>
+                                    )}
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <Label htmlFor="blood_group">Blood Group</Label>
+                                    <Select 
+                                        value={data.blood_group} 
+                                        onValueChange={(value) => handleSelectChange('blood_group', value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select blood group" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="A+">A+</SelectItem>
+                                            <SelectItem value="A-">A-</SelectItem>
+                                            <SelectItem value="B+">B+</SelectItem>
+                                            <SelectItem value="B-">B-</SelectItem>
+                                            <SelectItem value="AB+">AB+</SelectItem>
+                                            <SelectItem value="AB-">AB-</SelectItem>
+                                            <SelectItem value="O+">O+</SelectItem>
+                                            <SelectItem value="O-">O-</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.blood_group && (
+                                        <p className="text-sm text-red-600">{errors.blood_group}</p>
                                     )}
                                 </div>
                                 
@@ -167,6 +210,6 @@ export default function PatientEdit({ patient }: PatientEditProps) {
                     </CardContent>
                 </Card>
             </div>
-        </>
+        </HospitalLayout>
     );
 }

@@ -3,38 +3,34 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Heading from '@/components/heading';
-import { Phone, MapPin, User, ArrowLeft, Pencil, FileText } from 'lucide-react';
-
-interface Patient {
-    id: number;
-    patient_id: string;
-    first_name: string;
-    last_name: string;
-    gender: string;
-    phone: string;
-    address: string;
-    created_at: string;
-    updated_at: string;
-    user: {
-        id: number;
-        name: string;
-        username: string;
-    };
-}
+import { Phone, MapPin, User, ArrowLeft, Pencil, FileText, Calendar, Droplet, Users } from 'lucide-react';
+import HospitalLayout from '@/layouts/HospitalLayout';
+import { Patient } from '@/types/patient';
 
 interface PatientShowProps {
     patient: Patient;
 }
 
 export default function PatientShow({ patient }: PatientShowProps) {
-    const formatDate = (dateString: string) => {
+    const formatDate = (dateString: string | null) => {
+        if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
         });
+    };
+
+    const calculateAge = (dob: string | null) => {
+        if (!dob) return 'N/A';
+        const birthDate = new Date(dob);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
     };
 
     const getGenderBadgeVariant = (gender: string) => {
@@ -49,7 +45,7 @@ export default function PatientShow({ patient }: PatientShowProps) {
     };
 
     return (
-        <>
+        <HospitalLayout>
             <Head title={`Patient Details - ${patient.patient_id}`} />
             
             <div className="space-y-6">
@@ -90,22 +86,57 @@ export default function PatientShow({ patient }: PatientShowProps) {
                                 </div>
                                 
                                 <div>
-                                    <h3 className="text-sm font-medium text-muted-foreground">Full Name</h3>
-                                    <p className="text-lg">{patient.first_name} {patient.last_name}</p>
+                                    <h3 className="text-sm font-medium text-muted-foreground">Name</h3>
+                                    <p className="text-lg">{patient.first_name || 'N/A'}</p>
+                                </div>
+                                
+                                <div>
+                                    <h3 className="text-sm font-medium text-muted-foreground">Father's Name</h3>
+                                    <p className="flex items-center">
+                                        <Users className="mr-2 h-4 w-4 text-muted-foreground" />
+                                        {patient.father_name || 'N/A'}
+                                    </p>
                                 </div>
                                 
                                 <div>
                                     <h3 className="text-sm font-medium text-muted-foreground">Gender</h3>
                                     <div className="pt-1">
-                                        <Badge variant={getGenderBadgeVariant(patient.gender)}>
-                                            {patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1)}
-                                        </Badge>
+                                        {patient.gender ? (
+                                            <Badge variant={getGenderBadgeVariant(patient.gender as string)}>
+                                                {(patient.gender as string).charAt(0).toUpperCase() + (patient.gender as string).slice(1)}
+                                            </Badge>
+                                        ) : (
+                                            <Badge variant="outline">N/A</Badge>
+                                        )}
                                     </div>
                                 </div>
                                 
                                 <div>
+                                    <h3 className="text-sm font-medium text-muted-foreground">Date of Birth</h3>
+                                    <p className="flex items-center">
+                                        <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                                        {formatDate(patient.date_of_birth)}
+                                    </p>
+                                </div>
+                                
+                                <div>
+                                    <h3 className="text-sm font-medium text-muted-foreground">Age</h3>
+                                    <p>{calculateAge(patient.date_of_birth)} years</p>
+                                </div>
+                                
+                                <div>
+                                    <h3 className="text-sm font-medium text-muted-foreground">Blood Group</h3>
+                                    <p className="flex items-center">
+                                        <Droplet className="mr-2 h-4 w-4 text-muted-foreground" />
+                                        {patient.blood_group ? (
+                                            <Badge variant="outline">{patient.blood_group}</Badge>
+                                        ) : 'N/A'}
+                                    </p>
+                                </div>
+                                
+                                <div>
                                     <h3 className="text-sm font-medium text-muted-foreground">Username</h3>
-                                    <p>{patient.user.username}</p>
+                                    <p>{patient.user?.username || 'N/A'}</p>
                                 </div>
                             </div>
                             
@@ -196,6 +227,6 @@ export default function PatientShow({ patient }: PatientShowProps) {
                     </CardContent>
                 </Card>
             </div>
-        </>
+        </HospitalLayout>
     );
 }

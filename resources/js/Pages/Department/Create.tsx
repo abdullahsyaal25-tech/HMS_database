@@ -17,10 +17,10 @@ interface Doctor {
 }
 
 interface DepartmentCreateProps {
-    doctors: Doctor[];
+    doctors?: Doctor[];
 }
 
-export default function DepartmentCreate({ doctors }: DepartmentCreateProps) {
+export default function DepartmentCreate({ doctors = [] }: DepartmentCreateProps) {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         description: '',
@@ -91,11 +91,17 @@ export default function DepartmentCreate({ doctors }: DepartmentCreateProps) {
                                             <SelectValue placeholder="Select head doctor" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {doctors.map(doctor => (
-                                                <SelectItem key={doctor.id} value={doctor.id.toString()}>
-                                                    {doctor.doctor_id} - {doctor.first_name} {doctor.last_name} ({doctor.specialization})
+                                            {doctors && doctors.length > 0 ? (
+                                                doctors.map(doctor => (
+                                                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                                                        {doctor.doctor_id} - {doctor.first_name} {doctor.last_name} ({doctor.specialization})
+                                                    </SelectItem>
+                                                ))
+                                            ) : (
+                                                <SelectItem value="none" disabled>
+                                                    No doctors available
                                                 </SelectItem>
-                                            ))}
+                                            )}
                                         </SelectContent>
                                     </Select>
                                     {errors.head_doctor_id && (

@@ -20,26 +20,26 @@ interface Department {
     id: number;
     department_id: string;
     name: string;
-    description: string;
-    head_doctor_id: number;
-    head_doctor_name: string;
-    phone: string;
-    email: string;
-    address: string;
+    description?: string | null;
+    head_doctor_id?: number | null;
+    head_doctor_name?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
     created_at: string;
     updated_at: string;
 }
 
 interface DepartmentEditProps {
     department: Department;
-    doctors: Doctor[];
+    doctors?: Doctor[];
 }
 
-export default function DepartmentEdit({ department, doctors }: DepartmentEditProps) {
+export default function DepartmentEdit({ department, doctors = [] }: DepartmentEditProps) {
     const { data, setData, put, processing, errors } = useForm({
         name: department.name,
         description: department.description || '',
-        head_doctor_id: department.head_doctor_id.toString(),
+        head_doctor_id: department.head_doctor_id?.toString() || '',
         phone: department.phone || '',
         email: department.email || '',
         address: department.address || '',
@@ -106,11 +106,17 @@ export default function DepartmentEdit({ department, doctors }: DepartmentEditPr
                                             <SelectValue placeholder="Select head doctor" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {doctors.map(doctor => (
-                                                <SelectItem key={doctor.id} value={doctor.id.toString()}>
-                                                    {doctor.doctor_id} - {doctor.first_name} {doctor.last_name} ({doctor.specialization})
+                                            {doctors && doctors.length > 0 ? (
+                                                doctors.map(doctor => (
+                                                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                                                        {doctor.doctor_id} - {doctor.first_name} {doctor.last_name} ({doctor.specialization})
+                                                    </SelectItem>
+                                                ))
+                                            ) : (
+                                                <SelectItem value="none" disabled>
+                                                    No doctors available
                                                 </SelectItem>
-                                            ))}
+                                            )}
                                         </SelectContent>
                                     </Select>
                                     {errors.head_doctor_id && (
