@@ -44,7 +44,7 @@ class Patient extends Model
      */
     public function getFullNameAttribute(): string
     {
-        return trim("{$this->first_name} {$this->last_name}");
+        return trim("{$this->first_name} {$this->father_name}");
     }
 
     /**
@@ -54,7 +54,7 @@ class Patient extends Model
     {
         return $query->where(function ($q) use ($name) {
             $q->where('first_name', 'like', "%{$name}%")
-              ->orWhere('last_name', 'like', "%{$name}%");
+              ->orWhere('father_name', 'like', "%{$name}%");
         });
     }
 

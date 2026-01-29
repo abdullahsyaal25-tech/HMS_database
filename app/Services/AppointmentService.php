@@ -33,12 +33,12 @@ class AppointmentService
     public function getAppointmentFormData()
     {
         return [
-            'patients' => Patient::select('id', 'first_name', 'last_name', 'patient_id')
-                ->orderBy('last_name')
+            'patients' => Patient::select('id', 'first_name', 'father_name', 'patient_id')
+                ->orderBy('father_name')
                 ->get(),
-            'doctors' => Doctor::select('id', 'first_name', 'last_name', 'specialization')
+            'doctors' => Doctor::select('id', 'full_name', 'specialization')
                 ->where('status', 'active')
-                ->orderBy('last_name')
+                ->orderBy('full_name')
                 ->get(),
             'departments' => Department::select('id', 'name')
                 ->orderBy('name')

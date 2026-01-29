@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class PushNotificationService
@@ -20,17 +21,16 @@ class PushNotificationService
      */
     public function sendToDevice(string $deviceToken, string $title, string $body, array $data = []): bool
     {
-        // In a real implementation, this would send a notification to a specific device
-        // For now, we'll just log the attempt
-        Log::info('Push notification would be sent to device', [
-            'token' => $deviceToken,
-            'title' => $title,
-            'body' => $body,
+        $payload = [
+            'to' => $deviceToken,
+            'notification' => [
+                'title' => $title,
+                'body' => $body,
+            ],
             'data' => $data,
-        ]);
-        
-        // Return true to indicate success (in a real implementation, this would be based on API response)
-        return true;
+        ];
+
+        return $this->sendRequest($payload);
     }
 
     /**
@@ -38,14 +38,16 @@ class PushNotificationService
      */
     public function sendToMany(array $deviceTokens, string $title, string $body, array $data = []): bool
     {
-        Log::info('Push notification would be sent to multiple devices', [
-            'count' => count($deviceTokens),
-            'title' => $title,
-            'body' => $body,
+        $payload = [
+            'registration_ids' => $deviceTokens,
+            'notification' => [
+                'title' => $title,
+                'body' => $body,
+            ],
             'data' => $data,
-        ]);
-        
-        return true;
+        ];
+
+        return $this->sendRequest($payload);
     }
 
     /**
@@ -53,12 +55,24 @@ class PushNotificationService
      */
     public function subscribeToTopic(string $deviceToken, string $topic): bool
     {
-        Log::info('Device would be subscribed to topic', [
-            'token' => $deviceToken,
-            'topic' => $topic,
-        ]);
+        $url = 'https://iid.googleapis.com/iid/v1:batchAdd';
         
-        return true;
+        $payload = [
+            'to' => '/topics/' . $topic,
+            'registration_tokens' => [$deviceToken],
+        ];
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'key=' . $this->serverKey,
+                'Content-Type' => 'application/json',
+            ])->post($url, $payload);
+
+            return $response->successful();
+        } catch (\Exception $e) {
+            Log::error('Failed to subscribe to topic: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -66,14 +80,43 @@ class PushNotificationService
      */
     public function sendToTopic(string $topic, string $title, string $body, array $data = []): bool
     {
-        Log::info('Push notification would be sent to topic', [
-            'topic' => $topic,
-            'title' => $title,
-            'body' => $body,
+        $payload = [
+            'to' => '/topics/' . $topic,
+            'notification' => [
+                'title' => $title,
+                'body' => $body,
+            ],
             'data' => $data,
-        ]);
-        
-        return true;
+        ];
+
+        return $this->sendRequest($payload);
+    }
+
+    /**
+     * Send the HTTP request to Firebase
+     */
+    protected function sendRequest(array $payload): bool
+    {
+        try {
+            $response = Http::withHeaders([
+            'Authorization' => 'key=' . $this->serverKey,
+            'Content-Type' => 'application/json',
+        ])->post($this->baseUrl, $payload);
+
+        if ($response->successful()) {
+            Log::info('Push notification sent successfully', ['response' => $response->json()]);
+            return true;
+        } else {
+            Log::error('Push notification failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            return false;
+        }
+        } catch (\Exception $e) {
+            Log::error('Push notification exception: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**

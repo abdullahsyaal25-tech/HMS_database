@@ -1,0 +1,648 @@
+/* Responsive Design Utilities for Healthcare Management System */
+
+/* Base responsive variables */
+:root {
+    --mobile-breakpoint: 640px;
+    --tablet-breakpoint: 768px;
+    --desktop-breakpoint: 1024px;
+    --wide-breakpoint: 1280px;
+    
+    --sidebar-width: 250px;
+    --sidebar-collapsed-width: 80px;
+    --header-height: 64px;
+}
+
+/* Mobile-first approach */
+
+/* Utility classes for responsive spacing */
+.responsive-padding {
+    padding: 1rem;
+}
+
+.responsive-padding-sm {
+    padding: 0.75rem;
+}
+
+.responsive-padding-lg {
+    padding: 1.5rem;
+}
+
+.responsive-margin {
+    margin: 1rem;
+}
+
+.responsive-margin-sm {
+    margin: 0.5rem;
+}
+
+.responsive-margin-lg {
+    margin: 2rem;
+}
+
+/* Responsive typography */
+.responsive-text {
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.responsive-text-sm {
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+.responsive-text-lg {
+    font-size: 1.125rem;
+    line-height: 1.6;
+}
+
+.responsive-text-xl {
+    font-size: 1.25rem;
+    line-height: 1.7;
+}
+
+/* Responsive containers */
+.responsive-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.responsive-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
+}
+
+/* Responsive grid system */
+.responsive-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+.responsive-grid-2 {
+    grid-template-columns: 1fr;
+}
+
+.responsive-grid-3 {
+    grid-template-columns: 1fr;
+}
+
+.responsive-grid-4 {
+    grid-template-columns: 1fr;
+}
+
+/* Responsive tables */
+.responsive-table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.responsive-table th,
+.responsive-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.875rem;
+}
+
+.responsive-table th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Responsive forms */
+.responsive-form-group {
+    margin-bottom: 1rem;
+}
+
+.responsive-form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+.responsive-form-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background-color: white;
+}
+
+.responsive-form-input:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.responsive-form-select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background-color: white;
+    cursor: pointer;
+}
+
+.responsive-form-textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    resize: vertical;
+    font-family: inherit;
+}
+
+/* Responsive buttons */
+.responsive-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    min-height: 40px;
+}
+
+.responsive-btn-primary {
+    background-color: #6366f1;
+    color: white;
+    border-color: #6366f1;
+}
+
+.responsive-btn-primary:hover {
+    background-color: #4f46e5;
+    border-color: #4f46e5;
+    transform: translateY(-1px);
+}
+
+.responsive-btn-secondary {
+    background-color: white;
+    color: #374151;
+    border-color: #d1d5db;
+}
+
+.responsive-btn-secondary:hover {
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.responsive-btn-danger {
+    background-color: #ef4444;
+    color: white;
+    border-color: #ef4444;
+}
+
+.responsive-btn-danger:hover {
+    background-color: #dc2626;
+    border-color: #dc2626;
+}
+
+/* Responsive navigation */
+.responsive-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.responsive-nav-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #374151;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.responsive-nav-item:hover {
+    background-color: #f3f4f6;
+    border-color: #e5e7eb;
+}
+
+.responsive-nav-item.active {
+    background-color: #6366f1;
+    color: white;
+    border-color: #6366f1;
+}
+
+/* Responsive modals */
+.responsive-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 50;
+}
+
+.responsive-modal-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Responsive cards */
+.responsive-card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+.responsive-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.responsive-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive badges */
+.responsive-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+
+.responsive-badge-success {
+    background-color: #dcfce7;
+    color: #166534;
+    border-color: #bbf7d0;
+}
+
+.responsive-badge-warning {
+    background-color: #fef3c7;
+    color: #92400e;
+    border-color: #fde68a;
+}
+
+.responsive-badge-error {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border-color: #fecaca;
+}
+
+.responsive-badge-info {
+    background-color: #dbeafe;
+    color: #1e40af;
+    border-color: #bfdbfe;
+}
+
+/* Responsive loading states */
+.responsive-skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Responsive alerts */
+.responsive-alert {
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    margin-bottom: 1rem;
+}
+
+.responsive-alert-success {
+    background-color: #dcfce7;
+    border-color: #bbf7d0;
+    color: #166534;
+}
+
+.responsive-alert-warning {
+    background-color: #fef3c7;
+    border-color: #fde68a;
+    color: #92400e;
+}
+
+.responsive-alert-error {
+    background-color: #fee2e2;
+    border-color: #fecaca;
+    color: #991b1b;
+}
+
+.responsive-alert-info {
+    background-color: #dbeafe;
+    border-color: #bfdbfe;
+    color: #1e40af;
+}
+
+/* Responsive dropdowns */
+.responsive-dropdown {
+    position: relative;
+}
+
+.responsive-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+    display: none;
+}
+
+.responsive-dropdown.open .responsive-dropdown-menu {
+    display: block;
+}
+
+.responsive-dropdown-item {
+    padding: 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background-color 0.2s;
+}
+
+.responsive-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.responsive-dropdown-item:hover {
+    background-color: #f9fafb;
+}
+
+/* Responsive pagination */
+.responsive-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.responsive-pagination-btn {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.responsive-pagination-btn:hover {
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.responsive-pagination-btn.active {
+    background-color: #6366f1;
+    color: white;
+    border-color: #6366f1;
+}
+
+.responsive-pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Tablet styles (768px and up) */
+@media (min-width: 768px) {
+    .responsive-grid-2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .responsive-grid-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .responsive-grid-4 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .responsive-container {
+        padding: 0 2rem;
+    }
+    
+    .responsive-card-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .responsive-modal-content {
+        max-width: 700px;
+    }
+    
+    .responsive-form-input,
+    .responsive-form-select,
+    .responsive-form-textarea {
+        font-size: 1rem;
+    }
+    
+    .responsive-text {
+        font-size: 1.125rem;
+    }
+    
+    .responsive-text-sm {
+        font-size: 1rem;
+    }
+    
+    .responsive-text-lg {
+        font-size: 1.25rem;
+    }
+    
+    .responsive-text-xl {
+        font-size: 1.5rem;
+    }
+}
+
+/* Desktop styles (1024px and up) */
+@media (min-width: 1024px) {
+    .responsive-card-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .responsive-container {
+        padding: 0 3rem;
+    }
+    
+    .responsive-modal-content {
+        max-width: 900px;
+    }
+    
+    .responsive-nav {
+        flex-direction: row;
+        gap: 0;
+    }
+    
+    .responsive-nav-item {
+        border-radius: 0;
+        border-left: 1px solid #e5e7eb;
+    }
+    
+    .responsive-nav-item:first-child {
+        border-left: none;
+        border-radius: 6px 0 0 6px;
+    }
+    
+    .responsive-nav-item:last-child {
+        border-radius: 0 6px 6px 0;
+    }
+}
+
+/* Wide screen styles (1280px and up) */
+@media (min-width: 1280px) {
+    .responsive-card-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .responsive-container {
+        padding: 0 4rem;
+    }
+    
+    .responsive-modal-content {
+        max-width: 1100px;
+    }
+    
+    .responsive-sidebar {
+        width: var(--sidebar-width);
+    }
+    
+    .responsive-main {
+        margin-left: var(--sidebar-width);
+    }
+    
+    .responsive-header {
+        padding-left: var(--sidebar-width);
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .responsive-card {
+        border-width: 2px;
+    }
+    
+    .responsive-form-input,
+    .responsive-form-select {
+        border-width: 2px;
+    }
+    
+    .responsive-btn {
+        border-width: 2px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Print styles */
+@media print {
+    .responsive-nav,
+    .responsive-header,
+    .responsive-sidebar,
+    .responsive-pagination,
+    .responsive-btn {
+        display: none !important;
+    }
+    
+    .responsive-container {
+        padding: 0;
+        max-width: none;
+    }
+    
+    .responsive-card {
+        box-shadow: none;
+        border: 1px solid #000;
+        page-break-inside: avoid;
+    }
+    
+    body {
+        font-size: 12pt;
+        line-height: 1.4;
+    }
+}
+
+/* Focus styles for accessibility */
+.responsive-form-input:focus,
+.responsive-form-select:focus,
+.responsive-form-textarea:focus,
+.responsive-btn:focus,
+.responsive-nav-item:focus,
+.responsive-dropdown-item:focus {
+    outline: 3px solid rgba(99, 102, 241, 0.3);
+    outline-offset: 2px;
+}
+
+/* Skip link styles */
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    z-index: 99999;
+    padding: 8px 16px;
+    background: #000;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.skip-link:focus {
+    left: 10px;
+    top: 10px;
+    width: auto;
+    height: auto;
+    overflow: visible;
+}

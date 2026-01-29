@@ -6,6 +6,7 @@ use App\Http\Controllers\API\v1\DoctorController;
 use App\Http\Controllers\API\v1\AppointmentController;
 use App\Http\Controllers\API\v1\DepartmentController;
 use App\Http\Controllers\API\v1\AdminController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Admin\PermissionsController;
 
 /*
@@ -47,6 +48,14 @@ Route::prefix('v1')->group(function () {
         Route::get('/admin/stats', [AdminController::class, 'getStats']);
         Route::get('/admin/audit-logs', [AdminController::class, 'getAuditLogs']);
         Route::get('/admin/audit-analytics', [AdminController::class, 'getAuditAnalytics']);
+
+        // Notification routes
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::get('/notifications/recent', [NotificationController::class, 'recent']);
+        Route::put('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+        Route::put('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+        Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
 
         // Permission Management routes with additional security middleware
         Route::middleware(['permission.ip.restriction', 'permission.rate.limit', 'permission.session'])->prefix('admin/permissions')->group(function () {
