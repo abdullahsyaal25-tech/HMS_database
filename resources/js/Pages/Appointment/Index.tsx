@@ -11,7 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Heading from '@/components/heading';
-import { Calendar, User, Stethoscope, PlusCircle, Search } from 'lucide-react';
+import { Calendar, User, Stethoscope, PlusCircle, Search, Clock, Eye, Edit } from 'lucide-react';
 import { useState } from 'react';
 import HospitalLayout from '@/layouts/HospitalLayout';
 
@@ -71,8 +71,6 @@ export default function AppointmentIndex({ appointments }: AppointmentIndexProps
         appointment.reason.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-
-
     const formatDateTime = (dateString: string, timeString: string) => {
         const date = new Date(`${dateString}T${timeString}`);
         return date.toLocaleString('en-US', {
@@ -99,96 +97,169 @@ export default function AppointmentIndex({ appointments }: AppointmentIndexProps
         }
     };
 
+    // Calculate statistics
+    const totalAppointments = appointments.meta?.total || 0;
+    const scheduledCount = appointments.data.filter(a => a.status.toLowerCase() === 'scheduled').length;
+    const completedCount = appointments.data.filter(a => a.status.toLowerCase() === 'completed').length;
+
     return (
         <HospitalLayout>
-            <div className="space-y-6">
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 md:p-8">
                 <Head title="Appointments" />
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <Heading title="Appointment Management" />
+                
+                {/* Header Section with gradient */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6">
+                    <div>
+                        <Heading title="Appointment Management" />
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Manage and monitor all appointments in the system
+                        </p>
+                    </div>
                     
                     <Link href="/appointments/create">
-                        <Button className="bg-blue-600 hover:bg-blue-700">
+                        <Button className="gradient-primary shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Schedule New Appointment
                         </Button>
                     </Link>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Appointments List</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="mb-4 flex flex-col sm:flex-row gap-4">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <Card className="border-l-4 border-l-primary hover:shadow-lg transition-shadow">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Total Appointments</p>
+                                    <p className="text-2xl font-bold text-primary">{totalAppointments}</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <Calendar className="h-6 w-6 text-primary" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    
+                    <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Scheduled</p>
+                                    <p className="text-2xl font-bold text-blue-600">{scheduledCount}</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                    <Clock className="h-6 w-6 text-blue-600" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    
+                    <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Completed</p>
+                                    <p className="text-2xl font-bold text-green-600">{completedCount}</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                                    <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Main Table Card */}
+                <Card className="shadow-lg border-border/50 animate-slide-in-up">
+                    <CardHeader className="border-b bg-muted/30">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <CardTitle className="text-lg font-semibold">Appointments Directory</CardTitle>
+                            <div className="relative w-full sm:w-80">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <input
                                     type="text"
-                                    placeholder="Search appointments..."
-                                    className="pl-8 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Search by patient, doctor, or ID..."
+                                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
                         </div>
-
-                        <div className="rounded-md border">
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto">
                             <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[100px]">Appointment ID</TableHead>
-                                        <TableHead>Patient</TableHead>
-                                        <TableHead>Doctor</TableHead>
-                                        <TableHead>Date & Time</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Reason</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
+                                <TableHeader className="bg-muted/50">
+                                    <TableRow className="hover:bg-transparent">
+                                        <TableHead className="font-semibold w-[100px]">Appointment ID</TableHead>
+                                        <TableHead className="font-semibold">Patient</TableHead>
+                                        <TableHead className="font-semibold">Doctor</TableHead>
+                                        <TableHead className="font-semibold">Date & Time</TableHead>
+                                        <TableHead className="font-semibold">Status</TableHead>
+                                        <TableHead className="font-semibold">Reason</TableHead>
+                                        <TableHead className="text-right font-semibold">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {filteredAppointments.length > 0 ? (
                                         filteredAppointments.map((appointment) => (
-                                            <TableRow key={appointment.id}>
+                                            <TableRow key={appointment.id} className="hover:bg-muted/50 transition-colors">
                                                 <TableCell className="font-medium">
-                                                    {appointment.appointment_id}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center">
-                                                        <User className="mr-2 h-4 w-4 text-muted-foreground" />
-                                                        {appointment.patient.first_name} {appointment.patient.last_name}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center">
-                                                        <Stethoscope className="mr-2 h-4 w-4 text-muted-foreground" />
-                                                        {appointment.doctor.first_name} {appointment.doctor.last_name}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center">
-                                                        <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                                                        {formatDateTime(appointment.appointment_date, appointment.appointment_time)}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant={getStatusBadgeVariant(appointment.status)}>
-                                                        {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                                                    <Badge variant="outline" className="font-mono text-xs">
+                                                        {appointment.appointment_id}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div className="max-w-xs truncate" title={appointment.reason}>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                                            <User className="h-4 w-4 text-blue-600" />
+                                                        </div>
+                                                        <span className="font-medium">
+                                                            {appointment.patient.first_name} {appointment.patient.last_name}
+                                                        </span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-8 w-8 rounded-full bg-green-500/10 flex items-center justify-center">
+                                                            <Stethoscope className="h-4 w-4 text-green-600" />
+                                                        </div>
+                                                        <span className="font-medium">
+                                                            Dr. {appointment.doctor.first_name} {appointment.doctor.last_name}
+                                                        </span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                                                        <span className="text-sm">
+                                                            {formatDateTime(appointment.appointment_date, appointment.appointment_time)}
+                                                        </span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={getStatusBadgeVariant(appointment.status)} className="capitalize">
+                                                        {appointment.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="max-w-xs truncate text-sm text-muted-foreground" title={appointment.reason}>
                                                         {appointment.reason}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end space-x-2">
                                                         <Link href={`/appointments/${appointment.id}/edit`}>
-                                                            <Button variant="outline" size="sm">
+                                                            <Button variant="outline" size="sm" className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-600">
+                                                                <Edit className="h-3 w-3 mr-1" />
                                                                 Edit
                                                             </Button>
                                                         </Link>
                                                         <Link href={`/appointments/${appointment.id}`}>
-                                                            <Button variant="outline" size="sm">
+                                                            <Button variant="outline" size="sm" className="hover:bg-green-50 hover:text-green-600 hover:border-green-600">
+                                                                <Eye className="h-3 w-3 mr-1" />
                                                                 View
                                                             </Button>
                                                         </Link>
@@ -198,8 +269,11 @@ export default function AppointmentIndex({ appointments }: AppointmentIndexProps
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="h-24 text-center">
-                                                No appointments found
+                                            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                                                <div className="flex flex-col items-center justify-center gap-2">
+                                                    <Calendar className="h-8 w-8 text-muted-foreground/50" />
+                                                    <p>No appointments found</p>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -209,10 +283,10 @@ export default function AppointmentIndex({ appointments }: AppointmentIndexProps
 
                         {/* Pagination */}
                         {appointments.meta && (
-                        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
+                        <div className="flex flex-col sm:flex-row items-center justify-between p-6 border-t bg-muted/30 gap-4">
                             <div className="text-sm text-muted-foreground">
-                                Showing <strong>{appointments.meta?.from || 0}</strong> to <strong>{appointments.meta?.to || 0}</strong> of{' '}
-                                <strong>{appointments.meta?.total || 0}</strong> appointments
+                                Showing <strong className="text-foreground">{appointments.meta?.from || 0}</strong> to <strong className="text-foreground">{appointments.meta?.to || 0}</strong> of{' '}
+                                <strong className="text-foreground">{appointments.meta?.total || 0}</strong> appointments
                             </div>
                             
                             <div className="flex space-x-2">
@@ -221,6 +295,7 @@ export default function AppointmentIndex({ appointments }: AppointmentIndexProps
                                     size="sm"
                                     disabled={!(appointments.meta?.current_page) || appointments.meta?.current_page <= 1}
                                     onClick={() => window.location.href = `/appointments?page=${(appointments.meta?.current_page || 1) - 1}`}
+                                    className="hover:bg-primary hover:text-white"
                                 >
                                     Previous
                                 </Button>
@@ -230,6 +305,7 @@ export default function AppointmentIndex({ appointments }: AppointmentIndexProps
                                     size="sm"
                                     disabled={!(appointments.meta?.current_page) || appointments.meta?.current_page >= (appointments.meta?.last_page || 1)}
                                     onClick={() => window.location.href = `/appointments?page=${(appointments.meta?.current_page || 1) + 1}`}
+                                    className="hover:bg-primary hover:text-white"
                                 >
                                     Next
                                 </Button>

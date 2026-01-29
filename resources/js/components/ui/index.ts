@@ -16,6 +16,7 @@ export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tool
 export { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./sheet"
 export { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./dialog"
 export { Popover, PopoverContent, PopoverTrigger } from "./popover"
+export { Combobox, type ComboboxOption } from "./combobox"
 export { Separator } from "./separator"
 export { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./collapsible"
 export { NavigationMenu, NavigationMenuContent, NavigationMenuIndicator, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger, navigationMenuTriggerStyle } from "./navigation-menu"
