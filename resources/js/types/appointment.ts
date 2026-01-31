@@ -15,7 +15,6 @@ export interface Appointment {
         id: number;
         patient_id: string;
         first_name: string;
-        father_name: string | null;
         phone: string | null;
         user?: {
             id: number;

@@ -100,20 +100,25 @@ export default function DepartmentIndex({ departments }: DepartmentIndexProps) {
                         </div>
 
                         <div className="rounded-md border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[100px]">ID</TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Description</TableHead>
-                                        <TableHead>Head Doctor</TableHead>
-                                        <TableHead>Services</TableHead>
-                                        <TableHead>Contact</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader className="sticky top-0 bg-background z-10">
+                                        <TableRow>
+                                            <TableHead className="w-[100px]">ID</TableHead>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Description</TableHead>
+                                            <TableHead>Head Doctor</TableHead>
+                                            <TableHead>Services</TableHead>
+                                            <TableHead>Contact</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                </Table>
+                            </div>
+                            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                                <Table>
+                                    <TableBody>
                                     {filteredDepartments.length > 0 ? (
                                         filteredDepartments.map((department, index) => (
                                             <TableRow key={department.id}>
@@ -189,6 +194,7 @@ export default function DepartmentIndex({ departments }: DepartmentIndexProps) {
                                     )}
                                 </TableBody>
                             </Table>
+                        </div>
                         </div>
 
                         {/* Pagination */}

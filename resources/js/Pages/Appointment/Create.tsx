@@ -12,12 +12,12 @@ import { ArrowLeft, Save, Calendar as CalendarIcon, User, Stethoscope, Percent, 
 interface Patient {
     id: number;
     patient_id: string;
-    first_name: string;
-    father_name: string;
+    full_name: string;
 }
 
 interface Doctor {
     id: number;
+    doctor_id: string;
     full_name: string;
     specialization: string;
     fees: string;
@@ -92,7 +92,7 @@ export default function AppointmentCreate({ patients, doctors, departments }: Ap
     // Transform patients into combobox options
     const patientOptions: ComboboxOption[] = patients.map(patient => ({
         value: patient.id.toString(),
-        label: `${patient.first_name} ${patient.father_name}`,
+        label: patient.full_name,
         subtitle: `ID: ${patient.patient_id}`,
         icon: <User className="h-4 w-4 text-blue-600" />
     }));
@@ -100,8 +100,8 @@ export default function AppointmentCreate({ patients, doctors, departments }: Ap
     // Transform doctors into combobox options
     const doctorOptions: ComboboxOption[] = doctors.map(doctor => ({
         value: doctor.id.toString(),
-        label: doctor.full_name,
-        subtitle: doctor.specialization,
+        label: `Dr. ${doctor.full_name}`,
+        subtitle: `${doctor.specialization} • ID: ${doctor.doctor_id}`,
         icon: <Stethoscope className="h-4 w-4 text-green-600" />
     }));
 
@@ -149,7 +149,7 @@ export default function AppointmentCreate({ patients, doctors, departments }: Ap
                                     <div className="space-y-2">
                                         <Label htmlFor="patient_id" className="text-base font-semibold flex items-center gap-2">
                                             <User className="h-4 w-4 text-blue-600" />
-                                            Patient *
+                                            Patient 
                                         </Label>
                                         <Combobox
                                             options={patientOptions}
@@ -172,7 +172,7 @@ export default function AppointmentCreate({ patients, doctors, departments }: Ap
                                     <div className="space-y-2">
                                         <Label htmlFor="doctor_id" className="text-base font-semibold flex items-center gap-2">
                                             <Stethoscope className="h-4 w-4 text-green-600" />
-                                            Doctor *
+                                            Doctor 
                                         </Label>
                                         <Combobox
                                             options={doctorOptions}
@@ -195,7 +195,7 @@ export default function AppointmentCreate({ patients, doctors, departments }: Ap
                                     <div className="space-y-2 md:col-span-2">
                                         <Label htmlFor="department_id" className="text-base font-semibold flex items-center gap-2">
                                             <Building2 className="h-4 w-4 text-purple-600" />
-                                            Department *
+                                            Department 
                                         </Label>
                                         <Combobox
                                             options={departmentOptions}

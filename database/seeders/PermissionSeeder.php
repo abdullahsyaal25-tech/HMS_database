@@ -231,6 +231,73 @@ class PermissionSeeder extends Seeder
                 'category' => 'Laboratory Management'
             ],
             
+            // Lab Test Request Permissions
+            [
+                'name' => 'view-lab-test-requests',
+                'description' => 'View lab test requests',
+                'resource' => 'lab-test-requests',
+                'action' => 'view',
+                'category' => 'Laboratory Management'
+            ],
+            [
+                'name' => 'create-lab-test-requests',
+                'description' => 'Create new lab test requests',
+                'resource' => 'lab-test-requests',
+                'action' => 'create',
+                'category' => 'Laboratory Management'
+            ],
+            [
+                'name' => 'edit-lab-test-requests',
+                'description' => 'Edit lab test requests',
+                'resource' => 'lab-test-requests',
+                'action' => 'edit',
+                'category' => 'Laboratory Management'
+            ],
+            [
+                'name' => 'delete-lab-test-requests',
+                'description' => 'Delete lab test requests',
+                'resource' => 'lab-test-requests',
+                'action' => 'delete',
+                'category' => 'Laboratory Management'
+            ],
+            [
+                'name' => 'process-lab-test-requests',
+                'description' => 'Process lab test requests (start/completed)',
+                'resource' => 'lab-test-requests',
+                'action' => 'process',
+                'category' => 'Laboratory Management'
+            ],
+            
+            // Lab Test Results Permissions
+            [
+                'name' => 'view-lab-test-results',
+                'description' => 'View lab test results',
+                'resource' => 'lab-test-results',
+                'action' => 'view',
+                'category' => 'Laboratory Management'
+            ],
+            [
+                'name' => 'create-lab-test-results',
+                'description' => 'Create lab test results',
+                'resource' => 'lab-test-results',
+                'action' => 'create',
+                'category' => 'Laboratory Management'
+            ],
+            [
+                'name' => 'edit-lab-test-results',
+                'description' => 'Edit lab test results',
+                'resource' => 'lab-test-results',
+                'action' => 'edit',
+                'category' => 'Laboratory Management'
+            ],
+            [
+                'name' => 'delete-lab-test-results',
+                'description' => 'Delete lab test results',
+                'resource' => 'lab-test-results',
+                'action' => 'delete',
+                'category' => 'Laboratory Management'
+            ],
+            
             // Reports Management Permissions
             [
                 'name' => 'view-reports',

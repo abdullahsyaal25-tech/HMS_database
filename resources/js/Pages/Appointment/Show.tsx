@@ -9,15 +9,13 @@ import { Calendar, Clock, User, Stethoscope, FileText, ArrowLeft, Pencil } from 
 interface Patient {
     id: number;
     patient_id: string;
-    first_name: string;
-    last_name: string;
+    full_name: string;
 }
 
 interface Doctor {
     id: number;
     doctor_id: string;
-    first_name: string;
-    last_name: string;
+    full_name: string;
     specialization: string;
 }
 
@@ -180,7 +178,7 @@ export default function AppointmentShow({ appointment }: AppointmentShowProps) {
                                     
                                     <div className="space-y-2">
                                         <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Name</h3>
-                                        <p className="font-semibold text-lg">{appointment.patient.first_name} {appointment.patient.last_name}</p>
+                                        <p className="font-semibold text-lg">{appointment.patient.full_name}</p>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -206,13 +204,13 @@ export default function AppointmentShow({ appointment }: AppointmentShowProps) {
                                     
                                     <div className="space-y-2">
                                         <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Name</h3>
-                                        <p className="font-semibold text-lg">Dr. {appointment.doctor.first_name} {appointment.doctor.last_name}</p>
+                                        <p className="font-semibold text-lg">Dr. {appointment.doctor.full_name}</p>
                                     </div>
                                     
                                     <div className="space-y-2">
                                         <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Specialization</h3>
                                         <Badge variant="secondary" className="capitalize">
-                                            {appointment.doctor.specialization.replace(/-/g, ' ')}
+                                            {appointment.doctor.specialization?.replace(/-/g, ' ') || 'N/A'}
                                         </Badge>
                                     </div>
                                 </CardContent>
@@ -250,8 +248,8 @@ export default function AppointmentShow({ appointment }: AppointmentShowProps) {
                                     Appointment Notes
                                 </h4>
                                 <p className="text-sm text-blue-800 leading-relaxed">
-                                    This appointment is scheduled between {appointment.patient.first_name} {appointment.patient.last_name} 
-                                    and Dr. {appointment.doctor.first_name} {appointment.doctor.last_name}. 
+                                    This appointment is scheduled between {appointment.patient.full_name} 
+                                    and Dr. {appointment.doctor.full_name}. 
                                     Please ensure all necessary preparations are completed before the appointment time.
                                 </p>
                             </div>

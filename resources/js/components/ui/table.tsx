@@ -114,3 +114,6 @@ export {
   TableCell,
   TableCaption,
 };
+
+// Aliases for backward compatibility with existing code
+export { TableBody as Tbody, TableHead as Thead, TableRow as Tr, TableCell as Td, TableHeader as Th };

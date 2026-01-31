@@ -43,7 +43,7 @@ export function Combobox({
   const selectedOption = options.find((option) => option.value === value)
 
   const filteredOptions = options.filter((option) =>
-    option.label.toLowerCase().includes(searchValue.toLowerCase()) ||
+    option.label?.toLowerCase().includes(searchValue.toLowerCase()) ||
     (option.subtitle && option.subtitle.toLowerCase().includes(searchValue.toLowerCase()))
   )
 

@@ -14,7 +14,7 @@ export interface BreadcrumbItem {
     title?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export interface NavItem {
     label?: string;
     title?: string;

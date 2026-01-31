@@ -18,10 +18,11 @@ return new class extends Migration
             $table->foreignId('doctor_id')->constrained()->onDelete('cascade');
             $table->foreignId('department_id')->constrained()->onDelete('cascade');
             $table->dateTime('appointment_date');
-            $table->enum('status', ['scheduled', 'completed', 'cancelled', 'no_show'])->default('scheduled');
+            $table->enum('status', ['scheduled', 'completed', 'cancelled', 'no_show', 'rescheduled'])->default('scheduled');
             $table->text('reason')->nullable();
             $table->text('notes')->nullable();
             $table->decimal('fee', 8, 2)->default(0.00);
+            $table->decimal('discount', 5, 2)->default(0.00);
             $table->timestamps();
         });
     }

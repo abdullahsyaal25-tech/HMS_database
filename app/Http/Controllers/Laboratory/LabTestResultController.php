@@ -9,6 +9,7 @@ use App\Models\Patient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
@@ -22,10 +23,10 @@ class LabTestResultController extends Controller
     {
         $user = Auth::user();
         
-        // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Laboratory Admin'])) {
-            abort(403, 'Unauthorized access');
-        }
+// Check if user has appropriate permission
+if (!$user->hasPermission('view-laboratory')) {
+    abort(403, 'Unauthorized access');
+}
         
         $labTestResults = LabTestResult::with('labTest', 'patient')->latest()->paginate(10);
         
@@ -41,10 +42,10 @@ class LabTestResultController extends Controller
     {
         $user = Auth::user();
         
-        // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Laboratory Admin'])) {
-            abort(403, 'Unauthorized access');
-        }
+// Check if user has appropriate permission
+if (!$user->hasPermission('create-lab-test-results')) {
+    abort(403, 'Unauthorized access');
+}
         
         $labTests = LabTest::all();
         $patients = Patient::all();
@@ -62,10 +63,10 @@ class LabTestResultController extends Controller
     {
         $user = Auth::user();
         
-        // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Laboratory Admin'])) {
-            abort(403, 'Unauthorized access');
-        }
+// Check if user has appropriate permission
+if (!$user->hasPermission('create-lab-test-results')) {
+    abort(403, 'Unauthorized access');
+}
         
         $validator = Validator::make($request->all(), [
             'lab_test_id' => 'required|exists:lab_tests,id',
@@ -96,101 +97,97 @@ class LabTestResultController extends Controller
     /**
      * Display the specified lab test result.
      */
-    public function show($id): Response
-    {
-        $user = Auth::user();
-        
-        // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Laboratory Admin'])) {
-            abort(403, 'Unauthorized access');
-        }
-        
-        $labTestResult = LabTestResult::with('labTest', 'patient', 'performedBy')->findOrFail($id);
-        
-        return Inertia::render('Laboratory/LabTestResults/Show', [
-            'labTestResult' => $labTestResult
-        ]);
-    }
+public function show(LabTestResult $labTestResult): Response
+{
+    $user = Auth::user();
+    
+// Check if user has appropriate permission
+if (!$user->hasPermission('view-laboratory')) {
+    abort(403, 'Unauthorized access');
+}
+    
+    return Inertia::render('Laboratory/LabTestResults/Show', [
+        'labTestResult' => $labTestResult
+    ]);
+}
 
     /**
      * Show the form for editing the specified lab test result.
      */
-    public function edit($id): Response
-    {
-        $user = Auth::user();
-        
-        // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Laboratory Admin'])) {
-            abort(403, 'Unauthorized access');
-        }
-        
-        $labTestResult = LabTestResult::findOrFail($id);
-        $labTests = LabTest::all();
-        $patients = Patient::all();
-        
-        return Inertia::render('Laboratory/LabTestResults/Edit', [
-            'labTestResult' => $labTestResult,
-            'labTests' => $labTests,
-            'patients' => $patients
-        ]);
-    }
+public function edit(LabTestResult $labTestResult): Response
+{
+    $user = Auth::user();
+    
+// Check if user has appropriate permission
+if (!$user->hasPermission('edit-lab-test-results')) {
+    abort(403, 'Unauthorized access');
+}
+    
+    $labTests = LabTest::all();
+    $patients = Patient::all();
+    
+    return Inertia::render('Laboratory/LabTestResults/Edit', [
+        'labTestResult' => $labTestResult,
+        'labTests' => $labTests,
+        'patients' => $patients
+    ]);
+}
 
     /**
      * Update the specified lab test result in storage.
      */
-    public function update(Request $request, $id): RedirectResponse
-    {
-        $user = Auth::user();
-        
-        // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Laboratory Admin'])) {
-            abort(403, 'Unauthorized access');
-        }
-        
-        $labTestResult = LabTestResult::findOrFail($id);
-        
-        $validator = Validator::make($request->all(), [
-            'lab_test_id' => 'required|exists:lab_tests,id',
-            'patient_id' => 'required|exists:patients,id',
-            'test_date' => 'required|date',
-            'result_values' => 'required|string',
-            'status' => 'required|in:completed,pending,cancelled',
-            'notes' => 'nullable|string',
-        ]);
-        
-        if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
-        }
-        
-        $labTestResult->update([
-            'lab_test_id' => $request->lab_test_id,
-            'patient_id' => $request->patient_id,
-            'test_date' => $request->test_date,
-            'result_values' => $request->result_values,
-            'status' => $request->status,
-            'notes' => $request->notes,
-        ]);
-        
-        return redirect()->route('laboratory.lab-test-results.index')->with('success', 'Lab test result updated successfully.');
+public function update(Request $request, LabTestResult $labTestResult): RedirectResponse
+{
+    $user = Auth::user();
+    
+// Check if user has appropriate permission
+if (!$user->hasPermission('edit-lab-test-results')) {
+    abort(403, 'Unauthorized access');
+}
+    
+    $validator = Validator::make($request->all(), [
+        'lab_test_id' => 'required|exists:lab_tests,id',
+        'patient_id' => 'required|exists:patients,id',
+        'performed_at' => 'required|date',
+        'results' => 'required|string',
+        'status' => 'required|in:pending,completed,verified',
+        'notes' => 'nullable|string',
+        'abnormal_flags' => 'nullable|string',
+    ]);
+    
+    if ($validator->fails()) {
+        return redirect()->back()->withErrors($validator)->withInput();
     }
+    
+    $labTestResult->update([
+        'lab_test_id' => $request->lab_test_id,
+        'patient_id' => $request->patient_id,
+        'performed_at' => $request->performed_at,
+        'results' => $request->results,
+        'status' => $request->status,
+        'notes' => $request->notes,
+        'abnormal_flags' => $request->abnormal_flags,
+    ]);
+    
+    return redirect()->route('laboratory.lab-test-results.index')->with('success', 'Lab test result updated successfully.');
+}
 
     /**
      * Remove the specified lab test result from storage.
      */
-    public function destroy($id): RedirectResponse
-    {
-        $user = Auth::user();
-        
-        // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Laboratory Admin'])) {
-            abort(403, 'Unauthorized access');
-        }
-        
-        $labTestResult = LabTestResult::findOrFail($id);
-        $labTestResult->delete();
-        
-        return redirect()->route('laboratory.lab-test-results.index')->with('success', 'Lab test result deleted successfully.');
-    }
+public function destroy(LabTestResult $labTestResult): RedirectResponse
+{
+    $user = Auth::user();
+    
+// Check if user has appropriate permission
+if (!$user->hasPermission('delete-lab-test-results')) {
+    abort(403, 'Unauthorized access');
+}
+    
+    $labTestResult->delete();
+    
+    return redirect()->route('laboratory.lab-test-results.index')->with('success', 'Lab test result deleted successfully.');
+}
 
     /**
      * Search lab test results by patient or test name.
@@ -199,10 +196,10 @@ class LabTestResultController extends Controller
     {
         $user = Auth::user();
         
-        // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Laboratory Admin'])) {
-            abort(403, 'Unauthorized access');
-        }
+// Check if user has appropriate permission
+if (!$user->hasPermission('view-laboratory')) {
+    abort(403, 'Unauthorized access');
+}
         
         $query = $request->input('query');
         $status = $request->input('status');

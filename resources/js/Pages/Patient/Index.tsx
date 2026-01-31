@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import {
     Table,
@@ -12,13 +12,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Heading from '@/components/heading';
-import { PageProps } from '@/types';
 import { PlusCircle, Search, Phone, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import HospitalLayout from '@/layouts/HospitalLayout';
 import { Patient } from '@/types/patient';
 
-interface PatientIndexProps extends PageProps {
+interface PatientIndexProps {
     patients: {
         data: Patient[];
         links: Record<string, unknown>;
@@ -32,10 +31,13 @@ interface PatientIndexProps extends PageProps {
             total: number;
         };
     };
+    flash?: {
+        success?: string;
+        error?: string;
+    };
 }
 
-export default function PatientIndex({ patients }: PatientIndexProps) {
-    const { flash } = usePage<PageProps>().props;
+export default function PatientIndex({ patients, flash }: PatientIndexProps) {
     const [searchTerm, setSearchTerm] = useState('');
 
     const filteredPatients = patients.data.filter(patient =>
@@ -100,20 +102,25 @@ export default function PatientIndex({ patients }: PatientIndexProps) {
                         </div>
 
                         <div className="rounded-md border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-25">Patient ID</TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Father's Name</TableHead>
-                                        <TableHead>Gender</TableHead>
-                                        <TableHead>Age</TableHead>
-                                        <TableHead>Blood Group</TableHead>
-                                        <TableHead>Contact</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader className="sticky top-0 bg-background z-10">
+                                        <TableRow>
+                                            <TableHead className="w-25">Patient ID</TableHead>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Father's Name</TableHead>
+                                            <TableHead>Gender</TableHead>
+                                            <TableHead>Age</TableHead>
+                                            <TableHead>Blood Group</TableHead>
+                                            <TableHead>Contact</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                </Table>
+                            </div>
+                            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                                <Table>
+                                    <TableBody>
                                     {filteredPatients.length > 0 ? (
                                         filteredPatients.map((patient) => {
 
@@ -178,6 +185,7 @@ export default function PatientIndex({ patients }: PatientIndexProps) {
                                     )}
                                 </TableBody>
                             </Table>
+                        </div>
                         </div>
 
                         {/* Pagination */}

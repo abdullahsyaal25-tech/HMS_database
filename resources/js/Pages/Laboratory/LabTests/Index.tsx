@@ -1,56 +1,77 @@
 import { Head, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, Tbody, Td, Th, Thead, Tr } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import Heading from '@/components/heading';
-import { FlaskConical, DollarSign, Calendar, PlusCircle, Search } from 'lucide-react';
-import { useState } from 'react';
-import HospitalLayout from '@/layouts/HospitalLayout';
+import { Plus, Search, Filter, FlaskConical } from 'lucide-react';
+import { useForm } from '@inertiajs/react';
 
 interface LabTest {
     id: number;
     test_id: string;
     name: string;
-    description: string;
-    category: string;
-    price: number;
-    duration: string;
+    description: string | null;
+    procedure: string | null;
+    cost: number;
+    turnaround_time: number;
+    unit: string | null;
+    normal_values: string | null;
+    status: string;
     created_at: string;
+    updated_at: string;
 }
 
 interface LabTestIndexProps {
     labTests: {
         data: LabTest[];
-        links: Record<string, unknown>;
+        links: {
+            first: string;
+            last: string;
+            prev: string | null;
+            next: string | null;
+        };
         meta: {
             current_page: number;
             from: number;
             last_page: number;
+            links: {
+                url: string | null;
+                label: string;
+                active: boolean;
+            }[];
             path: string;
             per_page: number;
             to: number;
             total: number;
         };
     };
+    query?: string;
 }
 
-export default function LabTestIndex({ labTests }: LabTestIndexProps) {
-    const [searchTerm, setSearchTerm] = useState('');
+export default function LabTestIndex({ labTests, query }: LabTestIndexProps) {
+    const { data, setData, get } = useForm({
+        query: query || '',
+        status: '',
+        category: '',
+    });
 
-    const filteredLabTests = labTests.data.filter(test =>
-        test.test_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        test.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        test.description.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        get('/laboratory/lab-tests', {
+            preserveState: false,
+        });
+    };
+
+    const handleFilter = (name: keyof typeof data, value: string) => {
+        setData(name, value);
+        get('/laboratory/lab-tests', {
+            preserveState: false,
+        });
+    };
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -67,146 +88,172 @@ export default function LabTestIndex({ labTests }: LabTestIndexProps) {
         }).format(amount);
     };
 
+    const formatTime = (hours: number) => {
+        if (hours < 24) {
+            return `${hours} hours`;
+        }
+        const days = Math.floor(hours / 24);
+        return `${days} days`;
+    };
+
     return (
-        <HospitalLayout>
+        <>
+            <Head title="Lab Tests" />
+            
             <div className="space-y-6">
-                <Head title="Laboratory Tests" />
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <Heading title="Laboratory Tests Management" />
+                    <Heading title="Lab Tests" />
                     
-                    <Link href="/laboratory/lab-tests/create">
-                        <Button className="bg-blue-600 hover:bg-blue-700">
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Add New Test
-                        </Button>
-                    </Link>
+                    <div className="flex gap-2">
+                        <Link href="/laboratory/lab-tests/create">
+                            <Button variant="outline">
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add New Test
+                            </Button>
+                        </Link>
+                        <Link href="/laboratory/lab-test-results">
+                            <Button variant="outline">
+                                <FlaskConical className="mr-2 h-4 w-4" />
+                                View Results
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Search and Filter</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleSearch} className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="query">Search</Label>
+                                    <div className="relative">
+                                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            id="query"
+                                            name="query"
+                                            value={data.query}
+                                            onChange={(e) => setData('query', e.target.value)}
+                                            placeholder="Search by test name, category, or description..."
+                                            className="pl-8"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <Label htmlFor="status">Status</Label>
+                                    <Select 
+                                        value={data.status} 
+                                        onValueChange={(value) => handleFilter('status', value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="All Statuses" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="active">Active</SelectItem>
+                                            <SelectItem value="inactive">Inactive</SelectItem>
+                                            <SelectItem value="pending">Pending</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <Label htmlFor="category">Category</Label>
+                                    <Select 
+                                        value={data.category} 
+                                        onValueChange={(value) => handleFilter('category', value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="All Categories" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="hematology">Hematology</SelectItem>
+                                            <SelectItem value="chemistry">Chemistry</SelectItem>
+                                            <SelectItem value="microbiology">Microbiology</SelectItem>
+                                            <SelectItem value="immunology">Immunology</SelectItem>
+                                            <SelectItem value="urinalysis">Urinalysis</SelectItem>
+                                            <SelectItem value="serology">Serology</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            
+                            <div className="flex justify-end space-x-4 pt-4">
+                                <Button type="submit" variant="outline">
+                                    <Search className="mr-2 h-4 w-4" />
+                                    Search
+                                </Button>
+                                <Button type="button" variant="outline" onClick={() => {
+                                    setData('query', '');
+                                    setData('status', '');
+                                    setData('category', '');
+                                    get('/laboratory/lab-tests', {
+                                        preserveState: false,
+                                    });
+                                }}>
+                                    <Filter className="mr-2 h-4 w-4" />
+                                    Clear Filters
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
 
                 <Card>
                     <CardHeader>
                         <CardTitle>Lab Tests List</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="mb-4 flex flex-col sm:flex-row gap-4">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <input
-                                    type="text"
-                                    placeholder="Search lab tests..."
-                                    className="pl-8 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="rounded-md border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[100px]">Test ID</TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Category</TableHead>
-                                        <TableHead>Price</TableHead>
-                                        <TableHead>Duration</TableHead>
-                                        <TableHead>Date Added</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredLabTests.length > 0 ? (
-                                        filteredLabTests.map((test) => (
-                                            <TableRow key={test.id}>
-                                                <TableCell className="font-medium">
-                                                    {test.test_id}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center">
-                                                        <FlaskConical className="mr-2 h-4 w-4 text-muted-foreground" />
-                                                        {test.name}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline">
-                                                        {test.category}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center">
-                                                        <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
-                                                        {formatCurrency(test.price)}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {test.duration}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center">
-                                                        <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                                                        {formatDate(test.created_at)}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex justify-end space-x-2">
-                                                        <Link href={`/laboratory/lab-tests/${test.id}/edit`}>
-                                                            <Button variant="outline" size="sm">
-                                                                Edit
-                                                            </Button>
-                                                        </Link>
-                                                        <Link href={`/laboratory/lab-tests/${test.id}`}>
-                                                            <Button variant="outline" size="sm">
-                                                                View
-                                                            </Button>
-                                                        </Link>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={7} className="h-24 text-center">
-                                                No lab tests found
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-
-                        {/* Pagination */}
-                        {labTests.meta && (
-                        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
-                            <div className="text-sm text-muted-foreground">
-                                Showing <strong>{labTests.meta?.from || 0}</strong> to <strong>{labTests.meta?.to || 0}</strong> of{' '}
-                                <strong>{labTests.meta?.total || 0}</strong> lab tests
-                            </div>
-                            
-                            <div className="flex space-x-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!(labTests.meta?.current_page) || labTests.meta?.current_page <= 1}
-                                    onClick={() => window.location.href = `/laboratory/lab-tests?page=${(labTests.meta?.current_page || 1) - 1}`}
-                                >
-                                    Previous
-                                </Button>
-                                
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!(labTests.meta?.current_page) || labTests.meta?.current_page >= (labTests.meta?.last_page || 1)}
-                                    onClick={() => window.location.href = `/laboratory/lab-tests?page=${(labTests.meta?.current_page || 1) + 1}`}
-                                >
-                                    Next
-                                </Button>
-                            </div>
-                        </div>
-                        )}
+                        <Table>
+                            <Thead>
+                                <Tr>
+                                    <Th>Test ID</Th>
+                                    <Th>Test Name</Th>
+                                    <Th>Category</Th>
+                                    <Th>Cost</Th>
+                                    <Th>Turnaround Time</Th>
+                                    <Th>Status</Th>
+                                    <Th>Created At</Th>
+                                    <Th>Actions</Th>
+                                </Tr>
+                            </Thead>
+                            <Tbody>
+                                {labTests.data.map((labTest) => (
+                                    <Tr key={labTest.id}>
+                                        <Td className="font-medium">{labTest.test_id}</Td>
+                                        <Td className="font-medium">{labTest.name}</Td>
+                                        <Td>{labTest.description || 'N/A'}</Td>
+                                        <Td>{formatCurrency(labTest.cost)}</Td>
+                                        <Td>{formatTime(labTest.turnaround_time)}</Td>
+                                        <Td>
+                                            <Badge variant={labTest.status === 'active' ? 'default' : 'secondary'}>
+                                                {labTest.status}
+                                            </Badge>
+                                        </Td>
+                                        <Td>{formatDate(labTest.created_at)}</Td>
+                                        <Td>
+                                            <div className="flex gap-2">
+                                                <Link href={`/laboratory/lab-tests/${labTest.id}`}>
+                                                    <Button size="sm" variant="outline">
+                                                        View
+                                                    </Button>
+                                                </Link>
+                                                <Link href={`/laboratory/lab-tests/${labTest.id}/edit`}>
+                                                    <Button size="sm" variant="outline">
+                                                        Edit
+                                                    </Button>
+                                                </Link>
+                                            </div>
+                                        </Td>
+                                    </Tr>
+                                ))}
+                            </Tbody>
+                        </Table>
                     </CardContent>
                 </Card>
             </div>
-        </HospitalLayout>
+        </>
     );
 }

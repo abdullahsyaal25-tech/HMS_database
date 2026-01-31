@@ -7,21 +7,20 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Heading from '@/components/heading';
 import HospitalLayout from '@/layouts/HospitalLayout';
-import { ArrowLeft, Save, Calendar as CalendarIcon, Clock, User, Stethoscope, FileText } from 'lucide-react';
+import { ArrowLeft, Save, Calendar as CalendarIcon, Clock, User, Stethoscope, FileText, DollarSign, Percent } from 'lucide-react';
 
 interface Patient {
     id: number;
     patient_id: string;
-    first_name: string;
-    last_name: string;
+    full_name: string;
 }
 
 interface Doctor {
     id: number;
     doctor_id: string;
-    first_name: string;
-    last_name: string;
+    full_name: string;
     specialization: string;
+    fees: string;
 }
 
 interface Appointment {
@@ -33,6 +32,8 @@ interface Appointment {
     appointment_time: string;
     status: string;
     reason: string;
+    fee?: number;
+    discount?: number;
     created_at: string;
     patient: Patient;
     doctor: Doctor;
@@ -52,6 +53,8 @@ export default function AppointmentEdit({ appointment, patients, doctors }: Appo
         appointment_time: appointment.appointment_time,
         status: appointment.status,
         reason: appointment.reason,
+        fee: appointment.fee?.toString() || '0',
+        discount: appointment.discount?.toString() || '0',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -66,6 +69,30 @@ export default function AppointmentEdit({ appointment, patients, doctors }: Appo
 
     const handleSelectChange = (name: string, value: string) => {
         setData(name as keyof typeof data, value);
+        
+        // Auto-populate fee when doctor is changed
+        if (name === 'doctor_id' && value) {
+            const selectedDoctor = doctors.find(d => d.id.toString() === value);
+            if (selectedDoctor && selectedDoctor.fees) {
+                setData('fee', selectedDoctor.fees);
+            }
+        }
+    };
+
+    const calculateFinalFee = () => {
+        const fee = parseFloat(data.fee) || 0;
+        const discount = parseFloat(data.discount) || 0;
+        
+        // Validate discount is between 0-100
+        if (discount < 0 || discount > 100) {
+            return '0.00';
+        }
+        
+        const discountAmount = (fee * discount) / 100;
+        const finalFee = fee - discountAmount;
+        
+        // Ensure final fee is not negative
+        return finalFee >= 0 ? finalFee.toFixed(2) : '0.00';
     };
 
     return (
@@ -118,7 +145,7 @@ export default function AppointmentEdit({ appointment, patients, doctors }: Appo
                                                         <div className="flex items-center gap-2">
                                                             <span className="font-mono text-xs text-muted-foreground">{patient.patient_id}</span>
                                                             <span>-</span>
-                                                            <span>{patient.first_name} {patient.last_name}</span>
+                                                            <span>{patient.full_name}</span>
                                                         </div>
                                                     </SelectItem>
                                                 ))}
@@ -149,7 +176,7 @@ export default function AppointmentEdit({ appointment, patients, doctors }: Appo
                                                         <div className="flex items-center gap-2">
                                                             <span className="font-mono text-xs text-muted-foreground">{doctor.doctor_id}</span>
                                                             <span>-</span>
-                                                            <span>Dr. {doctor.first_name} {doctor.last_name}</span>
+                                                            <span>Dr. {doctor.full_name}</span>
                                                             <span className="text-xs text-muted-foreground">({doctor.specialization})</span>
                                                         </div>
                                                     </SelectItem>
@@ -221,6 +248,83 @@ export default function AppointmentEdit({ appointment, patients, doctors }: Appo
                                                 <span className="font-medium">⚠</span> {errors.appointment_time}
                                             </p>
                                         )}
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Fee & Discount */}
+                        <Card className="shadow-lg border-t-4 border-t-amber-500">
+                            <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
+                                <CardTitle className="flex items-center gap-2 text-xl">
+                                    <DollarSign className="h-6 w-6 text-amber-600" />
+                                    Fee & Discount
+                                </CardTitle>
+                                <CardDescription className="text-base">Consultation fee and applicable discount</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6 pt-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="fee" className="text-base font-semibold">Consultation Fee *</Label>
+                                        <div className="relative">
+                                            <DollarSign className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                                            <Input
+                                                id="fee"
+                                                name="fee"
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={data.fee}
+                                                onChange={handleChange}
+                                                placeholder="0.00"
+                                                className="pl-11 h-12 text-base"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">📌 Auto-updates when doctor changes</p>
+                                        {errors.fee && (
+                                            <p className="text-sm text-red-600 flex items-center gap-1">
+                                                <span className="font-medium">⚠</span> {errors.fee}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="discount" className="text-base font-semibold">Discount (%)</Label>
+                                        <div className="relative">
+                                            <Percent className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                                            <Input
+                                                id="discount"
+                                                name="discount"
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                max="100"
+                                                value={data.discount}
+                                                onChange={handleChange}
+                                                placeholder="0"
+                                                className="pl-11 h-12 text-base"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">Enter percentage (0-100)</p>
+                                        {errors.discount && (
+                                            <p className="text-sm text-red-600 flex items-center gap-1">
+                                                <span className="font-medium">⚠</span> {errors.discount}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-base font-semibold">Final Fee</Label>
+                                        <div className="relative">
+                                            <DollarSign className="absolute left-3 top-3 h-5 w-5 text-green-600" />
+                                            <Input
+                                                value={calculateFinalFee()}
+                                                placeholder="0.00"
+                                                className="pl-11 h-12 text-base font-bold text-green-600 bg-green-50 border-green-200"
+                                                readOnly
+                                            />
+                                        </div>
+                                        <p className="text-xs text-green-600 font-medium">💰 Amount after discount</p>
                                     </div>
                                 </div>
                             </CardContent>

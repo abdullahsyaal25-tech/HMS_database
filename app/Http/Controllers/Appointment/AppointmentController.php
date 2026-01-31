@@ -24,7 +24,7 @@ class AppointmentController extends Controller
      */
     public function index(): Response
     {
-        $appointments = $this->appointmentService->getAllAppointments();
+        $appointments = $this->appointmentService->getAllAppointments(50);
         return Inertia::render('Appointment/Index', [
             'appointments' => $appointments
         ]);
@@ -105,23 +105,25 @@ class AppointmentController extends Controller
         $request->validate([
             'patient_id' => 'required|exists:patients,id',
             'doctor_id' => 'required|exists:doctors,id',
-            'department_id' => 'required|exists:departments,id',
             'appointment_date' => 'required|date',
-            'status' => 'required|in:scheduled,completed,cancelled,no_show',
+            'appointment_time' => 'required',
+            'status' => 'required|in:scheduled,completed,cancelled,no_show,rescheduled',
             'reason' => 'nullable|string',
-            'notes' => 'nullable|string',
-            'fee' => 'required|numeric|min:0',
+            'fee' => 'nullable|numeric|min:0',
+            'discount' => 'nullable|numeric|min:0|max:100',
         ]);
+
+        // Combine date and time
+        $appointmentDateTime = $request->appointment_date . ' ' . $request->appointment_time;
 
         $this->appointmentService->updateAppointment($id, [
             'patient_id' => $request->patient_id,
             'doctor_id' => $request->doctor_id,
-            'department_id' => $request->department_id,
-            'appointment_date' => $request->appointment_date,
+            'appointment_date' => $appointmentDateTime,
             'status' => $request->status,
             'reason' => $request->reason,
-            'notes' => $request->notes,
             'fee' => $request->fee,
+            'discount' => $request->discount ?? 0,
         ]);
 
         return redirect()->route('appointments.index')->with('success', 'Appointment updated successfully.');

@@ -33,7 +33,9 @@ class UserController extends Controller
                 abort(401, 'Authentication required');
             }
             
-            $users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_at')
+            $adminRoles = ['Super Admin', 'Sub Super Admin', 'Reception Admin', 'Laboratory Admin', 'Pharmacy Admin'];
+$users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_at')
+                         ->whereIn('role', $adminRoles)
                          ->orderBy('id', 'asc') // Add explicit ordering to prevent potential issues
                          ->paginate(10);
 

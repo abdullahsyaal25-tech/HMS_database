@@ -15,7 +15,12 @@ class AppointmentService
      */
     public function getAllAppointments($perPage = 10)
     {
-        return Appointment::with('patient', 'doctor', 'department')->paginate($perPage);
+        return Appointment::with(['patient', 'doctor', 'department'])
+            ->latest()
+            ->paginate($perPage)
+            ->through(function ($appointment) {
+                return $this->transformAppointment($appointment);
+            });
     }
 
     /**
@@ -23,7 +28,8 @@ class AppointmentService
      */
     public function getAppointmentById($id)
     {
-        return Appointment::with('patient', 'doctor', 'department')->findOrFail($id);
+        $appointment = Appointment::with(['patient', 'doctor', 'department'])->findOrFail($id);
+        return $this->transformAppointment($appointment);
     }
 
     /**
@@ -34,12 +40,28 @@ class AppointmentService
     {
         return [
             'patients' => Patient::select('id', 'first_name', 'father_name', 'patient_id')
-                ->orderBy('father_name')
-                ->get(),
-            'doctors' => Doctor::select('id', 'full_name', 'specialization', 'fees')
+                ->orderBy('first_name')
+                ->get()
+                ->map(function($patient) {
+                    return [
+                        'id' => $patient->id,
+                        'patient_id' => $patient->patient_id,
+                        'full_name' => trim($patient->first_name),
+                    ];
+                }),
+            'doctors' => Doctor::select('id', 'doctor_id', 'full_name', 'specialization', 'fees')
                 ->where('status', 'active')
                 ->orderBy('full_name')
-                ->get(),
+                ->get()
+                ->map(function($doctor) {
+                    return [
+                        'id' => $doctor->id,
+                        'doctor_id' => $doctor->doctor_id,
+                        'full_name' => $doctor->full_name,
+                        'specialization' => $doctor->specialization,
+                        'fees' => $doctor->fees,
+                    ];
+                }),
             'departments' => Department::select('id', 'name')
                 ->orderBy('name')
                 ->get(),
@@ -90,16 +112,23 @@ class AppointmentService
     {
         $appointment = Appointment::findOrFail($id);
         
-        $appointment->update([
+        $updateData = [
             'patient_id' => $data['patient_id'],
             'doctor_id' => $data['doctor_id'],
-            'department_id' => $data['department_id'],
             'appointment_date' => $data['appointment_date'],
             'status' => $data['status'],
             'reason' => $data['reason'] ?? null,
-            'notes' => $data['notes'] ?? null,
-            'fee' => $data['fee'],
-        ]);
+        ];
+
+        // Add fee and discount if provided
+        if (isset($data['fee'])) {
+            $updateData['fee'] = $data['fee'];
+        }
+        if (isset($data['discount'])) {
+            $updateData['discount'] = $data['discount'];
+        }
+
+        $appointment->update($updateData);
 
         return $appointment;
     }
@@ -111,6 +140,40 @@ class AppointmentService
     {
         $appointment = Appointment::findOrFail($id);
         return $appointment->delete();
+    }
+
+    /**
+     * Transform appointment data for frontend consumption
+     */
+    private function transformAppointment($appointment)
+    {
+        $appointmentArray = $appointment->toArray();
+        
+        // Extract date and time from appointment_date
+        $date = $appointment->appointment_date;
+        $appointmentArray['appointment_date'] = $date->format('Y-m-d');
+        $appointmentArray['appointment_time'] = $date->format('H:i');
+        
+        // Transform patient data
+        if ($appointment->patient) {
+            $appointmentArray['patient'] = [
+                'id' => $appointment->patient->id,
+                'patient_id' => $appointment->patient->patient_id,
+                'full_name' => trim($appointment->patient->first_name . ' '),
+            ];
+        }
+        
+        // Transform doctor data
+        if ($appointment->doctor) {
+            $appointmentArray['doctor'] = [
+                'id' => $appointment->doctor->id,
+                'doctor_id' => $appointment->doctor->doctor_id,
+                'full_name' => $appointment->doctor->full_name,
+                'specialization' => $appointment->doctor->specialization,
+            ];
+        }
+        
+        return $appointmentArray;
     }
 
     /**

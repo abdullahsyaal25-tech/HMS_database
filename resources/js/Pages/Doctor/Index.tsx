@@ -153,7 +153,7 @@ export default function DoctorIndex({ doctors }: DoctorIndexProps) {
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">
                             <Table>
-                                <TableHeader className="bg-muted/50">
+                                <TableHeader className="bg-muted/50 sticky top-0 z-10">
                                     <TableRow className="hover:bg-transparent">
                                         <TableHead className="font-semibold w-[100px]">Doctor ID</TableHead>
                                         <TableHead className="font-semibold">Name</TableHead>
@@ -166,6 +166,10 @@ export default function DoctorIndex({ doctors }: DoctorIndexProps) {
                                         <TableHead className="text-right font-semibold">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
+                            </Table>
+                        </div>
+                        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                            <Table>
                                 <TableBody>
                                     {filteredDoctors.length > 0 ? (
                                         filteredDoctors.map((doctor) => (

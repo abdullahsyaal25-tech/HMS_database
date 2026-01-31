@@ -18,15 +18,13 @@ import HospitalLayout from '@/layouts/HospitalLayout';
 interface Patient {
     id: number;
     patient_id: string;
-    first_name: string;
-    last_name: string;
+    full_name: string;
 }
 
 interface Doctor {
     id: number;
     doctor_id: string;
-    first_name: string;
-    last_name: string;
+    full_name: string;
 }
 
 interface Appointment {
@@ -66,8 +64,8 @@ export default function AppointmentIndex({ appointments }: AppointmentIndexProps
         appointment.appointment_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         appointment.patient.patient_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         appointment.doctor.doctor_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        `${appointment.patient.first_name} ${appointment.patient.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        `${appointment.doctor.first_name} ${appointment.doctor.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        appointment.patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        appointment.doctor.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         appointment.reason.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -191,7 +189,7 @@ export default function AppointmentIndex({ appointments }: AppointmentIndexProps
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">
                             <Table>
-                                <TableHeader className="bg-muted/50">
+                                <TableHeader className="bg-muted/50 sticky top-0 z-10">
                                     <TableRow className="hover:bg-transparent">
                                         <TableHead className="font-semibold w-[100px]">Appointment ID</TableHead>
                                         <TableHead className="font-semibold">Patient</TableHead>
@@ -202,6 +200,10 @@ export default function AppointmentIndex({ appointments }: AppointmentIndexProps
                                         <TableHead className="text-right font-semibold">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
+                            </Table>
+                        </div>
+                        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                            <Table>
                                 <TableBody>
                                     {filteredAppointments.length > 0 ? (
                                         filteredAppointments.map((appointment) => (
@@ -217,7 +219,7 @@ export default function AppointmentIndex({ appointments }: AppointmentIndexProps
                                                             <User className="h-4 w-4 text-blue-600" />
                                                         </div>
                                                         <span className="font-medium">
-                                                            {appointment.patient.first_name} {appointment.patient.last_name}
+                                                            {appointment.patient.full_name}
                                                         </span>
                                                     </div>
                                                 </TableCell>
@@ -227,7 +229,7 @@ export default function AppointmentIndex({ appointments }: AppointmentIndexProps
                                                             <Stethoscope className="h-4 w-4 text-green-600" />
                                                         </div>
                                                         <span className="font-medium">
-                                                            Dr. {appointment.doctor.first_name} {appointment.doctor.last_name}
+                                                            Dr. {appointment.doctor.full_name}
                                                         </span>
                                                     </div>
                                                 </TableCell>

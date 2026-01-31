@@ -346,14 +346,18 @@ class SecurityController extends Controller
             ], 403);
         }
 
-        $users = User::select('id', 'name', 'username', 'role')->get()->map(function ($user) {
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'username' => $user->username,
-                'role' => $user->role,
-            ];
-        });
+        $adminRoles = ['Super Admin', 'Sub Super Admin', 'Reception Admin', 'Laboratory Admin', 'Pharmacy Admin'];
+$users = User::select('id', 'name', 'username', 'role')
+            ->whereIn('role', $adminRoles)
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'role' => $user->role,
+                ];
+            });
 
         return response()->json($users);
     }

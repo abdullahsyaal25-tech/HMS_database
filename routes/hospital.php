@@ -126,6 +126,32 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/lab-test-results/{labTestResult}/edit', [LabTestResultController::class, 'edit'])->name('laboratory.lab-test-results.edit');
         Route::put('/lab-test-results/{labTestResult}', [LabTestResultController::class, 'update'])->name('laboratory.lab-test-results.update');
         Route::delete('/lab-test-results/{labTestResult}', [LabTestResultController::class, 'destroy'])->name('laboratory.lab-test-results.destroy');
+
+        // Lab Test Request Routes
+        Route::middleware('check.permission:view-lab-test-requests')->group(function () {
+            Route::get('/lab-test-requests', [\App\Http\Controllers\Laboratory\LabTestRequestController::class, 'index'])->name('laboratory.lab-test-requests.index');
+            Route::get('/lab-test-requests/search', [\App\Http\Controllers\Laboratory\LabTestRequestController::class, 'search'])->name('laboratory.lab-test-requests.search');
+            Route::get('/lab-test-requests/{labTestRequest}', [\App\Http\Controllers\Laboratory\LabTestRequestController::class, 'show'])->name('laboratory.lab-test-requests.show');
+        });
+
+        Route::middleware('check.permission:create-lab-test-requests')->group(function () {
+            Route::get('/lab-test-requests/create', [\App\Http\Controllers\Laboratory\LabTestRequestController::class, 'create'])->name('laboratory.lab-test-requests.create');
+            Route::post('/lab-test-requests', [\App\Http\Controllers\Laboratory\LabTestRequestController::class, 'store'])->name('laboratory.lab-test-requests.store');
+        });
+
+        Route::middleware('check.permission:edit-lab-test-requests')->group(function () {
+            Route::get('/lab-test-requests/{labTestRequest}/edit', [\App\Http\Controllers\Laboratory\LabTestRequestController::class, 'edit'])->name('laboratory.lab-test-requests.edit');
+            Route::put('/lab-test-requests/{labTestRequest}', [\App\Http\Controllers\Laboratory\LabTestRequestController::class, 'update'])->name('laboratory.lab-test-requests.update');
+            Route::post('/lab-test-requests/{labTestRequest}/restore', [\App\Http\Controllers\Laboratory\LabTestRequestController::class, 'restore'])->name('laboratory.lab-test-requests.restore');
+        });
+
+        Route::middleware('check.permission:delete-lab-test-requests')->group(function () {
+            Route::delete('/lab-test-requests/{labTestRequest}', [\App\Http\Controllers\Laboratory\LabTestRequestController::class, 'destroy'])->name('laboratory.lab-test-requests.destroy');
+        });
+
+        Route::middleware('check.permission:process-lab-test-requests')->group(function () {
+            Route::put('/lab-test-requests/{labTestRequest}/status', [\App\Http\Controllers\Laboratory\LabTestRequestController::class, 'updateStatus'])->name('laboratory.lab-test-requests.update-status');
+        });
     });
 
     // Department Routes
