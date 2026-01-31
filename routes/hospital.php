@@ -121,6 +121,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/lab-tests/{labTest}/edit', [LabTestController::class, 'edit'])->name('laboratory.lab-tests.edit');
         Route::put('/lab-tests/{labTest}', [LabTestController::class, 'update'])->name('laboratory.lab-tests.update');
         Route::delete('/lab-tests/{labTest}', [LabTestController::class, 'destroy'])->name('laboratory.lab-tests.destroy');
+        Route::patch('/lab-tests/{labTest}/status', [LabTestController::class, 'updateStatus'])->name('laboratory.lab-tests.update-status');
 
         Route::get('/lab-test-results', [LabTestResultController::class, 'index'])->name('laboratory.lab-test-results.index');
         Route::get('/lab-test-results/create', [LabTestResultController::class, 'create'])->name('laboratory.lab-test-results.create');

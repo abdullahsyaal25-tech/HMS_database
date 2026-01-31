@@ -403,6 +403,32 @@ if (!$user->hasPermission('delete-lab-tests')) {
     }
 
     /**
+     * Update the status of the specified lab test.
+     */
+    public function updateStatus(Request $request, LabTest $labTest): RedirectResponse
+    {
+        $user = Auth::user();
+
+        // Check if user has appropriate permission
+        if (!$user->hasPermission('edit-lab-tests')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|string|in:active,inactive',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator);
+        }
+
+        $labTest->update(['status' => $request->input('status')]);
+
+        $statusLabel = $request->input('status') === 'active' ? 'activated' : 'deactivated';
+        return redirect()->back()->with('success', "Lab test {$statusLabel} successfully.");
+    }
+
+    /**
      * Search lab tests by name or category.
      */
     public function search(Request $request): Response
