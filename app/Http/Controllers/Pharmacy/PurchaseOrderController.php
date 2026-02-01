@@ -299,6 +299,142 @@ class PurchaseOrderController extends Controller
     }
 
     /**
+     * Display the receive page for a purchase order.
+     */
+    public function receivePage(string $id): Response
+    {
+        $user = Auth::user();
+
+        // Check if user has appropriate role
+        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin'])) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $purchaseOrder = PurchaseOrder::with(['items.medicine', 'supplier', 'orderedBy'])
+            ->findOrFail($id);
+
+        // Only allow receiving if status is 'sent' or 'partial'
+        if (!in_array($purchaseOrder->status, ['sent', 'partial', 'confirmed'])) {
+            abort(403, 'Cannot receive items for this purchase order');
+        }
+
+        return Inertia::render('Pharmacy/PurchaseOrders/Receive', [
+            'purchaseOrder' => $purchaseOrder
+        ]);
+    }
+
+    /**
+     * Process the receipt of items for a purchase order.
+     */
+    public function receive(Request $request, string $id): RedirectResponse
+    {
+        $user = Auth::user();
+
+        // Check if user has appropriate role
+        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin'])) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $purchaseOrder = PurchaseOrder::with('items')->findOrFail($id);
+
+        // Only allow receiving if status is 'sent', 'partial', or 'confirmed'
+        if (!in_array($purchaseOrder->status, ['sent', 'partial', 'confirmed'])) {
+            abort(403, 'Cannot receive items for this purchase order');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'items' => 'required|array',
+            'items.*.po_item_id' => 'required|exists:purchase_order_items,id',
+            'items.*.medicine_id' => 'required|exists:medicines,id',
+            'items.*.received_quantity' => 'required|integer|min:1',
+            'items.*.batch_number' => 'required|string|max:100',
+            'items.*.expiry_date' => 'required|date',
+            'notes' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        $receivedItems = $request->items;
+        $totalReceived = 0;
+        $totalOrdered = 0;
+
+        // Process each received item
+        foreach ($receivedItems as $item) {
+            $poItem = PurchaseOrderItem::find($item['po_item_id']);
+
+            if (!$poItem || $poItem->purchase_order_id != $purchaseOrder->id) {
+                continue;
+            }
+
+            // Calculate how many have already been received for this item
+            $previouslyReceived = $poItem->received_quantity ?? 0;
+            $remainingToReceive = $poItem->quantity - $previouslyReceived;
+
+            // Validate received quantity doesn't exceed remaining
+            $receivedQuantity = min($item['received_quantity'], $remainingToReceive);
+
+            if ($receivedQuantity <= 0) {
+                continue;
+            }
+
+            // Update the purchase order item
+            $poItem->update([
+                'received_quantity' => $previouslyReceived + $receivedQuantity,
+                'batch_number' => $item['batch_number'],
+                'expiry_date' => $item['expiry_date'],
+            ]);
+
+            // Update medicine stock
+            $medicine = Medicine::find($item['medicine_id']);
+            if ($medicine) {
+                $medicine->increment('quantity', $receivedQuantity);
+
+                // Update batch and expiry with the latest received values
+                $medicine->update([
+                    'batch_number' => $item['batch_number'],
+                    'expiry_date' => $item['expiry_date'],
+                ]);
+            }
+
+            $totalReceived += $receivedQuantity;
+            $totalOrdered += $poItem->quantity;
+        }
+
+        // Determine new status
+        $allItemsReceived = true;
+        $partiallyReceived = false;
+
+        foreach ($purchaseOrder->items as $item) {
+            $received = $item->received_quantity ?? 0;
+            if ($received < $item->quantity) {
+                $allItemsReceived = false;
+            }
+            if ($received > 0) {
+                $partiallyReceived = true;
+            }
+        }
+
+        if ($allItemsReceived) {
+            $newStatus = 'received';
+        } elseif ($partiallyReceived) {
+            $newStatus = 'partial';
+        } else {
+            $newStatus = $purchaseOrder->status;
+        }
+
+        // Update purchase order status and notes
+        $purchaseOrder->update([
+            'status' => $newStatus,
+            'notes' => $request->notes ? ($purchaseOrder->notes . "\n\nReceipt Notes: " . $request->notes) : $purchaseOrder->notes,
+        ]);
+
+        return redirect()->route('pharmacy.purchase-orders.show', $purchaseOrder->id)
+            ->with('success', 'Items received successfully. Status: ' . ucfirst($newStatus));
+    }
+
+    /**
      * Search purchase orders by supplier or date.
      */
     public function search(Request $request): Response

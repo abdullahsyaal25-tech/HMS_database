@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Pharmacy;
 
 use App\Http\Controllers\Controller;
 use App\Models\MedicineAlert;
+use App\Models\Medicine;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -15,7 +16,7 @@ class AlertController extends Controller
     /**
      * Display a listing of the alerts.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $user = Auth::user();
         
@@ -24,10 +25,47 @@ class AlertController extends Controller
             abort(403, 'Unauthorized access');
         }
         
-        $alerts = MedicineAlert::with('medicine')->latest()->paginate(10);
+        // Get filter values from request
+        $filters = [
+            'type' => $request->query('type', ''),
+            'status' => $request->query('status', ''),
+            'severity' => $request->query('severity', ''),
+        ];
+        
+        // Build the query with filters
+        $query = MedicineAlert::with('medicine');
+        
+        // Apply type filter
+        if (!empty($filters['type'])) {
+            $query->where('alert_type', $filters['type']);
+        }
+        
+        // Apply status filter
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+        
+        // Apply severity/priority filter
+        if (!empty($filters['severity'])) {
+            $query->where('priority', $filters['severity']);
+        }
+        
+        $alerts = $query->latest()->paginate(10)->withQueryString();
+        
+        // Calculate statistics
+        $stats = [
+            'total' => MedicineAlert::count(),
+            'pending' => MedicineAlert::where('status', 'pending')->count(),
+            'resolved' => MedicineAlert::where('status', 'resolved')->count(),
+            'critical' => MedicineAlert::where('priority', 'high')
+                ->where('status', 'pending')
+                ->count(),
+        ];
         
         return Inertia::render('Pharmacy/Alerts/Index', [
-            'alerts' => $alerts
+            'alerts' => $alerts,
+            'filters' => $filters,
+            'stats' => $stats,
         ]);
     }
 

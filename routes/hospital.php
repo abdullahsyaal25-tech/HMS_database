@@ -7,6 +7,7 @@ use App\Http\Controllers\Doctor\DoctorController;
 use App\Http\Controllers\Appointment\AppointmentController;
 use App\Http\Controllers\Billing\BillController;
 use App\Http\Controllers\Pharmacy\MedicineController;
+use App\Http\Controllers\Pharmacy\MedicineCategoryController;
 use App\Http\Controllers\Pharmacy\StockController;
 use App\Http\Controllers\Pharmacy\SalesController;
 use App\Http\Controllers\Pharmacy\PurchaseOrderController;
@@ -69,29 +70,51 @@ Route::middleware(['auth'])->group(function () {
 
     // Pharmacy Routes
     Route::middleware('check.permission:view-pharmacy')->prefix('pharmacy')->group(function () {
-    Route::get('/medicines', [MedicineController::class, 'index'])->name('pharmacy.medicines.index');
-    Route::get('/medicines/create', [MedicineController::class, 'create'])->name('pharmacy.medicines.create');
-    Route::post('/medicines', [MedicineController::class, 'store'])->name('pharmacy.medicines.store');
+        // Medicine Categories
+        Route::get('/categories', [MedicineCategoryController::class, 'index'])->name('pharmacy.categories.index');
+        Route::get('/categories/create', [MedicineCategoryController::class, 'create'])->name('pharmacy.categories.create');
+        Route::post('/categories', [MedicineCategoryController::class, 'store'])->name('pharmacy.categories.store');
+        Route::get('/categories/{category}/edit', [MedicineCategoryController::class, 'edit'])->name('pharmacy.categories.edit');
+        Route::put('/categories/{category}', [MedicineCategoryController::class, 'update'])->name('pharmacy.categories.update');
+        Route::delete('/categories/{category}', [MedicineCategoryController::class, 'destroy'])->name('pharmacy.categories.destroy');
 
-    // Static medicine pages must be declared before the parameterized {medicine} routes
-    // so that route-model binding does not capture 'low-stock', 'expired', etc.
-    Route::get('/medicines/low-stock', [MedicineController::class, 'lowStock'])->name('pharmacy.medicines.low-stock');
-    Route::get('/medicines/expired', [MedicineController::class, 'expired'])->name('pharmacy.medicines.expired');
-    Route::get('/medicines/expiring-soon', [MedicineController::class, 'expiringSoon'])->name('pharmacy.medicines.expiring-soon');
+        // Medicines
+        Route::get('/medicines', [MedicineController::class, 'index'])->name('pharmacy.medicines.index');
+        Route::get('/medicines/create', [MedicineController::class, 'create'])->name('pharmacy.medicines.create');
+        Route::post('/medicines', [MedicineController::class, 'store'])->name('pharmacy.medicines.store');
 
-    Route::get('/medicines/{medicine}', [MedicineController::class, 'show'])->name('pharmacy.medicines.show');
-    Route::get('/medicines/{medicine}/edit', [MedicineController::class, 'edit'])->name('pharmacy.medicines.edit');
-    Route::put('/medicines/{medicine}', [MedicineController::class, 'update'])->name('pharmacy.medicines.update');
-    Route::delete('/medicines/{medicine}', [MedicineController::class, 'destroy'])->name('pharmacy.medicines.destroy');
+        // Static medicine pages must be declared before the parameterized {medicine} routes
+        // so that route-model binding does not capture 'low-stock', 'expired', etc.
+        Route::get('/medicines/low-stock', [MedicineController::class, 'lowStock'])->name('pharmacy.medicines.low-stock');
+        Route::get('/medicines/expired', [MedicineController::class, 'expired'])->name('pharmacy.medicines.expired');
+        Route::get('/medicines/expiring-soon', [MedicineController::class, 'expiringSoon'])->name('pharmacy.medicines.expiring-soon');
 
+        Route::get('/medicines/{medicine}', [MedicineController::class, 'show'])->name('pharmacy.medicines.show');
+        Route::get('/medicines/{medicine}/edit', [MedicineController::class, 'edit'])->name('pharmacy.medicines.edit');
+        Route::put('/medicines/{medicine}', [MedicineController::class, 'update'])->name('pharmacy.medicines.update');
+        Route::delete('/medicines/{medicine}', [MedicineController::class, 'destroy'])->name('pharmacy.medicines.destroy');
+
+        // Stock Management Routes
         Route::get('/stock', [StockController::class, 'index'])->name('pharmacy.stock.index');
+        Route::get('/stock/export', [StockController::class, 'export'])->name('pharmacy.stock.export');
+        Route::get('/stock/movements', [StockController::class, 'movements'])->name('pharmacy.stock.movements');
+        Route::get('/stock/movements/export', [StockController::class, 'exportMovements'])->name('pharmacy.stock.movements.export');
+        Route::get('/stock/adjustments', [StockController::class, 'adjustments'])->name('pharmacy.stock.adjustments');
+        Route::post('/stock/adjust', [StockController::class, 'adjust'])->name('pharmacy.stock.adjust');
+        Route::get('/stock/valuation', [StockController::class, 'valuation'])->name('pharmacy.stock.valuation');
         Route::get('/stock/report', [StockController::class, 'report'])->name('pharmacy.stock.report');
         Route::get('/stock/alerts', [StockController::class, 'alerts'])->name('pharmacy.stock.alerts');
 
+        // Sales Routes
         Route::get('/sales', [SalesController::class, 'index'])->name('pharmacy.sales.index');
         Route::get('/sales/create', [SalesController::class, 'create'])->name('pharmacy.sales.create');
+        Route::get('/sales/dispense', [SalesController::class, 'dispense'])->name('pharmacy.sales.dispense');
         Route::post('/sales', [SalesController::class, 'store'])->name('pharmacy.sales.store');
         Route::get('/sales/{sale}', [SalesController::class, 'show'])->name('pharmacy.sales.show');
+        Route::post('/sales/{sale}/void', [SalesController::class, 'void'])->name('pharmacy.sales.void');
+        Route::get('/sales/{sale}/receipt', [SalesController::class, 'receipt'])->name('pharmacy.sales.receipt');
+        Route::get('/sales/{sale}/print', [SalesController::class, 'printReceipt'])->name('pharmacy.sales.print');
+        Route::get('/sales/export', [SalesController::class, 'export'])->name('pharmacy.sales.export');
 
         Route::get('/purchase-orders', [PurchaseOrderController::class, 'index'])->name('pharmacy.purchase-orders.index');
         Route::get('/purchase-orders/create', [PurchaseOrderController::class, 'create'])->name('pharmacy.purchase-orders.create');
@@ -101,12 +124,20 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'update'])->name('pharmacy.purchase-orders.update');
         Route::delete('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'destroy'])->name('pharmacy.purchase-orders.destroy');
         Route::put('/purchase-orders/{purchaseOrder}/status', [PurchaseOrderController::class, 'updateStatus'])->name('pharmacy.purchase-orders.update-status');
+        Route::get('/purchase-orders/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receivePage'])->name('pharmacy.purchase-orders.receive');
+        Route::post('/purchase-orders/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receive'])->name('pharmacy.purchase-orders.receive.store');
 
         Route::get('/alerts', [AlertController::class, 'index'])->name('pharmacy.alerts.index');
         Route::get('/alerts/pending', [AlertController::class, 'pending'])->name('pharmacy.alerts.pending');
         Route::get('/alerts/resolved', [AlertController::class, 'resolved'])->name('pharmacy.alerts.resolved');
         Route::get('/alerts/trigger-check', [AlertController::class, 'triggerCheck'])->name('pharmacy.alerts.trigger-check');
         Route::put('/alerts/{alert}/status', [AlertController::class, 'updateStatus'])->name('pharmacy.alerts.update-status');
+
+        // Reports Routes
+        Route::get('/reports', [\App\Http\Controllers\Pharmacy\ReportController::class, 'index'])->name('pharmacy.reports.index');
+        Route::get('/reports/sales', [\App\Http\Controllers\Pharmacy\ReportController::class, 'sales'])->name('pharmacy.reports.sales');
+        Route::get('/reports/stock', [\App\Http\Controllers\Pharmacy\ReportController::class, 'stock'])->name('pharmacy.reports.stock');
+        Route::get('/reports/expiry', [\App\Http\Controllers\Pharmacy\ReportController::class, 'expiry'])->name('pharmacy.reports.expiry');
     });
 
     // Laboratory Routes

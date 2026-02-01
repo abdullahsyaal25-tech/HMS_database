@@ -17,7 +17,7 @@ class MedicineController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $user = Auth::user();
         
@@ -26,10 +26,67 @@ class MedicineController extends Controller
             abort(403, 'Unauthorized access');
         }
         
-        $medicines = Medicine::with('category')->paginate(10);
+        $query = Medicine::with('category');
+        
+        // Apply category filter
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+        
+        // Apply stock status filter
+        if ($request->filled('stock_status')) {
+            switch ($request->stock_status) {
+                case 'in_stock':
+                    $query->whereColumn('stock_quantity', '>', 'reorder_level');
+                    break;
+                case 'low_stock':
+                    $query->whereColumn('stock_quantity', '<=', 'reorder_level')
+                          ->where('stock_quantity', '>', 0);
+                    break;
+                case 'out_of_stock':
+                    $query->where('stock_quantity', '<=', 0);
+                    break;
+            }
+        }
+        
+        // Apply expiry status filter
+        if ($request->filled('expiry_status')) {
+            $today = now();
+            switch ($request->expiry_status) {
+                case 'valid':
+                    $query->whereDate('expiry_date', '>', $today->copy()->addDays(30));
+                    break;
+                case 'expiring_soon':
+                    $query->whereDate('expiry_date', '>=', $today)
+                          ->whereDate('expiry_date', '<=', $today->copy()->addDays(30));
+                    break;
+                case 'expired':
+                    $query->whereDate('expiry_date', '<', $today);
+                    break;
+            }
+        }
+        
+        // Apply search query
+        if ($request->filled('query')) {
+            $searchTerm = $request->query;
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('name', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('medicine_id', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('manufacturer', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('batch_number', 'like', '%' . $searchTerm . '%');
+            });
+        }
+        
+        $medicines = $query->orderBy('name')->paginate(10)->withQueryString();
+        $categories = MedicineCategory::orderBy('name')->get();
         
         return Inertia::render('Pharmacy/Medicines/Index', [
-            'medicines' => $medicines
+            'medicines' => $medicines,
+            'categories' => $categories,
+            'query' => $request->query('query', ''),
+            'category_id' => $request->query('category_id', ''),
+            'stock_status' => $request->query('stock_status', ''),
+            'expiry_status' => $request->query('expiry_status', ''),
         ]);
     }
 
@@ -99,8 +156,23 @@ class MedicineController extends Controller
         
         $medicine = Medicine::with('category')->findOrFail($id);
         
+        // Get recent sales (last 30 days)
+        $recentSales = \App\Models\SalesItem::where('medicine_id', $id)
+            ->whereHas('sale', function ($q) {
+                $q->where('created_at', '>=', now()->subDays(30));
+            })
+            ->with('sale')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+        
+        // Get stock history - using array for now since model may not exist
+        $stockHistory = [];
+        
         return Inertia::render('Pharmacy/Medicines/Show', [
-            'medicine' => $medicine
+            'medicine' => $medicine,
+            'recentSales' => $recentSales,
+            'stockHistory' => $stockHistory,
         ]);
     }
 

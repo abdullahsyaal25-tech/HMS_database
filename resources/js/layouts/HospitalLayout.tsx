@@ -24,6 +24,10 @@ import {
     User,
     FileBarChart,
     Building,
+    Package,
+    ClipboardList,
+    Truck,
+    AlertTriangle,
 } from 'lucide-react';
 import {  usePage } from '@inertiajs/react';
 import { type NavItem } from '@/types';
@@ -98,9 +102,51 @@ function useFilteredNavItems() {
         },
         {
             title: 'Pharmacy',
-            href: '/pharmacy/medicines',
+            href: '/pharmacy',
             icon: Pill,
             permission: 'view-pharmacy',
+            items: [
+                {
+                    title: 'Dashboard',
+                    href: '/pharmacy',
+                    icon: LayoutGrid,
+                },
+                {
+                    title: 'Medicines',
+                    href: '/pharmacy/medicines',
+                    icon: Pill,
+                },
+                {
+                    title: 'Sales',
+                    href: '/pharmacy/sales',
+                    icon: FileText,
+                },
+                {
+                    title: 'Stock',
+                    href: '/pharmacy/stock',
+                    icon: Package,
+                },
+                {
+                    title: 'Purchase Orders',
+                    href: '/pharmacy/purchase-orders',
+                    icon: ClipboardList,
+                },
+                {
+                    title: 'Suppliers',
+                    href: '/pharmacy/suppliers',
+                    icon: Truck,
+                },
+                {
+                    title: 'Alerts',
+                    href: '/pharmacy/alerts',
+                    icon: AlertTriangle,
+                },
+                {
+                    title: 'Reports',
+                    href: '/pharmacy/reports',
+                    icon: FileBarChart,
+                },
+            ],
         },
         {
             title: 'Laboratory',
