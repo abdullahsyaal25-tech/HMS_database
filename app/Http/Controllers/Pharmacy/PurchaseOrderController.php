@@ -42,8 +42,8 @@ class PurchaseOrderController extends Controller
     {
         $user = Auth::user();
         
-        // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin'])) {
+        // Check if user has appropriate permission
+        if (!$user->hasPermission('view-pharmacy')) {
             abort(403, 'Unauthorized access');
         }
         
@@ -284,7 +284,7 @@ class PurchaseOrderController extends Controller
                 $medicine = Medicine::find($item->medicine_id);
                 if ($medicine) {
                     // Add quantity to existing stock
-                    $medicine->increment('stock_quantity', $item->quantity);
+                    $medicine->increment('quantity', $item->quantity);
                     
                     // Update expiry date and batch number with the latest values from the purchase order
                     $medicine->update([

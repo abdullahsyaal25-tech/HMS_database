@@ -71,6 +71,30 @@ class InsuranceProviderController extends Controller
     }
 
     /**
+     * Show the form for creating a new insurance provider.
+     */
+    public function create()
+    {
+        $this->authorize('create-insurance-providers');
+
+        return inertia('Billing/Insurance/Providers/Create');
+    }
+
+    /**
+     * Show the form for editing an insurance provider.
+     */
+    public function edit(string $id)
+    {
+        $this->authorize('edit-insurance-providers');
+
+        $provider = InsuranceProvider::findOrFail($id);
+
+        return inertia('Billing/Insurance/Providers/Edit', [
+            'provider' => new InsuranceProviderResource($provider),
+        ]);
+    }
+
+    /**
      * Store a newly created insurance provider.
      */
     public function store(Request $request): JsonResponse

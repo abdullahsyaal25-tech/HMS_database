@@ -26,8 +26,7 @@ interface PharmacyDashboardProps {
     lowStockMedicines: Array<{
         id: number;
         name: string;
-        stock_quantity: number;
-        reorder_level: number;
+        quantity: number;
     }>;
     expiringMedicines: Array<{
         id: number;
@@ -236,7 +235,7 @@ export default function PharmacyDashboard({
                                     Low Stock Medicines
                                 </CardTitle>
                                 <CardDescription>
-                                    Medicines below reorder level
+                                    Medicines with low inventory (≤10 units)
                                 </CardDescription>
                             </div>
                             <Link href="/pharmacy/stock">
@@ -263,12 +262,12 @@ export default function PharmacyDashboard({
                                         <div>
                                             <p className="font-medium">{medicine.name}</p>
                                             <p className="text-sm text-muted-foreground">
-                                                Reorder level: {medicine.reorder_level}
+                                                Available: {medicine.quantity} units
                                             </p>
                                         </div>
                                         <StockBadge
-                                            status={medicine.stock_quantity === 0 ? 'out-of-stock' : 'low-stock'}
-                                            quantity={medicine.stock_quantity}
+                                            status={medicine.quantity === 0 ? 'out-of-stock' : 'low-stock'}
+                                            quantity={medicine.quantity}
                                             size="sm"
                                         />
                                     </div>

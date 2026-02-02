@@ -33,17 +33,17 @@ class CheckExpiryAlerts extends Command
         // Get medicines that are expiring in the next 30 days
         $expiringSoon = Medicine::whereDate('expiry_date', '>', now())
                             ->whereDate('expiry_date', '<=', now()->addDays(30))
-                            ->where('stock_quantity', '>', 0)
+                            ->where('quantity', '>', 0)
                             ->get();
         
         // Get expired medicines
         $expired = Medicine::whereDate('expiry_date', '<', now())
-                        ->where('stock_quantity', '>', 0)
+                        ->where('quantity', '>', 0)
                         ->get();
         
         // Get medicines that are low in stock and expiring soon
-        $lowStockExpiring = Medicine::where('stock_quantity', '<=', 10)
-                                ->where('stock_quantity', '>', 0)
+        $lowStockExpiring = Medicine::where('quantity', '<=', 10)
+                                ->where('quantity', '>', 0)
                                 ->whereDate('expiry_date', '<=', now()->addDays(30))
                                 ->get();
         
@@ -60,7 +60,7 @@ class CheckExpiryAlerts extends Command
                 'severity' => 'warning',
                 'data' => [
                     'expiry_date' => $medicine->expiry_date->format('Y-m-d'),
-                    'stock_quantity' => $medicine->stock_quantity,
+                    'quantity' => $medicine->quantity,
                     'medicine_name' => $medicine->name,
                 ],
             ]);
@@ -81,7 +81,7 @@ class CheckExpiryAlerts extends Command
                 'severity' => 'danger',
                 'data' => [
                     'expiry_date' => $medicine->expiry_date->format('Y-m-d'),
-                    'stock_quantity' => $medicine->stock_quantity,
+                    'quantity' => $medicine->quantity,
                     'medicine_name' => $medicine->name,
                 ],
             ]);
@@ -102,7 +102,7 @@ class CheckExpiryAlerts extends Command
                 'severity' => 'danger',
                 'data' => [
                     'expiry_date' => $medicine->expiry_date->format('Y-m-d'),
-                    'stock_quantity' => $medicine->stock_quantity,
+                    'quantity' => $medicine->quantity,
                     'medicine_name' => $medicine->name,
                 ],
             ]);
@@ -134,7 +134,7 @@ class CheckExpiryAlerts extends Command
             $medicine = $alert->medicine;
             
             // If the medicine has already expired or is no longer expiring soon, mark alert as resolved
-            if ($medicine->expiry_date < now() || $medicine->stock_quantity <= 0) {
+            if ($medicine->expiry_date < now() || $medicine->quantity <= 0) {
                 $alert->update(['status' => 'resolved']);
             }
         }
@@ -148,7 +148,7 @@ class CheckExpiryAlerts extends Command
             $medicine = $alert->medicine;
             
             // If the medicine has been removed from inventory, mark alert as resolved
-            if ($medicine->stock_quantity <= 0) {
+            if ($medicine->quantity <= 0) {
                 $alert->update(['status' => 'resolved']);
             }
         }

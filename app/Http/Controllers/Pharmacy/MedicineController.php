@@ -37,14 +37,14 @@ class MedicineController extends Controller
         if ($request->filled('stock_status')) {
             switch ($request->stock_status) {
                 case 'in_stock':
-                    $query->whereColumn('stock_quantity', '>', 'reorder_level');
+                    $query->where('quantity', '>', 10); // More than low stock threshold
                     break;
                 case 'low_stock':
-                    $query->whereColumn('stock_quantity', '<=', 'reorder_level')
-                          ->where('stock_quantity', '>', 0);
+                    $query->where('quantity', '<=', 10)
+                          ->where('quantity', '>', 0);
                     break;
                 case 'out_of_stock':
-                    $query->where('stock_quantity', '<=', 0);
+                    $query->where('quantity', '<=', 0);
                     break;
             }
         }
@@ -126,7 +126,7 @@ class MedicineController extends Controller
             'category_id' => 'required|exists:medicine_categories,id',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
-            'stock_quantity' => 'required|integer|min:0',
+            'quantity' => 'required|integer|min:0',
             'unit' => 'required|string|max:50',
             'manufacturer' => 'nullable|string|max:255',
             'expiry_date' => 'required|date',
@@ -216,7 +216,7 @@ class MedicineController extends Controller
             'category_id' => 'required|exists:medicine_categories,id',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
-            'stock_quantity' => 'required|integer|min:0',
+            'quantity' => 'required|integer|min:0',
             'unit' => 'required|string|max:50',
             'manufacturer' => 'nullable|string|max:255',
             'expiry_date' => 'required|date',
@@ -291,7 +291,7 @@ class MedicineController extends Controller
         $medicine = Medicine::findOrFail($id);
         
         $validator = Validator::make($request->all(), [
-            'stock_quantity' => 'required|integer|min:0',
+            'quantity' => 'required|integer|min:0',
         ]);
         
         if ($validator->fails()) {
@@ -299,7 +299,7 @@ class MedicineController extends Controller
         }
         
         $medicine->update([
-            'stock_quantity' => $request->stock_quantity,
+            'quantity' => $request->quantity,
             'updated_at' => now(),
         ]);
         
@@ -319,8 +319,8 @@ class MedicineController extends Controller
         }
         
         // Consider medicines with stock less than 10 as low stock
-        $medicines = Medicine::where('stock_quantity', '<=', 10)
-                    ->where('stock_quantity', '>=', 1) // greater than 0 but less than 10
+        $medicines = Medicine::where('quantity', '<=', 10)
+                    ->where('quantity', '>=', 1) // greater than 0 but less than 10
                     ->with('category')
                     ->paginate(10);
         

@@ -28,6 +28,7 @@ import {
     ClipboardList,
     Truck,
     AlertTriangle,
+    List,
 } from 'lucide-react';
 import {  usePage } from '@inertiajs/react';
 import { type NavItem } from '@/types';
@@ -97,6 +98,49 @@ function useFilteredNavItems() {
             href: '/billing',
             icon: FileText,
             permission: 'view-billing',
+            items: [
+                {
+                    title: 'Dashboard',
+                    href: '/billing/parts/dashboard',
+                    icon: LayoutGrid,
+                },
+                {
+                    title: 'All Bills',
+                    href: '/billing',
+                    icon: FileText,
+                },
+              
+                {
+                    title: 'Bill Parts',
+                    href: '/billing/parts',
+                    icon: List,
+                },
+                {
+                    title: 'Payments',
+                    href: '/payments',
+                    icon: FileText,
+                },
+                {
+                    title: 'Insurance Claims',
+                    href: '/insurance/claims',
+                    icon: FileText,
+                },
+                {
+                    title: 'Insurance Providers',
+                    href: '/insurance/providers',
+                    icon: FileText,
+                },
+                {
+                    title: 'Patient Insurance',
+                    href: '/billing/patient-insurance',
+                    icon: FileText,
+                },
+                {
+                    title: 'Reports',
+                    href: '/reports/billing',
+                    icon: FileBarChart,
+                },
+            ],
         },
         {
             title: 'Pharmacy',

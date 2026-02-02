@@ -17,6 +17,7 @@ use App\Http\Controllers\Pharmacy\StockController;
 use App\Http\Controllers\Pharmacy\SalesController;
 use App\Http\Controllers\Pharmacy\PurchaseOrderController;
 use App\Http\Controllers\Pharmacy\AlertController;
+use App\Http\Controllers\Pharmacy\DashboardController as PharmacyDashboardController;
 use App\Http\Controllers\Laboratory\LabTestController;
 use App\Http\Controllers\Laboratory\LabTestResultController;
 use App\Http\Controllers\Department\DepartmentController;
@@ -79,6 +80,17 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{bill}/invoice', [BillController::class, 'generateInvoice'])
             ->name('billing.invoice')
             ->middleware('check.permission:view-billing');
+        Route::get('/{bill}/items', [BillController::class, 'getBillItems'])
+            ->name('billing.items')
+            ->middleware('check.permission:view-billing');
+
+        // Bill Parts standalone page
+        Route::get('/parts', [BillController::class, 'partsIndex'])
+            ->name('billing.parts.index')
+            ->middleware('check.permission:view-billing');
+        Route::get('/parts/dashboard', [BillController::class, 'partsDashboard'])
+            ->name('billing.parts.dashboard')
+            ->middleware('check.permission:view-billing');
         Route::post('/{bill}/reminder', [BillController::class, 'sendReminder'])
             ->name('billing.reminder')
             ->middleware('check.permission:manage-billing');
@@ -111,35 +123,21 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('check.permission:process-refunds');
     });
 
-    // Insurance Claims (Global)
-    Route::middleware('check.permission:view-insurance-claims')->prefix('insurance')->group(function () {
-        Route::get('/claims', [InsuranceClaimController::class, 'index'])
-            ->name('insurance.claims.index');
-        Route::get('/claims/{claim}', [InsuranceClaimController::class, 'show'])
-            ->name('insurance.claims.show');
-        Route::put('/claims/{claim}', [InsuranceClaimController::class, 'update'])
-            ->name('insurance.claims.update')
-            ->middleware('check.permission:edit-insurance-claims');
-        Route::delete('/claims/{claim}', [InsuranceClaimController::class, 'destroy'])
-            ->name('insurance.claims.destroy')
-            ->middleware('check.permission:delete-insurance-claims');
-        Route::post('/claims/{claim}/submit', [InsuranceClaimController::class, 'submit'])
-            ->name('insurance.claims.submit')
-            ->middleware('check.permission:submit-insurance-claims');
-        Route::post('/claims/{claim}/process', [InsuranceClaimController::class, 'process'])
-            ->name('insurance.claims.process')
-            ->middleware('check.permission:process-insurance-claims');
-    });
-
     // Insurance Providers
     Route::middleware('check.permission:view-insurance-providers')->prefix('insurance/providers')->group(function () {
         Route::get('/', [InsuranceProviderController::class, 'index'])
             ->name('insurance.providers.index');
+        Route::get('/create', [InsuranceProviderController::class, 'create'])
+            ->name('insurance.providers.create')
+            ->middleware('check.permission:create-insurance-providers');
         Route::post('/', [InsuranceProviderController::class, 'store'])
             ->name('insurance.providers.store')
             ->middleware('check.permission:create-insurance-providers');
         Route::get('/{provider}', [InsuranceProviderController::class, 'show'])
             ->name('insurance.providers.show');
+        Route::get('/{provider}/edit', [InsuranceProviderController::class, 'edit'])
+            ->name('insurance.providers.edit')
+            ->middleware('check.permission:edit-insurance-providers');
         Route::put('/{provider}', [InsuranceProviderController::class, 'update'])
             ->name('insurance.providers.update')
             ->middleware('check.permission:edit-insurance-providers');
@@ -148,7 +146,36 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('check.permission:delete-insurance-providers');
     });
 
-    // Patient Insurance
+    // Insurance Claims (Global)
+    Route::middleware('check.permission:view-insurance-claims')->prefix('insurance/claims')->group(function () {
+        Route::get('/', [InsuranceClaimController::class, 'index'])
+            ->name('insurance.claims.index');
+        Route::get('/create', [InsuranceClaimController::class, 'create'])
+            ->name('insurance.claims.create')
+            ->middleware('check.permission:create-insurance-claims');
+        Route::post('/', [InsuranceClaimController::class, 'store'])
+            ->name('insurance.claims.store')
+            ->middleware('check.permission:create-insurance-claims');
+        Route::get('/{claim}', [InsuranceClaimController::class, 'show'])
+            ->name('insurance.claims.show');
+        Route::get('/{claim}/edit', [InsuranceClaimController::class, 'edit'])
+            ->name('insurance.claims.edit')
+            ->middleware('check.permission:edit-insurance-claims');
+        Route::put('/{claim}', [InsuranceClaimController::class, 'update'])
+            ->name('insurance.claims.update')
+            ->middleware('check.permission:edit-insurance-claims');
+        Route::delete('/{claim}', [InsuranceClaimController::class, 'destroy'])
+            ->name('insurance.claims.destroy')
+            ->middleware('check.permission:delete-insurance-claims');
+        Route::post('/{claim}/submit', [InsuranceClaimController::class, 'submit'])
+            ->name('insurance.claims.submit')
+            ->middleware('check.permission:submit-insurance-claims');
+        Route::post('/{claim}/process', [InsuranceClaimController::class, 'process'])
+            ->name('insurance.claims.process')
+            ->middleware('check.permission:process-insurance-claims');
+    });
+
+    // Patient Insurance (Per-Patient - existing)
     Route::middleware('check.permission:view-patients')->prefix('patients/{patient}')->group(function () {
         Route::get('/insurance', [PatientInsuranceController::class, 'index'])
             ->name('patients.insurance.index');
@@ -163,6 +190,29 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/insurance/{insurance}', [PatientInsuranceController::class, 'destroy'])
             ->name('patients.insurance.destroy')
             ->middleware('check.permission:edit-patients');
+    });
+
+    // Patient Insurance (Standalone - Centralized Management)
+    Route::middleware('check.permission:view-billing')->prefix('billing/patient-insurance')->group(function () {
+        Route::get('/', [PatientInsuranceController::class, 'globalIndex'])
+            ->name('billing.patient-insurance.index');
+        Route::get('/create', [PatientInsuranceController::class, 'create'])
+            ->name('billing.patient-insurance.create')
+            ->middleware('check.permission:manage-billing');
+        Route::post('/', [PatientInsuranceController::class, 'store'])
+            ->name('billing.patient-insurance.store')
+            ->middleware('check.permission:manage-billing');
+        Route::get('/{insurance}', [PatientInsuranceController::class, 'show'])
+            ->name('billing.patient-insurance.show');
+        Route::get('/{insurance}/edit', [PatientInsuranceController::class, 'edit'])
+            ->name('billing.patient-insurance.edit')
+            ->middleware('check.permission:manage-billing');
+        Route::put('/{insurance}', [PatientInsuranceController::class, 'update'])
+            ->name('billing.patient-insurance.update')
+            ->middleware('check.permission:manage-billing');
+        Route::delete('/{insurance}', [PatientInsuranceController::class, 'destroy'])
+            ->name('billing.patient-insurance.destroy')
+            ->middleware('check.permission:manage-billing');
     });
 
     // Billing Reports
@@ -197,6 +247,10 @@ Route::middleware(['auth'])->group(function () {
 
     // Pharmacy Routes
     Route::middleware('check.permission:view-pharmacy')->prefix('pharmacy')->group(function () {
+        // Pharmacy Dashboard
+        Route::get('/', [PharmacyDashboardController::class, 'index'])->name('pharmacy.dashboard');
+        Route::get('/dashboard', [PharmacyDashboardController::class, 'index'])->name('pharmacy.dashboard.index');
+
         // Medicine Categories
         Route::get('/categories', [MedicineCategoryController::class, 'index'])->name('pharmacy.categories.index');
         Route::get('/categories/create', [MedicineCategoryController::class, 'create'])->name('pharmacy.categories.create');

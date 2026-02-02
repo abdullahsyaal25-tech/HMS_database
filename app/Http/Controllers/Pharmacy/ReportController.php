@@ -32,7 +32,7 @@ class ReportController extends Controller
             'totalSales' => Sale::count(),
             'totalRevenue' => Sale::where('status', 'completed')->sum('grand_total'),
             'totalMedicines' => Medicine::count(),
-            'lowStockCount' => Medicine::whereColumn('stock_quantity', '<=', 'reorder_level')->count(),
+            'lowStockCount' => Medicine::where('quantity', '<=', 10)->where('quantity', '>', 0)->count(),
             'expiringSoonCount' => Medicine::whereNotNull('expiry_date')
                 ->where('expiry_date', '<=', now()->addDays(30))
                 ->where('expiry_date', '>=', now())
@@ -166,15 +166,14 @@ class ReportController extends Controller
         if ($request->filled('stock_status')) {
             switch ($request->stock_status) {
                 case 'in_stock':
-                    $query->where('stock_quantity', '>', 0)
-                          ->whereColumn('stock_quantity', '>', 'reorder_level');
+                    $query->where('quantity', '>', 10); // More than low stock threshold
                     break;
                 case 'low_stock':
-                    $query->where('stock_quantity', '>', 0)
-                          ->whereColumn('stock_quantity', '<=', 'reorder_level');
+                    $query->where('quantity', '>', 0)
+                          ->where('quantity', '<=', 10);
                     break;
                 case 'out_of_stock':
-                    $query->where('stock_quantity', '<=', 0);
+                    $query->where('quantity', '<=', 0);
                     break;
             }
         }

@@ -80,6 +80,150 @@ class PatientInsuranceController extends Controller
     }
 
     /**
+     * Display a listing of all patient insurances (global/standalone view).
+     */
+    public function globalIndex(Request $request)
+    {
+        $this->authorize('view-billing');
+
+        try {
+            $query = PatientInsurance::with([
+                'patient',
+                'insuranceProvider',
+            ]);
+
+            // Apply filters
+            if ($request->has('status') && $request->status) {
+                if ($request->status === 'active') {
+                    $query->active();
+                } elseif ($request->status === 'expired') {
+                    $query->expired();
+                } elseif ($request->status === 'pending') {
+                    $query->pending();
+                }
+            }
+
+            if ($request->has('provider_id') && $request->provider_id) {
+                $query->where('insurance_provider_id', $request->provider_id);
+            }
+
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->whereHas('patient', function ($q) use ($search) {
+                    $q->where('full_name', 'like', "%{$search}%")
+                      ->orWhere('patient_id', 'like', "%{$search}%");
+                })->orWhere('policy_number', 'like', "%{$search}%")
+                  ->orWhere('card_number', 'like', "%{$search}%");
+            }
+
+            // Apply sorting
+            $sortBy = $request->get('sort_by', 'created_at');
+            $sortOrder = $request->get('sort_order', 'desc');
+            $query->orderBy($sortBy, $sortOrder);
+
+            $insurances = $query->paginate($request->get('per_page', 15));
+
+            return inertia('Billing/PatientInsurance/Index', [
+                'insurances' => PatientInsuranceResource::collection($insurances),
+                'filters' => $request->all(['status', 'provider_id', 'search']),
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error fetching all patient insurances', ['error' => $e->getMessage()]);
+            abort(500, 'Failed to load patient insurances');
+        }
+    }
+
+    /**
+     * Show the form for creating a new patient insurance.
+     */
+    public function create()
+    {
+        $this->authorize('manage-billing');
+
+        return inertia('Billing/PatientInsurance/Create');
+    }
+
+    /**
+     * Display the specified patient insurance.
+     */
+    public function show(Request $request, string $id)
+    {
+        $this->authorize('view-billing');
+
+        try {
+            $insurance = PatientInsurance::with([
+                'patient',
+                'insuranceProvider',
+                'insuranceClaims' => function ($query) {
+                    $query->orderBy('created_at', 'desc')->limit(10);
+                },
+                'bills' => function ($query) {
+                    $query->orderBy('created_at', 'desc')->limit(10);
+                },
+            ])->findOrFail($id);
+
+            // Return Inertia page for web requests
+            if (!$request->expectsJson()) {
+                return inertia('Billing/PatientInsurance/Show', [
+                    'insurance' => new PatientInsuranceResource($insurance),
+                ]);
+            }
+
+            // Calculate coverage statistics
+            $totalClaims = $insurance->insuranceClaims()->count();
+            $approvedClaims = $insurance->insuranceClaims()->where('status', 'approved')->count();
+            $totalClaimAmount = $insurance->insuranceClaims()->sum('claim_amount');
+            $totalApprovedAmount = $insurance->insuranceClaims()->sum('approved_amount');
+
+            return response()->json([
+                'success' => true,
+                'data' => new PatientInsuranceResource($insurance),
+                'statistics' => [
+                    'total_claims' => $totalClaims,
+                    'approved_claims' => $approvedClaims,
+                    'total_claim_amount' => $totalClaimAmount,
+                    'total_approved_amount' => $totalApprovedAmount,
+                    'approval_rate' => $totalClaims > 0
+                        ? round(($approvedClaims / $totalClaims) * 100, 2)
+                        : 0,
+                ],
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error fetching patient insurance', ['insurance_id' => $id, 'error' => $e->getMessage()]);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Patient insurance not found',
+                ], 404);
+            }
+            abort(404, 'Patient insurance not found');
+        }
+    }
+
+    /**
+     * Show the form for editing the specified patient insurance.
+     */
+    public function edit(string $id)
+    {
+        $this->authorize('manage-billing');
+
+        try {
+            $insurance = PatientInsurance::with([
+                'patient',
+                'insuranceProvider',
+            ])->findOrFail($id);
+
+            return inertia('Billing/PatientInsurance/Edit', [
+                'insurance' => new PatientInsuranceResource($insurance),
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error fetching patient insurance for edit', ['id' => $id, 'error' => $e->getMessage()]);
+            abort(404, 'Patient insurance not found');
+        }
+    }
+
+    /**
      * Store a newly created patient insurance.
      */
     public function store(StorePatientInsuranceRequest $request, string $patientId): JsonResponse
@@ -149,54 +293,6 @@ class PatientInsuranceController extends Controller
                 'success' => false,
                 'message' => 'Failed to add patient insurance: ' . $e->getMessage(),
             ], 500);
-        }
-    }
-
-    /**
-     * Display the specified patient insurance.
-     */
-    public function show(Request $request, string $id): JsonResponse
-    {
-        $this->authorize('view-patient-insurance');
-
-        try {
-            $insurance = PatientInsurance::with([
-                'patient',
-                'insuranceProvider',
-                'insuranceClaims' => function ($query) {
-                    $query->orderBy('created_at', 'desc')->limit(10);
-                },
-                'bills' => function ($query) {
-                    $query->orderBy('created_at', 'desc')->limit(10);
-                },
-            ])->findOrFail($id);
-
-            // Calculate coverage statistics
-            $totalClaims = $insurance->insuranceClaims()->count();
-            $approvedClaims = $insurance->insuranceClaims()->where('status', 'approved')->count();
-            $totalClaimAmount = $insurance->insuranceClaims()->sum('claim_amount');
-            $totalApprovedAmount = $insurance->insuranceClaims()->sum('approved_amount');
-
-            return response()->json([
-                'success' => true,
-                'data' => new PatientInsuranceResource($insurance),
-                'statistics' => [
-                    'total_claims' => $totalClaims,
-                    'approved_claims' => $approvedClaims,
-                    'total_claim_amount' => $totalClaimAmount,
-                    'total_approved_amount' => $totalApprovedAmount,
-                    'approval_rate' => $totalClaims > 0
-                        ? round(($approvedClaims / $totalClaims) * 100, 2)
-                        : 0,
-                ],
-            ]);
-        } catch (Exception $e) {
-            Log::error('Error fetching patient insurance', ['insurance_id' => $id, 'error' => $e->getMessage()]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Patient insurance not found',
-            ], 404);
         }
     }
 

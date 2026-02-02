@@ -123,11 +123,11 @@ class SalesController extends Controller
             abort(403, 'Unauthorized access');
         }
         
-        $medicines = Medicine::where('stock_quantity', '>', 0)
+        $medicines = Medicine::where('quantity', '>', 0)
             ->with('category')
             ->get();
         
-        $patients = Patient::select('id', 'patient_id', 'first_name', 'last_name', 'phone')
+        $patients = Patient::select('id', 'patient_id', 'first_name', 'father_name', 'phone')
             ->orderBy('first_name')
             ->get();
         

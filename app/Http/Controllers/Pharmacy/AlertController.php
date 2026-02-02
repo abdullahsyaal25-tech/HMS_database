@@ -20,8 +20,8 @@ class AlertController extends Controller
     {
         $user = Auth::user();
         
-        // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin'])) {
+        // Check if user has appropriate permission
+        if (!$user->hasPermission('view-medicine-alerts')) {
             abort(403, 'Unauthorized access');
         }
         
@@ -76,8 +76,8 @@ class AlertController extends Controller
     {
         $user = Auth::user();
         
-        // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin'])) {
+        // Check if user has appropriate permission
+        if (!$user->hasPermission('view-pending-medicine-alerts')) {
             abort(403, 'Unauthorized access');
         }
         
@@ -98,8 +98,8 @@ class AlertController extends Controller
     {
         $user = Auth::user();
         
-        // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin'])) {
+        // Check if user has appropriate permission
+        if (!$user->hasPermission('view-resolved-medicine-alerts')) {
             abort(403, 'Unauthorized access');
         }
         
@@ -120,8 +120,8 @@ class AlertController extends Controller
     {
         $user = Auth::user();
         
-        // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin'])) {
+        // Check if user has appropriate permission
+        if (!$user->hasPermission('update-medicine-alerts')) {
             abort(403, 'Unauthorized access');
         }
         
@@ -143,8 +143,8 @@ class AlertController extends Controller
     {
         $user = Auth::user();
         
-        // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin'])) {
+        // Check if user has appropriate permission
+        if (!$user->hasPermission('trigger-medicine-alert-check')) {
             abort(403, 'Unauthorized access');
         }
         

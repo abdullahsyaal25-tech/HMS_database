@@ -100,6 +100,63 @@ class InsuranceClaimController extends Controller
     }
 
     /**
+     * Show the form for creating a new insurance claim.
+     */
+    public function create()
+    {
+        $this->authorize('create-insurance-claims');
+
+        return inertia('Billing/Insurance/Claims/Create');
+    }
+
+    /**
+     * Display the specified insurance claim.
+     */
+    public function show(string $id)
+    {
+        $this->authorize('view-insurance-claims');
+
+        try {
+            $claim = InsuranceClaim::with([
+                'bill.patient',
+                'bill.items',
+                'patientInsurance.insuranceProvider',
+                'submittedBy',
+                'processedBy',
+            ])->findOrFail($id);
+
+            return inertia('Billing/Insurance/Claims/Show', [
+                'claim' => new InsuranceClaimResource($claim),
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error fetching insurance claim', ['claim_id' => $id, 'error' => $e->getMessage()]);
+            abort(404, 'Insurance claim not found');
+        }
+    }
+
+    /**
+     * Show the form for editing an insurance claim.
+     */
+    public function edit(string $id)
+    {
+        $this->authorize('edit-insurance-claims');
+
+        try {
+            $claim = InsuranceClaim::with([
+                'bill.patient',
+                'patientInsurance.insuranceProvider',
+            ])->findOrFail($id);
+
+            return inertia('Billing/Insurance/Claims/Edit', [
+                'claim' => new InsuranceClaimResource($claim),
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error fetching insurance claim for edit', ['claim_id' => $id, 'error' => $e->getMessage()]);
+            abort(404, 'Insurance claim not found');
+        }
+    }
+
+    /**
      * Store a newly created insurance claim.
      */
     public function store(StoreInsuranceClaimRequest $request, string $billId): JsonResponse
@@ -165,52 +222,6 @@ class InsuranceClaimController extends Controller
                 'success' => false,
                 'message' => 'Failed to create insurance claim: ' . $e->getMessage(),
             ], 500);
-        }
-    }
-
-    /**
-     * Display the specified insurance claim.
-     */
-    public function show(Request $request, string $id): JsonResponse
-    {
-        $this->authorize('view-insurance-claims');
-
-        try {
-            $claim = InsuranceClaim::with([
-                'bill.patient',
-                'bill.items',
-                'bill.payments',
-                'patientInsurance.insuranceProvider',
-                'submittedBy',
-                'processedBy',
-                'payments',
-            ])->findOrFail($id);
-
-            // Calculate coverage details
-            $coverage = null;
-            if ($claim->patientInsurance) {
-                try {
-                    $coverage = $this->claimService->calculateCoverage(
-                        $claim->patientInsurance,
-                        $claim->claim_amount
-                    );
-                } catch (Exception $e) {
-                    Log::warning('Could not calculate coverage', ['claim_id' => $id, 'error' => $e->getMessage()]);
-                }
-            }
-
-            return response()->json([
-                'success' => true,
-                'data' => new InsuranceClaimResource($claim),
-                'coverage' => $coverage,
-            ]);
-        } catch (Exception $e) {
-            Log::error('Error fetching insurance claim', ['claim_id' => $id, 'error' => $e->getMessage()]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Insurance claim not found',
-            ], 404);
         }
     }
 

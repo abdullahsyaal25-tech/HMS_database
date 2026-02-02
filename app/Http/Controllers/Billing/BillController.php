@@ -715,4 +715,54 @@ class BillController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get bill items for a specific bill (API endpoint).
+     */
+    public function getBillItems(Request $request, string $id): JsonResponse
+    {
+        $this->authorize('view-billing');
+
+        try {
+            $bill = Bill::with(['items.source'])->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'bill_id' => $bill->id,
+                    'bill_number' => $bill->bill_id,
+                    'items' => BillItemResource::collection($bill->items),
+                    'total_items' => $bill->items->count(),
+                    'total_amount' => $bill->items->sum('total_price'),
+                ],
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error fetching bill items', ['bill_id' => $id, 'error' => $e->getMessage()]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch bill items: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Display the Bill Parts index page.
+     */
+    public function partsIndex(Request $request): Response
+    {
+        $this->authorize('view-billing');
+
+        return Inertia::render('Billing/Parts/Index');
+    }
+
+    /**
+     * Display the Bill Parts dashboard page.
+     */
+    public function partsDashboard(Request $request): Response
+    {
+        $this->authorize('view-billing');
+
+        return Inertia::render('Billing/Parts/Dashboard');
+    }
 }
