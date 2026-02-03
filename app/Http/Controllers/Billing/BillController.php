@@ -751,7 +751,8 @@ class BillController extends Controller
      */
     public function getAllItems(Request $request): JsonResponse
     {
-        $this->authorize('view-billing');
+        // Allow public access to this endpoint
+        // $this->authorize('view-billing'); // Removed for public access
 
         try {
             // Get all bills with their items
