@@ -148,9 +148,35 @@ class ReportController extends Controller
     }
 
     /**
-     * Generate billing report with pagination support.
+     * Display billing report page with data.
      */
-    public function billingReport(Request $request)
+    public function billingReport(Request $request): Response
+    {
+        $this->authorizeReport('view-billing');
+
+        [$startDate, $endDate] = $this->getDateRange($request);
+
+        $bills = Bill::with([
+            'patient:id,patient_id,first_name,father_name',
+            'items:id,bill_id,description,quantity,unit_price,total'
+        ])
+        ->select('id', 'bill_number', 'patient_id', 'bill_date', 'total_amount', 'amount_paid', 'amount_due', 'payment_status', 'status')
+        ->whereBetween('bill_date', [$startDate, $endDate])
+        ->orderBy('bill_date', 'desc')
+        ->limit($this->maxExportRecords)
+        ->get();
+        
+        return Inertia::render('Reports/Billing/Show', [
+            'bills' => $bills,
+            'startDate' => $startDate->toDateString(),
+            'endDate' => $endDate->toDateString(),
+        ]);
+    }
+
+    /**
+     * Generate billing report PDF download.
+     */
+    public function billingReportDownload(Request $request)
     {
         $this->authorizeReport('view-billing');
 

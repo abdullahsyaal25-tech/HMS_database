@@ -121,6 +121,11 @@ trait HasPermissions
         $cacheKey = "user_effective_permissions:{$this->id}";
 
         return Cache::remember($cacheKey, $this->permissionCacheTtl, function () {
+            // Super admin has all permissions
+            if ($this->isSuperAdmin()) {
+                return Permission::pluck('name')->toArray();
+            }
+
             $permissions = collect();
 
             // Get role permissions

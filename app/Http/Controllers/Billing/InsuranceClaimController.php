@@ -9,12 +9,15 @@ use App\Http\Resources\Billing\InsuranceClaimResource;
 use App\Models\Bill;
 use App\Models\InsuranceClaim;
 use App\Models\PatientInsurance;
+use App\Models\User;
 use App\Services\Billing\InsuranceClaimService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
+use Inertia\Inertia;
 use Exception;
 
 class InsuranceClaimController extends Controller
@@ -35,9 +38,34 @@ class InsuranceClaimController extends Controller
     /**
      * Display a listing of insurance claims.
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
-        $this->authorize('view-insurance-claims');
+        // Use custom permission check instead of built-in authorize
+        if (!Auth::check()) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access',
+                ], 403);
+            } else {
+                return redirect()->route('login');
+            }
+        }
+
+        $user = User::find(Auth::id());
+        if (!$user || !$user->hasPermission('view-insurance-claims')) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access',
+                ], 403);
+            } else {
+                abort(403, 'Unauthorized access');
+            }
+        }
+
+        // Check if this is an AJAX/JSON API request (not an Inertia page request)
+        $isAjaxRequest = $request->wantsJson() && !$request->header('X-Inertia');
 
         try {
             $query = InsuranceClaim::with([
@@ -79,6 +107,15 @@ class InsuranceClaimController extends Controller
 
             $claims = $query->paginate($request->get('per_page', 15));
 
+            if (!$isAjaxRequest) {
+                // Return Inertia response for page requests
+                return Inertia::render('Billing/Insurance/Claims/Index', [
+                    'claims' => InsuranceClaimResource::collection($claims),
+                    'filters' => $request->only(['status', 'bill_id', 'patient_insurance_id', 'date_from', 'date_to', 'pending', 'sort_by', 'sort_order']),
+                ]);
+            }
+
+            // Return JSON response for AJAX/API requests
             return response()->json([
                 'success' => true,
                 'data' => InsuranceClaimResource::collection($claims),
@@ -92,10 +129,14 @@ class InsuranceClaimController extends Controller
         } catch (Exception $e) {
             Log::error('Error fetching insurance claims', ['error' => $e->getMessage()]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch insurance claims: ' . $e->getMessage(),
-            ], 500);
+            if ($isAjaxRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to fetch insurance claims: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            throw $e; // Let Inertia handle the error
         }
     }
 
@@ -104,7 +145,15 @@ class InsuranceClaimController extends Controller
      */
     public function create()
     {
-        $this->authorize('create-insurance-claims');
+        // Use custom permission check instead of built-in authorize
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        $user = User::find(Auth::id());
+        if (!$user || !$user->hasPermission('create-insurance-claims')) {
+            abort(403, 'Unauthorized access');
+        }
 
         return inertia('Billing/Insurance/Claims/Create');
     }
@@ -114,7 +163,15 @@ class InsuranceClaimController extends Controller
      */
     public function show(string $id)
     {
-        $this->authorize('view-insurance-claims');
+        // Use custom permission check instead of built-in authorize
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        $user = User::find(Auth::id());
+        if (!$user || !$user->hasPermission('view-insurance-claims')) {
+            abort(403, 'Unauthorized access');
+        }
 
         try {
             $claim = InsuranceClaim::with([
@@ -139,7 +196,15 @@ class InsuranceClaimController extends Controller
      */
     public function edit(string $id)
     {
-        $this->authorize('edit-insurance-claims');
+        // Use custom permission check instead of built-in authorize
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        $user = User::find(Auth::id());
+        if (!$user || !$user->hasPermission('edit-insurance-claims')) {
+            abort(403, 'Unauthorized access');
+        }
 
         try {
             $claim = InsuranceClaim::with([
@@ -161,7 +226,21 @@ class InsuranceClaimController extends Controller
      */
     public function store(StoreInsuranceClaimRequest $request, string $billId): JsonResponse
     {
-        $this->authorize('create-insurance-claims');
+        // Use custom permission check instead of built-in authorize
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access',
+            ], 403);
+        }
+
+        $user = User::find(Auth::id());
+        if (!$user || !$user->hasPermission('create-insurance-claims')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access',
+            ], 403);
+        }
 
         try {
             DB::beginTransaction();
@@ -230,7 +309,21 @@ class InsuranceClaimController extends Controller
      */
     public function update(UpdateInsuranceClaimRequest $request, string $id): JsonResponse
     {
-        $this->authorize('edit-insurance-claims');
+        // Use custom permission check instead of built-in authorize
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access',
+            ], 403);
+        }
+
+        $user = User::find(Auth::id());
+        if (!$user || !$user->hasPermission('edit-insurance-claims')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access',
+            ], 403);
+        }
 
         try {
             DB::beginTransaction();
@@ -250,13 +343,13 @@ class InsuranceClaimController extends Controller
             if (in_array($request->status, ['approved', 'partial_approved'])) {
                 $updateData['approved_amount'] = $request->approved_amount;
                 $updateData['approval_date'] = now();
-                $updateData['processed_by'] = auth()->id();
+                $updateData['processed_by'] = Auth::id();
             }
 
             // Add rejection reason if status is rejected
             if ($request->status === 'rejected') {
                 $updateData['rejection_reason'] = $request->rejection_reason;
-                $updateData['processed_by'] = auth()->id();
+                $updateData['processed_by'] = Auth::id();
             }
 
             if ($request->has('notes')) {
@@ -303,7 +396,21 @@ class InsuranceClaimController extends Controller
      */
     public function submitToProvider(Request $request, string $id): JsonResponse
     {
-        $this->authorize('submit-insurance-claims');
+        // Use custom permission check instead of built-in authorize
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access',
+            ], 403);
+        }
+
+        $user = User::find(Auth::id());
+        if (!$user || !$user->hasPermission('submit-insurance-claims')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access',
+            ], 403);
+        }
 
         try {
             $claim = InsuranceClaim::with(['bill', 'patientInsurance.insuranceProvider'])->findOrFail($id);
@@ -337,7 +444,21 @@ class InsuranceClaimController extends Controller
      */
     public function getClaimStatus(Request $request, string $id): JsonResponse
     {
-        $this->authorize('view-insurance-claims');
+        // Use custom permission check instead of built-in authorize
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access',
+            ], 403);
+        }
+
+        $user = User::find(Auth::id());
+        if (!$user || !$user->hasPermission('view-insurance-claims')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access',
+            ], 403);
+        }
 
         try {
             $claim = InsuranceClaim::with(['bill', 'patientInsurance.insuranceProvider'])->findOrFail($id);
@@ -391,7 +512,21 @@ class InsuranceClaimController extends Controller
      */
     public function uploadDocuments(Request $request, string $id): JsonResponse
     {
-        $this->authorize('edit-insurance-claims');
+        // Use custom permission check instead of built-in authorize
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access',
+            ], 403);
+        }
+
+        $user = User::find(Auth::id());
+        if (!$user || !$user->hasPermission('edit-insurance-claims')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access',
+            ], 403);
+        }
 
         try {
             $request->validate([
@@ -441,7 +576,21 @@ class InsuranceClaimController extends Controller
      */
     public function downloadDocument(Request $request, string $id, string $documentIndex): JsonResponse
     {
-        $this->authorize('view-insurance-claims');
+        // Use custom permission check instead of built-in authorize
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access',
+            ], 403);
+        }
+
+        $user = User::find(Auth::id());
+        if (!$user || !$user->hasPermission('view-insurance-claims')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access',
+            ], 403);
+        }
 
         try {
             $claim = InsuranceClaim::findOrFail($id);
@@ -482,7 +631,21 @@ class InsuranceClaimController extends Controller
      */
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $this->authorize('delete-insurance-claims');
+        // Use custom permission check instead of built-in authorize
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access',
+            ], 403);
+        }
+
+        $user = User::find(Auth::id());
+        if (!$user || !$user->hasPermission('delete-insurance-claims')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access',
+            ], 403);
+        }
 
         try {
             $claim = InsuranceClaim::findOrFail($id);

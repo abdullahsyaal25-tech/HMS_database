@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Billing;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Billing\InsuranceProviderResource;
 use App\Models\InsuranceProvider;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
+use Inertia\Inertia;
 use Illuminate\Validation\Rule;
 use Exception;
 
@@ -17,9 +20,34 @@ class InsuranceProviderController extends Controller
     /**
      * Display a listing of insurance providers.
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
-        $this->authorize('view-insurance-providers');
+        // Use custom permission check instead of built-in authorize
+        if (!Auth::check()) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access',
+                ], 403);
+            } else {
+                return redirect()->route('login');
+            }
+        }
+
+        $user = User::find(Auth::id());
+        if (!$user || !$user->hasPermission('view-insurance-providers')) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access',
+                ], 403);
+            } else {
+                abort(403, 'Unauthorized access');
+            }
+        }
+
+        // Check if this is an AJAX/JSON API request (not an Inertia page request)
+        $isAjaxRequest = $request->wantsJson() && !$request->header('X-Inertia');
 
         try {
             $query = InsuranceProvider::withCount('patientInsurances');
@@ -50,6 +78,15 @@ class InsuranceProviderController extends Controller
 
             $providers = $query->paginate($request->get('per_page', 15));
 
+            if (!$isAjaxRequest) {
+                // Return Inertia response for page requests
+                return Inertia::render('Billing/Insurance/Providers/Index', [
+                    'providers' => InsuranceProviderResource::collection($providers),
+                    'filters' => $request->only(['active', 'search', 'coverage_type', 'has_api', 'sort_by', 'sort_order']),
+                ]);
+            }
+
+            // Return JSON response for AJAX/API requests
             return response()->json([
                 'success' => true,
                 'data' => InsuranceProviderResource::collection($providers),
@@ -63,10 +100,14 @@ class InsuranceProviderController extends Controller
         } catch (Exception $e) {
             Log::error('Error fetching insurance providers', ['error' => $e->getMessage()]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch insurance providers: ' . $e->getMessage(),
-            ], 500);
+            if ($isAjaxRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to fetch insurance providers: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            throw $e; // Let Inertia handle the error
         }
     }
 

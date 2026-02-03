@@ -5,16 +5,16 @@ export interface User {
     username?: string;
     avatar?: string;
     role?: string;
+    role_id?: number;
     permissions?: string[];
+    roleModel?: {
+        id: number;
+        name: string;
+        slug: string;
+        priority: number;
+        is_system: boolean;
+    };
 }
-
-export interface BreadcrumbItem {
-    label?: string;
-    href?: string;
-    title?: string;
-}
-
- 
 export interface NavItem {
     label?: string;
     title?: string;

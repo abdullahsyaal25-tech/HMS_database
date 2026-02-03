@@ -1,76 +1,139 @@
 import axios, { AxiosResponse, AxiosError } from 'axios';
+import { useCallback, useMemo } from 'react';
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
     data: T
     message?: string
     status: number
 }
 
+// Track consecutive 401 errors to prevent infinite loops
+let consecutive401Count = 0;
+const MAX_CONSECUTIVE_401 = 3;
+
+// Track if we've already shown a 401 warning to prevent console spam
+let hasShown401Warning = false;
+
+// Callback for handling unauthorized access (can be customized by components)
+type UnauthorizedCallback = (message: string) => void;
+let onUnauthorizedCallback: UnauthorizedCallback | null = null;
+
+export function setOnUnauthorizedCallback(callback: UnauthorizedCallback): void {
+    onUnauthorizedCallback = callback;
+}
+
 export function useApi() {
     const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
 
-    const get = async <T = any>(url: string, params?: any): Promise<AxiosResponse<T>> => {
+    const get = useCallback(async <T = unknown>(url: string, params?: Record<string, unknown>): Promise<AxiosResponse<T>> => {
         try {
+            // Get CSRF token with fallback
+            let csrfToken = '';
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            if (metaTag) {
+                csrfToken = metaTag.getAttribute('content') || '';
+            }
+
+            // DEBUG: Log authentication state
+            const cookies = document.cookie;
+            console.debug('[API DEBUG] GET request starting', {
+                url: `${baseURL}${url}`,
+                hasCsrfToken: !!csrfToken,
+                cookiesPresent: cookies.length > 0,
+                cookieNames: cookies.split(';').map(c => c.trim().split('=')[0]),
+                withCredentials: true,
+                userAgent: navigator.userAgent,
+            });
+
+            // Try to get session ID from cookie
+            const sessionCookie = document.cookie.split('; ').find(row => row.startsWith('laravel_session='));
+            const sessionId = sessionCookie ? sessionCookie.split('=')[1] : null;
+
             const response = await axios.get<T>(`${baseURL}${url}`, {
                 params,
-                withCredentials: true, // Important for Sanctum cookies
+                withCredentials: true, // Important for session cookies
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...(csrfToken && { 'X-CSRF-TOKEN': csrfToken }),
+                    // Fallback: Include session ID in header for API requests
+                    ...(sessionId && { 'X-Laravel-Session': sessionId }),
+                },
             })
+            // Reset 401 counter on successful response
+            consecutive401Count = 0;
+            hasShown401Warning = false;
             return response
         } catch (error) {
-            handleApiError(error as AxiosError)
+            const axiosError = error as AxiosError;
+            console.error('[API DEBUG] GET request failed', {
+                url: `${baseURL}${url}`,
+                status: axiosError.response?.status,
+                statusText: axiosError.response?.statusText,
+                message: axiosError.message,
+                cookies: document.cookie,
+            });
+            handleApiError(axiosError)
             throw error
         }
-    }
+    }, [baseURL])
 
-    const post = async <T = any>(url: string, data?: any): Promise<AxiosResponse<T>> => {
+    const post = useCallback(async <T = unknown>(url: string, data?: Record<string, unknown>): Promise<AxiosResponse<T>> => {
         try {
             const response = await axios.post<T>(`${baseURL}${url}`, data, {
                 withCredentials: true, // Important for Sanctum cookies
             })
+            consecutive401Count = 0;
+            hasShown401Warning = false;
             return response
         } catch (error) {
             handleApiError(error as AxiosError)
             throw error
         }
-    }
+    }, [baseURL])
 
-    const put = async <T = any>(url: string, data?: any): Promise<AxiosResponse<T>> => {
+    const put = useCallback(async <T = unknown>(url: string, data?: Record<string, unknown>): Promise<AxiosResponse<T>> => {
         try {
             const response = await axios.put<T>(`${baseURL}${url}`, data, {
                 withCredentials: true, // Important for Sanctum cookies
             })
+            consecutive401Count = 0;
+            hasShown401Warning = false;
             return response
         } catch (error) {
             handleApiError(error as AxiosError)
             throw error
         }
-    }
+    }, [baseURL])
 
-    const patch = async <T = any>(url: string, data?: any): Promise<AxiosResponse<T>> => {
+    const patch = useCallback(async <T = unknown>(url: string, data?: Record<string, unknown>): Promise<AxiosResponse<T>> => {
         try {
             const response = await axios.patch<T>(`${baseURL}${url}`, data, {
                 withCredentials: true, // Important for Sanctum cookies
             })
+            consecutive401Count = 0;
+            hasShown401Warning = false;
             return response
         } catch (error) {
             handleApiError(error as AxiosError)
             throw error
         }
-    }
+    }, [baseURL])
 
-    const deleteRequest = async <T = any>(url: string): Promise<AxiosResponse<T>> => {
+    const deleteRequest = useCallback(async <T = unknown>(url: string): Promise<AxiosResponse<T>> => {
         try {
             const response = await axios.delete<T>(`${baseURL}${url}`, {
                 withCredentials: true, // Important for Sanctum cookies
             })
+            consecutive401Count = 0;
+            hasShown401Warning = false;
             return response
         } catch (error) {
             handleApiError(error as AxiosError)
             throw error
         }
-    }
+    }, [baseURL])
 
-    const upload = async <T = any>(url: string, file: File, onProgress?: (progress: number) => void): Promise<AxiosResponse<T>> => {
+    const upload = useCallback(async <T = unknown>(url: string, file: File, onProgress?: (progress: number) => void): Promise<AxiosResponse<T>> => {
         const formData = new FormData()
         formData.append('file', file)
 
@@ -84,38 +147,85 @@ export function useApi() {
                     }
                 }
             })
+            consecutive401Count = 0;
+            hasShown401Warning = false;
             return response
         } catch (error) {
             handleApiError(error as AxiosError)
             throw error
         }
-    }
+    }, [baseURL])
 
-    const getToken = (): string | null => {
+    const getToken = useCallback((): string | null => {
         return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-    }
+    }, [])
 
-    const setToken = (token: string, remember: boolean = false): void => {
+    const setToken = useCallback((token: string, remember: boolean = false): void => {
         if (remember) {
             localStorage.setItem('auth_token', token)
         } else {
             sessionStorage.setItem('auth_token', token)
         }
-    }
+    }, [])
 
-    const removeToken = (): void => {
-        localStorage.removeItem('auth_token')
-        sessionStorage.removeItem('auth_token')
-    }
+    const removeToken = useCallback((): void => {
+        localStorage.removeItem('auth_token');
+        sessionStorage.removeItem('auth_token');
+    }, [])
 
-    const handleApiError = (error: AxiosError): void => {
+    // DEBUG: Check and log authentication status
+    const checkAuthStatus = useCallback((): void => {
+        const cookies = document.cookie;
+        const metaTag = document.querySelector('meta[name="csrf-token"]');
+        const csrfToken = metaTag?.getAttribute('content') || '';
+        
+        console.debug('[AUTH DEBUG] Current authentication status:', {
+            cookiesPresent: cookies.length > 0,
+            cookieNames: cookies.split(';').map(c => c.trim().split('=')[0]),
+            hasCsrfToken: !!csrfToken,
+            localStorageToken: !!localStorage.getItem('auth_token'),
+            sessionStorageToken: !!sessionStorage.getItem('auth_token'),
+        });
+    }, [])
+
+    const handleApiError = useCallback((error: AxiosError): void => {
         if (error.response) {
             const status = error.response.status
             const message = error.response.data || 'An error occurred'
 
             if (status === 401) {
-                // Unauthorized - log but don't logout
-                console.warn('Unauthorized access - session may have expired')
+                consecutive401Count++;
+
+                // DEBUG: Log detailed authentication state on 401
+                const cookies = document.cookie;
+                const metaTag = document.querySelector('meta[name="csrf-token"]');
+                console.error('[401 DEBUG] Unauthorized request detailed analysis:', {
+                    cookiesPresent: cookies.length > 0,
+                    cookieNames: cookies.split(';').map(c => c.trim().split('=')[0]),
+                    hasCsrfToken: !!metaTag?.getAttribute('content'),
+                    localStorageToken: !!localStorage.getItem('auth_token'),
+                    sessionStorageToken: !!sessionStorage.getItem('auth_token'),
+                    consecutive401Count,
+                    url: error.config?.url,
+                    method: error.config?.method,
+                });
+
+                // Prevent infinite loops by limiting consecutive 401 errors
+                if (consecutive401Count >= MAX_CONSECUTIVE_401) {
+                    console.error('Too many consecutive 401 errors. Stopping retry attempts.');
+
+                    // Call the unauthorized callback if set
+                    if (onUnauthorizedCallback) {
+                        onUnauthorizedCallback('Session expired. Please log in again.');
+                    }
+                    return;
+                }
+
+                // Only show warning once to prevent console spam
+                if (!hasShown401Warning) {
+                    console.warn('Unauthorized access - session may have expired');
+                    hasShown401Warning = true;
+                }
             } else if (status === 403) {
                 // Forbidden
                 console.warn('Forbidden - insufficient permissions')
@@ -132,12 +242,12 @@ export function useApi() {
             // Other error
             console.error('Request error:', error.message)
         }
-    }
+    }, [])
 
     // Configure axios to include credentials (cookies) with all requests
     axios.defaults.withCredentials = true
 
-    return {
+    return useMemo(() => ({
         get,
         post,
         put,
@@ -146,6 +256,8 @@ export function useApi() {
         upload,
         getToken,
         setToken,
-        removeToken
-    }
+        removeToken,
+        setOnUnauthorizedCallback,
+        checkAuthStatus,
+    }), [get, post, put, patch, deleteRequest, upload, getToken, setToken, removeToken, checkAuthStatus])
 }

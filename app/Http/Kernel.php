@@ -37,6 +37,7 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
+            \App\Http\Middleware\AddUserPermissionsToInertia::class,
         ],
 
         'api' => [
@@ -69,5 +70,7 @@ class Kernel extends HttpKernel
         'permission.rate.limit' => \App\Http\Middleware\PermissionRateLimitMiddleware::class,
         'permission.session' => \App\Http\Middleware\PermissionSessionMiddleware::class,
         'permission.monitoring' => \App\Http\Middleware\PermissionMonitoringMiddleware::class,
+        'segregation.of.duties' => \App\Http\Middleware\EnsureSegregationOfDuties::class,
+        'role.based.access' => \App\Http\Middleware\EnsureRoleBasedAccess::class,
     ];
 }

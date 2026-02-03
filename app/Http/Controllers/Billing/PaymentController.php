@@ -9,12 +9,15 @@ use App\Http\Resources\Billing\PaymentResource;
 use App\Http\Resources\Billing\BillRefundResource;
 use App\Models\Bill;
 use App\Models\Payment;
+use App\Models\User;
 use App\Services\Billing\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
 use Exception;
+use Inertia\Inertia;
 
 class PaymentController extends Controller
 {
@@ -34,9 +37,14 @@ class PaymentController extends Controller
     /**
      * Display a listing of payments for a bill.
      */
-    public function index(Request $request, string $billId): JsonResponse
+    public function index(Request $request, string $billId)
     {
         $this->authorize('view-payments');
+
+        // Check if this is an AJAX/JSON API request (not an Inertia page request)
+        // Note: Inertia sets both X-Inertia and X-Requested-With headers, so we only return
+        // JSON for requests that explicitly want JSON (wantsJson) and don't have X-Inertia header
+        $isAjaxRequest = $request->wantsJson() && !$request->header('X-Inertia');
 
         try {
             $bill = Bill::findOrFail($billId);
@@ -68,6 +76,23 @@ class PaymentController extends Controller
 
             $payments = $query->paginate($request->get('per_page', 15));
 
+            if (!$isAjaxRequest) {
+                // Return Inertia response for page requests
+                return Inertia::render('Billing/Payments/Index', [
+                    'payments' => PaymentResource::collection($payments),
+                    'bill' => [
+                        'id' => $bill->id,
+                        'bill_number' => $bill->bill_number,
+                        'total_amount' => $bill->total_amount,
+                        'amount_paid' => $bill->amount_paid,
+                        'balance_due' => $bill->balance_due,
+                        'payment_status' => $bill->payment_status,
+                    ],
+                    'filters' => $request->only(['status', 'payment_method', 'date_from', 'date_to']),
+                ]);
+            }
+
+            // Return JSON response for AJAX/API requests
             return response()->json([
                 'success' => true,
                 'data' => PaymentResource::collection($payments),
@@ -89,10 +114,14 @@ class PaymentController extends Controller
         } catch (Exception $e) {
             Log::error('Error fetching payments', ['bill_id' => $billId, 'error' => $e->getMessage()]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch payments: ' . $e->getMessage(),
-            ], 500);
+            if ($isAjaxRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to fetch payments: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            throw $e; // Let Inertia handle the error
         }
     }
 
@@ -126,7 +155,7 @@ class PaymentController extends Controller
                 'check_number' => $request->check_number,
                 'amount_tendered' => $request->amount_tendered,
                 'notes' => $request->notes,
-                'received_by' => auth()->id(),
+                'received_by' => Auth::id(),
             ];
 
             // Process payment using service
@@ -307,9 +336,36 @@ class PaymentController extends Controller
     /**
      * List all payments (admin view).
      */
-    public function listAll(Request $request): JsonResponse
+    public function listAll(Request $request)
     {
-        $this->authorize('view-all-payments');
+        // Use custom permission check instead of built-in authorize
+        if (!Auth::check()) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access',
+                ], 403);
+            } else {
+                return redirect()->route('login');
+            }
+        }
+
+        $user = User::find(Auth::id());
+        if (!$user || !$user->hasPermission('view-payments')) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access',
+                ], 403);
+            } else {
+                abort(403, 'Unauthorized access');
+            }
+        }
+
+        // Check if this is an AJAX/JSON API request (not an Inertia page request)
+        // Note: Inertia sets both X-Inertia and X-Requested-With headers, so we only return
+        // JSON for requests that explicitly want JSON (wantsJson) and don't have X-Inertia header
+        $isAjaxRequest = $request->wantsJson() && !$request->header('X-Inertia');
 
         try {
             $query = Payment::with(['receivedBy', 'bill.patient']);
@@ -350,6 +406,15 @@ class PaymentController extends Controller
 
             $payments = $query->paginate($request->get('per_page', 15));
 
+            if (!$isAjaxRequest) {
+                // Return Inertia response for page requests
+                return Inertia::render('Billing/Payments/Index', [
+                    'payments' => PaymentResource::collection($payments),
+                    'filters' => $request->only(['status', 'payment_method', 'date_from', 'date_to', 'received_by', 'min_amount', 'max_amount']),
+                ]);
+            }
+
+            // Return JSON response for AJAX/API requests
             return response()->json([
                 'success' => true,
                 'data' => PaymentResource::collection($payments),
@@ -363,10 +428,14 @@ class PaymentController extends Controller
         } catch (Exception $e) {
             Log::error('Error fetching all payments', ['error' => $e->getMessage()]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch payments: ' . $e->getMessage(),
-            ], 500);
+            if ($isAjaxRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to fetch payments: ' . $e->getMessage(),
+                ], 500);
+            } else {
+                return redirect()->back()->with('error', 'Failed to fetch payments: ' . $e->getMessage());
+            }
         }
     }
 }

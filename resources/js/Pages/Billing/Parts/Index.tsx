@@ -102,7 +102,6 @@ export default function BillPartsIndex() {
 
                 {/* Bill Parts Display */}
                 <BillPartsDisplay
-                    billId={selectedBillId || 'all'}
                     showSummary={true}
                     className="w-full"
                 />

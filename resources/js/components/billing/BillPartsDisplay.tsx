@@ -24,7 +24,6 @@ import { AlertCircle, RefreshCw, FileText, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BillPartsDisplayProps {
-    billId: number | string;
     className?: string;
     showSummary?: boolean;
 }
@@ -36,7 +35,6 @@ interface BillSummary {
 }
 
 export function BillPartsDisplay({
-    billId,
     className,
     showSummary = true,
 }: BillPartsDisplayProps) {
@@ -55,7 +53,8 @@ export function BillPartsDisplay({
         setError(null);
 
         try {
-            const response = await get<BillItemsResponse>(`/billing/${billId}/items`);
+            // Use the correct API endpoint for all items
+            const response = await get<BillItemsResponse>('/billing/all/items');
             
             if (response.data.success) {
                 setItems(response.data.data.items);
@@ -72,7 +71,7 @@ export function BillPartsDisplay({
         } finally {
             setIsLoading(false);
         }
-    }, [billId, get]);
+    }, [get]);
 
     React.useEffect(() => {
         fetchBillItems();

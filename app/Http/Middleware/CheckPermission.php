@@ -17,24 +17,42 @@ class CheckPermission
      */
     public function handle(Request $request, Closure $next, $permission): Response
     {
-        // Debug: Log permission check attempt
-        Log::debug('Permission middleware check', [
+        // DEBUG: Enhanced logging for 403 diagnosis
+        $requestId = uniqid('req_', true);
+        Log::debug("[{$requestId}] Permission middleware ENTRY", [
             'url' => $request->fullUrl(),
             'method' => $request->method(),
             'permission_required' => $permission,
             'user_authenticated' => Auth::check(),
+            'has_valid_sanctum_token' => $request->user() !== null,
+            'x_inertia_header' => $request->header('X-Inertia'),
+            'user_agent' => $request->userAgent(),
+            'ip_address' => $request->ip(),
         ]);
-                
+        
         if (!Auth::check()) {
-            Log::warning('Permission check failed - user not authenticated', [
-                'url' => $request->fullUrl(),
-                'permission_required' => $permission,
-            ]);
-                    
+            Log::warning("[{$requestId}] Permission check FAILED - user not authenticated");
+            
+            if ($request->is('api/*') || $request->header('X-Inertia')) {
+                return response()->json([
+                    'message' => 'Authentication required',
+                    'debug_request_id' => $requestId,
+                ], 403);
+            }
+            
             return redirect()->route('login');
         }
-                
+        
         $user = Auth::user();
+        
+        // DEBUG: Log user details
+        Log::debug("[{$requestId}] User authenticated", [
+            'user_id' => $user->id,
+            'username' => $user->username,
+            'role' => $user->role,
+            'role_id' => $user->role_id,
+            'is_super_admin' => $user->isSuperAdmin(),
+        ]);
 
         // Enhanced diagnostic logging
         $isSuperAdmin = $user->isSuperAdmin();
@@ -54,11 +72,26 @@ class CheckPermission
             'permission_required' => $permission,
         ]);
 
+        // Super Admin bypass check
+        if ($isSuperAdmin) {
+            Log::debug("[{$requestId}] Permission check PASSED - Super Admin bypass");
+            return $next($request);
+        }
+        
         // Check permission with detailed breakdown
         $hasPermission = $user->hasPermission($permission);
         
+        // DEBUG: Log permission check result
+        $effectivePermissions = $user->getEffectivePermissions();
+        Log::debug("[{$requestId}] Permission check result", [
+            'permission_required' => $permission,
+            'has_permission' => $hasPermission,
+            'effective_permissions_count' => count($effectivePermissions),
+            'effective_permissions' => $effectivePermissions,
+        ]);
+        
         // If permission denied, do detailed investigation
-        if (!$hasPermission && !$isSuperAdmin) {
+        if (!$hasPermission) {
             // Check user-specific override
             $userPermission = $user->userPermissions()
                 ->whereHas('permission', fn($q) => $q->where('name', $permission))

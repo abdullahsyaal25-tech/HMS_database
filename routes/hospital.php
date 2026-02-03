@@ -71,6 +71,16 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [BillController::class, 'index'])->name('billing.index');
         Route::get('/create', [BillController::class, 'create'])->name('billing.create');
         Route::post('/', [BillController::class, 'store'])->name('billing.store');
+
+        // Bill Parts standalone page - MUST be before /{bill} route
+        Route::get('/parts', [BillController::class, 'partsIndex'])
+            ->name('billing.parts.index')
+            ->middleware('check.permission:view-billing');
+        Route::get('/parts/dashboard', [BillController::class, 'partsDashboard'])
+            ->name('billing.parts.dashboard')
+            ->middleware('check.permission:view-billing');
+
+        // Bill-specific routes - MUST be after /parts routes
         Route::get('/{bill}', [BillController::class, 'show'])->name('billing.show');
         Route::get('/{bill}/edit', [BillController::class, 'edit'])->name('billing.edit');
         Route::put('/{bill}', [BillController::class, 'update'])->name('billing.update');
@@ -87,13 +97,6 @@ Route::middleware(['auth'])->group(function () {
             ->name('billing.items')
             ->middleware('check.permission:view-billing');
 
-        // Bill Parts standalone page
-        Route::get('/parts', [BillController::class, 'partsIndex'])
-            ->name('billing.parts.index')
-            ->middleware('check.permission:view-billing');
-        Route::get('/parts/dashboard', [BillController::class, 'partsDashboard'])
-            ->name('billing.parts.dashboard')
-            ->middleware('check.permission:view-billing');
         Route::post('/{bill}/reminder', [BillController::class, 'sendReminder'])
             ->name('billing.reminder')
             ->middleware('check.permission:manage-billing');
@@ -117,7 +120,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Payments (Global)
     Route::middleware('check.permission:view-payments')->prefix('payments')->group(function () {
-        Route::get('/', [PaymentController::class, 'globalIndex'])
+        Route::get('/', [PaymentController::class, 'listAll'])
             ->name('payments.index');
         Route::get('/{payment}', [PaymentController::class, 'show'])
             ->name('payments.show');
@@ -395,6 +398,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/doctors', [ReportController::class, 'doctorReport'])->name('reports.doctor');
         Route::get('/appointments', [ReportController::class, 'appointmentReport'])->name('reports.appointment');
         Route::get('/billing', [ReportController::class, 'billingReport'])->name('reports.billing');
+        Route::get('/billing/download', [ReportController::class, 'billingReportDownload'])->name('reports.billing.download');
         Route::get('/pharmacy-sales', [ReportController::class, 'pharmacySalesReport'])->name('reports.pharmacy-sales');
         Route::get('/lab-test', [ReportController::class, 'labTestReport'])->name('reports.lab-test');
 

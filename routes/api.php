@@ -8,6 +8,8 @@ use App\Http\Controllers\API\v1\DepartmentController;
 use App\Http\Controllers\API\v1\AdminController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Admin\PermissionsController;
+use App\Http\Controllers\Billing\BillController;
+use App\Http\Controllers\Billing\PaymentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,8 +27,8 @@ Route::prefix('v1')->group(function () {
     // Public routes (if needed)
     // Route::get('/health', function () { return ['status' => 'ok']; });
 
-    // Protected routes with sanctum middleware
-    Route::middleware('auth:sanctum')->group(function () {
+    // Protected routes with web session authentication (for Inertia compatibility)
+    Route::middleware(['auth'])->group(function () {
         // Patient routes
         Route::apiResource('patients', PatientController::class)->names('api.patients');
 
@@ -73,6 +75,44 @@ Route::prefix('v1')->group(function () {
             Route::post('/change-requests/{requestId}/reject', [PermissionsController::class, 'rejectPermissionChangeRequest']);
             Route::delete('/change-requests/{requestId}/cancel', [PermissionsController::class, 'cancelPermissionChangeRequest']);
         });
-    });
 
+        // Billing routes
+        Route::middleware('check.permission:view-billing')->prefix('billing')->group(function () {
+            // All items endpoint for frontend
+            Route::get('/all/items', [BillController::class, 'getAllItems']);
+        });
+
+        // Payments routes
+        Route::middleware('check.permission:view-billing')->prefix('payments')->group(function () {
+            Route::get('/', [PaymentController::class, 'listAll']);
+            Route::get('/{payment}', [PaymentController::class, 'show']);
+            Route::post('/{payment}/refund', [PaymentController::class, 'refund'])
+                ->middleware('check.permission:process-refunds');
+        });
+    });
+});
+
+// Non-versioned API routes (for legacy frontend compatibility)
+Route::middleware(['auth'])->group(function () {
+    // Debug endpoint to check authentication state
+    Route::get('/debug/auth', function () {
+        $user = auth()->user();
+        return response()->json([
+            'authenticated' => auth()->check(),
+            'user_id' => $user?->id,
+            'username' => $user?->username,
+            'role' => $user?->role,
+            'is_super_admin' => $user?->isSuperAdmin(),
+            'session_id' => session()->getId(),
+            'cookies' => request()->cookies->all(),
+            'headers' => [
+                'x_laravel_session' => request()->header('X-Laravel-Session'),
+                'cookie' => request()->header('Cookie'),
+            ],
+        ]);
+    });
+    
+    Route::middleware('check.permission:view-billing')->prefix('billing')->group(function () {
+        Route::get('/all/items', [BillController::class, 'getAllItems']);
+    });
 });

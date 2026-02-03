@@ -151,7 +151,7 @@ class BillController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(Request $request): Response|JsonResponse
+    public function create(Request $request): Response|JsonResponse|RedirectResponse
     {
         // Permission check is handled by the check.permission middleware on the route
 
@@ -270,7 +270,7 @@ class BillController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Request $request, string $id): Response|JsonResponse
+    public function show(Request $request, string $id): Response|JsonResponse|RedirectResponse
     {
         // Permission check is handled by the check.permission middleware on the route
 
@@ -314,7 +314,7 @@ class BillController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Request $request, string $id): Response|JsonResponse
+    public function edit(Request $request, string $id): Response|JsonResponse|RedirectResponse
     {
         // Permission check is handled by the check.permission middleware on the route
 
@@ -747,12 +747,64 @@ class BillController extends Controller
     }
 
     /**
+     * Get all bill items across all bills (API endpoint for frontend).
+     */
+    public function getAllItems(Request $request): JsonResponse
+    {
+        $this->authorize('view-billing');
+
+        try {
+            // Get all bills with their items
+            $bills = Bill::with(['items.source', 'patient'])
+                ->active()
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            // Flatten all items from all bills
+            $allItems = collect();
+            $totalItems = 0;
+            $totalAmount = 0;
+
+            foreach ($bills as $bill) {
+                foreach ($bill->items as $item) {
+                    // Add bill and patient info to each item
+                    $itemData = $item->toArray();
+                    $itemData['bill_info'] = [
+                        'id' => $bill->id,
+                        'bill_id' => $bill->bill_id,
+                        'patient_name' => $bill->patient->full_name,
+                        'bill_date' => $bill->bill_date,
+                    ];
+                    $allItems->push($itemData);
+                    $totalItems++;
+                    $totalAmount += $item->total_price;
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'items' => $allItems->toArray(),
+                    'total_items' => $totalItems,
+                    'total_amount' => $totalAmount,
+                    'bill_count' => $bills->count(),
+                ],
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error fetching all bill items', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch all bill items: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Display the Bill Parts index page.
      */
     public function partsIndex(Request $request): Response
     {
-        $this->authorize('view-billing');
-
         return Inertia::render('Billing/Parts/Index');
     }
 
@@ -761,8 +813,6 @@ class BillController extends Controller
      */
     public function partsDashboard(Request $request): Response
     {
-        $this->authorize('view-billing');
-
         return Inertia::render('Billing/Parts/Dashboard');
     }
 }
