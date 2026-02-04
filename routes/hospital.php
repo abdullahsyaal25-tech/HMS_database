@@ -24,7 +24,6 @@ use App\Http\Controllers\Laboratory\LabTestResultController;
 use App\Http\Controllers\Department\DepartmentController;
 use App\Http\Controllers\Department\DepartmentServiceController;
 use App\Http\Controllers\Admin\RBACController;
-use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\PermissionController;
 use Illuminate\Support\Facades\Route;
 
@@ -525,18 +524,4 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.rbac.import')
             ->middleware('check.permission:import-rbac-configuration');
     });
-
-    // Role Management Routes
-    Route::middleware(['check.permission:view-roles'])->prefix('admin/roles')->group(function () {
-        Route::get('/', [RoleController::class, 'index'])->name('admin.roles.index');
-        Route::get('/create', [RoleController::class, 'create'])->name('admin.roles.create');
-        Route::post('/', [RoleController::class, 'store'])->name('admin.roles.store');
-        Route::get('/{role}', [RoleController::class, 'show'])->name('admin.roles.show');
-        Route::get('/{role}/edit', [RoleController::class, 'edit'])->name('admin.roles.edit');
-        Route::put('/{role}', [RoleController::class, 'update'])->name('admin.roles.update');
-        Route::delete('/{role}', [RoleController::class, 'destroy'])
-            ->name('admin.roles.destroy')
-            ->middleware('check.permission:delete-roles');
-    });
 });
-

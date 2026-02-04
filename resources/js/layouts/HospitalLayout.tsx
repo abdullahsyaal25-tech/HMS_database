@@ -244,11 +244,7 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                         href: '/admin/rbac',
                         icon: LayoutGrid,
                     },
-                    {
-                        title: 'Roles',
-                        href: '/admin/roles',
-                        icon: Shield,
-                    },
+                  
                     {
                         title: 'Permissions',
                         href: '/admin/permissions',

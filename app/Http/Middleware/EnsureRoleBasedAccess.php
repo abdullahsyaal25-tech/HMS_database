@@ -103,7 +103,6 @@ class EnsureRoleBasedAccess
     protected function isCriticalOperation(Request $request): bool
     {
         $criticalRoutes = [
-            'admin.roles.destroy',
             'admin.permissions.destroy',
             'admin.users.assign-role',
             'admin.rbac.update-role-permissions',

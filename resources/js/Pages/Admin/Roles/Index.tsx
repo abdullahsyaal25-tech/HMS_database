@@ -3,17 +3,6 @@ import HospitalLayout from '@/layouts/HospitalLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Shield, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Users, 
-  Key,
-  Search,
-  MoreVertical,
-  Eye
-} from 'lucide-react';
 import { useState } from 'react';
 import {
   DropdownMenu,
@@ -81,18 +70,11 @@ export default function RolesIndex({ roles }: Props) {
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <Shield className="h-8 w-8 text-blue-600" />
+              <h1 className="text-3xl font-bold text-gray-900">
                 Role Management
               </h1>
               <p className="text-gray-600 mt-2">Manage roles and their permissions</p>
             </div>
-            <Link href="/admin/roles/create">
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Create New Role
-              </Button>
-            </Link>
           </div>
 
           {/* Search and Filters */}
@@ -100,7 +82,6 @@ export default function RolesIndex({ roles }: Props) {
             <CardContent className="pt-6">
               <div className="flex gap-4">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
                     type="text"
                     placeholder="Search roles..."
@@ -117,8 +98,7 @@ export default function RolesIndex({ roles }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-blue-600" />
+                <CardTitle className="text-sm font-medium">
                   Total Roles
                 </CardTitle>
               </CardHeader>
@@ -128,8 +108,7 @@ export default function RolesIndex({ roles }: Props) {
             </Card>
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Users className="h-4 w-4 text-green-600" />
+                <CardTitle className="text-sm font-medium">
                   Total Users
                 </CardTitle>
               </CardHeader>
@@ -141,8 +120,7 @@ export default function RolesIndex({ roles }: Props) {
             </Card>
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Key className="h-4 w-4 text-purple-600" />
+                <CardTitle className="text-sm font-medium">
                   Avg Permissions/Role
                 </CardTitle>
               </CardHeader>
@@ -161,10 +139,9 @@ export default function RolesIndex({ roles }: Props) {
             {filteredRoles.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <Shield className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                   <p className="text-gray-500">No roles found</p>
                   <p className="text-sm text-gray-400 mt-1">
-                    {searchQuery ? 'Try adjusting your search query' : 'Create your first role to get started'}
+                    {searchQuery ? 'Try adjusting your search query' : 'No roles available'}
                   </p>
                 </CardContent>
               </Card>
@@ -197,11 +174,9 @@ export default function RolesIndex({ roles }: Props) {
 
                         <div className="flex items-center gap-6 text-sm text-gray-500">
                           <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4" />
                             <span>{role.users_count} user{role.users_count !== 1 ? 's' : ''}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Key className="h-4 w-4" />
                             <span>{role.permissions.length} permission{role.permissions.length !== 1 ? 's' : ''}</span>
                           </div>
                         </div>
@@ -220,37 +195,44 @@ export default function RolesIndex({ roles }: Props) {
                             )}
                           </div>
                         )}
+
+                        {role.name !== 'Super Admin' && (
+                          <div className="mt-4 flex gap-2">
+                            <Link href={`/admin/roles/${role.id}`}>
+                              <Button variant="outline" size="sm">
+                                View Details
+                              </Button>
+                            </Link>
+                            <Link href={`/admin/roles/${role.id}/edit`}>
+                              <Button variant="outline" size="sm">
+                                Edit Role
+                              </Button>
+                            </Link>
+                            <Button variant="destructive" size="sm" onClick={() => handleDelete(role.id)}>
+                              Delete Role
+                            </Button>
+                          </div>
+                        )}
                       </div>
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
+                            More
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
                             <Link href={`/admin/roles/${role.id}`} className="flex items-center gap-2">
-                              <Eye className="h-4 w-4" />
                               View Details
                             </Link>
                           </DropdownMenuItem>
                           {role.name !== 'Super Admin' && (
-                            <>
-                              <DropdownMenuItem asChild>
-                                <Link href={`/admin/roles/${role.id}/edit`} className="flex items-center gap-2">
-                                  <Edit className="h-4 w-4" />
-                                  Edit Role
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleDelete(role.id)}
-                                className="text-red-600 flex items-center gap-2"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                Delete Role
-                              </DropdownMenuItem>
-                            </>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/admin/roles/${role.id}/edit`} className="flex items-center gap-2">
+                                Edit Role
+                              </Link>
+                            </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
