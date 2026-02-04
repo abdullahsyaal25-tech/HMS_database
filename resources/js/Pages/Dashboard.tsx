@@ -92,11 +92,6 @@ export default function Dashboard({
         }
     }, [lastMessage]);
 
-    useEffect(() => {
-        console.log('Bar chart container width:', barChartRef.current?.offsetWidth, 'height:', barChartRef.current?.offsetHeight);
-        console.log('Pie chart container width:', pieChartRef.current?.offsetWidth, 'height:', pieChartRef.current?.offsetHeight);
-    }, []);
-
     // Calculate percentage changes (would come from API in real implementation)
     const calculateChange = (current: number, previous: number) => {
         if (previous === 0) return 0;

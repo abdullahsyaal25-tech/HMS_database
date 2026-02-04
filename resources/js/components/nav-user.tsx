@@ -17,13 +17,9 @@ import { ChevronsUpDown } from 'lucide-react';
 
 export function NavUser() {
     const page = usePage();
-    console.log('NavUser: page.props =', page.props);
     const { auth } = page.props;
-    console.log('NavUser: auth =', auth);
     const { state } = useSidebar();
-    console.log('NavUser: sidebar state =', state);
     const isMobile = useIsMobile();
-    console.log('NavUser: isMobile =', isMobile);
     
     // Safely access user with fallback for undefined auth state
     const user = auth?.user;
@@ -41,9 +37,6 @@ export function NavUser() {
             </SidebarMenu>
         );
     }
-
-    console.log('NavUser: user =', user);
-    console.log('NavUser: rendering user menu');
 
     return (
         <SidebarMenu>

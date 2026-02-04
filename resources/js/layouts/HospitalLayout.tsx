@@ -290,9 +290,6 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
         });
     }, [hasPermission, isAuthenticated]);
     
-    console.log('HospitalLayout: isAuthenticated =', isAuthenticated);
-    console.log('HospitalLayout: filteredNavItems length =', filteredNavItems.length);
-    
     return (
         <AppShell variant="sidebar">
             <Sidebar collapsible="icon" variant="inset" className="border-r border-sidebar-border">

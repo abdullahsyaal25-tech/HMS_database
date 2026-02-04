@@ -86,30 +86,6 @@ function SidebarProvider({
     [setOpenProp, open]
   )
 
-  // Add debug logs to track sidebar state changes
-  React.useEffect(() => {
-    console.log('Sidebar state changed:', open);
-  }, [open]);
-
-  // Add debug logs to track sidebar initialization
-  React.useEffect(() => {
-    console.log('Sidebar initialized with defaultOpen:', defaultOpen);
-    console.log('Sidebar initialized with openProp:', openProp);
-  }, [defaultOpen, openProp]);
-
-  // Add debug logs to track sidebar context
-  const isMobile = useIsMobile();
-  React.useEffect(() => {
-    console.log('Sidebar context:', {
-      state: open ? "expanded" : "collapsed",
-      open,
-      isMobile,
-      openMobile: false,
-      setOpen: () => {},
-      toggleSidebar: () => {}
-    });
-  }, [open, isMobile]);
-
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
