@@ -7,6 +7,7 @@ use App\Models\Medicine;
 use App\Models\MedicineCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,6 +15,9 @@ use Illuminate\Http\RedirectResponse;
 
 class MedicineController extends Controller
 {
+    const LOW_STOCK_THRESHOLD = 10;
+    const EXPIRY_WARNING_DAYS = 30;
+
     /**
      * Display a listing of the resource.
      */
@@ -37,10 +41,10 @@ class MedicineController extends Controller
         if ($request->filled('stock_status')) {
             switch ($request->stock_status) {
                 case 'in_stock':
-                    $query->where('quantity', '>', 10); // More than low stock threshold
+                    $query->where('quantity', '>', self::LOW_STOCK_THRESHOLD); // More than low stock threshold
                     break;
                 case 'low_stock':
-                    $query->where('quantity', '<=', 10)
+                    $query->where('quantity', '<=', self::LOW_STOCK_THRESHOLD)
                           ->where('quantity', '>', 0);
                     break;
                 case 'out_of_stock':
@@ -54,11 +58,11 @@ class MedicineController extends Controller
             $today = now();
             switch ($request->expiry_status) {
                 case 'valid':
-                    $query->whereDate('expiry_date', '>', $today->copy()->addDays(30));
+                    $query->whereDate('expiry_date', '>', $today->copy()->addDays(self::EXPIRY_WARNING_DAYS));
                     break;
                 case 'expiring_soon':
                     $query->whereDate('expiry_date', '>=', $today)
-                          ->whereDate('expiry_date', '<=', $today->copy()->addDays(30));
+                          ->whereDate('expiry_date', '<=', $today->copy()->addDays(self::EXPIRY_WARNING_DAYS));
                     break;
                 case 'expired':
                     $query->whereDate('expiry_date', '<', $today);
@@ -137,7 +141,9 @@ class MedicineController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
         
-        Medicine::create($validator->validated());
+        DB::transaction(function () use ($validator) {
+            Medicine::create($validator->validated());
+        });
         
         return redirect()->route('pharmacy.medicines.index')->with('success', 'Medicine created successfully.');
     }
@@ -227,7 +233,9 @@ class MedicineController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
         
-        $medicine->update($validator->validated());
+        DB::transaction(function () use ($medicine, $validator) {
+            $medicine->update($validator->validated());
+        });
         
         return redirect()->route('pharmacy.medicines.index')->with('success', 'Medicine updated successfully.');
     }
@@ -245,7 +253,9 @@ class MedicineController extends Controller
         }
         
         $medicine = Medicine::findOrFail($id);
-        $medicine->delete();
+        DB::transaction(function () use ($medicine) {
+            $medicine->delete();
+        });
         
         return redirect()->route('pharmacy.medicines.index')->with('success', 'Medicine deleted successfully.');
     }
@@ -318,9 +328,9 @@ class MedicineController extends Controller
             abort(403, 'Unauthorized access');
         }
         
-        // Consider medicines with stock less than 10 as low stock
-        $medicines = Medicine::where('quantity', '<=', 10)
-                    ->where('quantity', '>=', 1) // greater than 0 but less than 10
+        // Consider medicines with stock less than LOW_STOCK_THRESHOLD as low stock
+        $medicines = Medicine::where('quantity', '<=', self::LOW_STOCK_THRESHOLD)
+                    ->where('quantity', '>=', 1) // greater than 0 but less than LOW_STOCK_THRESHOLD
                     ->with('category')
                     ->paginate(10);
         
@@ -362,9 +372,9 @@ class MedicineController extends Controller
             abort(403, 'Unauthorized access');
         }
         
-        // Get medicines that expire within the next 30 days
+        // Get medicines that expire within the next EXPIRY_WARNING_DAYS days
         $medicines = Medicine::whereDate('expiry_date', '>=', now())
-                    ->whereDate('expiry_date', '<=', now()->addDays(30))
+                    ->whereDate('expiry_date', '<=', now()->addDays(self::EXPIRY_WARNING_DAYS))
                     ->with('category')
                     ->paginate(10);
         

@@ -26,7 +26,10 @@ return new class extends Migration
             $table->decimal('bonus', 10, 2)->default(0.00);
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('department_id')->nullable();
+            $table->foreignId('department_id')
+                ->nullable()
+                ->constrained('departments')
+                ->onDelete('set null');
             $table->timestamps();
         });
     }

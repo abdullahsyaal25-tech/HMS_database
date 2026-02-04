@@ -193,8 +193,13 @@ trait HasPermissions
      */
     public function isSuperAdmin(): bool
     {
-        return $this->role === 'Super Admin' 
-            || ($this->roleModel && $this->roleModel->slug === 'super-admin');
+        // Use roleModel consistently
+        if ($this->roleModel && $this->roleModel->slug === 'super-admin') {
+            return true;
+        }
+        
+        // Fallback for legacy data
+        return $this->role === 'Super Admin';
     }
 
     /**

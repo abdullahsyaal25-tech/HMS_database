@@ -41,6 +41,7 @@ class RateLimitMiddleware
             ], 429)->withHeaders([
                 'X-RateLimit-Limit' => $limit['max'],
                 'X-RateLimit-Remaining' => 0,
+                'X-RateLimit-Reset' => time() + $limit['decay'],
                 'Retry-After' => $limit['decay'],
             ]);
         }
@@ -51,9 +52,14 @@ class RateLimitMiddleware
         $response = $next($request);
 
         // Add rate limit headers to response
+        $remaining = max(0, $limit['max'] - $attempts - 1);
+        $resetIn = $limit['decay'];
+        
         return $response->withHeaders([
             'X-RateLimit-Limit' => $limit['max'],
-            'X-RateLimit-Remaining' => max(0, $limit['max'] - $attempts - 1),
+            'X-RateLimit-Remaining' => $remaining,
+            'X-RateLimit-Reset' => time() + $resetIn,
+            'Retry-After' => $resetIn,
         ]);
     }
 

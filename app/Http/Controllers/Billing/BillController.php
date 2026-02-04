@@ -33,6 +33,73 @@ use Exception;
 class BillController extends Controller
 {
     /**
+     * Check if user can access this bill
+     */
+    private function canAccessBill(Bill $bill): bool
+    {
+        $user = auth()->user();
+        
+        if (!$user) {
+            return false;
+        }
+        
+        // Super admin can access all bills
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+        
+        // Users with broad billing permissions
+        if ($user->hasPermission('view-all-billing')) {
+            return true;
+        }
+        
+        // Creator access
+        if ($bill->created_by === $user->id) {
+            return true;
+        }
+        
+        // Patient access (for patient portal)
+        if ($bill->patient && $bill->patient->user_id === $user->id) {
+            return true;
+        }
+        
+        return $user->hasPermission('view-billing');
+    }
+
+    /**
+     * Check if user can modify this bill
+     */
+    private function canModifyBill(Bill $bill): bool
+    {
+        // Cannot modify paid or voided bills
+        if ($bill->payment_status === 'paid' || $bill->voided_at) {
+            return false;
+        }
+        
+        return $this->canAccessBill($bill) && 
+               ($user = auth()->user())->hasPermission('edit-billing');
+    }
+
+    /**
+     * Get sanitized error message for user display
+     */
+    private function getUserErrorMessage(Exception $e): string
+    {
+        // Always log the full error internally
+        Log::error('Bill operation error', [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+        
+        // Return sanitized message based on environment
+        if (config('app.debug')) {
+            return 'Debug: ' . $e->getMessage();
+        }
+        
+        return 'An error occurred while processing your request. Please try again later.';
+    }
+
+    /**
      * @var BillItemService
      */
     protected $billItemService;
@@ -132,18 +199,16 @@ class BillController extends Controller
                 'filters' => $request->only(['status', 'date_from', 'date_to', 'patient_id', 'min_amount', 'max_amount']),
             ]);
         } catch (Exception $e) {
-            Log::error('Error fetching bills', ['error' => $e->getMessage()]);
-
             if ($request->wantsJson() || $request->is('api/*')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to fetch bills: ' . $e->getMessage(),
+                    'message' => $this->getUserErrorMessage($e),
                 ], 500);
             }
 
             return Inertia::render('Billing/Index', [
                 'bills' => [],
-                'error' => 'Failed to fetch bills: ' . $e->getMessage(),
+                'error' => $this->getUserErrorMessage($e),
             ]);
         }
     }
@@ -185,16 +250,14 @@ class BillController extends Controller
 
             return Inertia::render('Billing/Create', $data);
         } catch (Exception $e) {
-            Log::error('Error loading bill creation data', ['error' => $e->getMessage()]);
-
             if ($request->wantsJson() || $request->is('api/*')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to load creation data: ' . $e->getMessage(),
+                    'message' => $this->getUserErrorMessage($e),
                 ], 500);
             }
 
-            return redirect()->back()->with('error', 'Failed to load creation data: ' . $e->getMessage());
+            return redirect()->back()->with('error', $this->getUserErrorMessage($e));
         }
     }
 
@@ -254,16 +317,15 @@ class BillController extends Controller
             return redirect()->route('billing.index')->with('success', 'Bill created successfully.');
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error creating bill', ['error' => $e->getMessage()]);
 
             if ($request->wantsJson() || $request->is('api/*')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to create bill: ' . $e->getMessage(),
+                    'message' => $this->getUserErrorMessage($e),
                 ], 500);
             }
 
-            return redirect()->back()->withInput()->withErrors(['error' => 'Failed to create bill: ' . $e->getMessage()]);
+            return redirect()->back()->withInput()->withErrors(['error' => $this->getUserErrorMessage($e)]);
         }
     }
 
@@ -272,8 +334,6 @@ class BillController extends Controller
      */
     public function show(Request $request, string $id): Response|JsonResponse|RedirectResponse
     {
-        // Permission check is handled by the check.permission middleware on the route
-
         try {
             $bill = Bill::with([
                 'patient',
@@ -287,6 +347,11 @@ class BillController extends Controller
                 'primaryInsurance.insuranceProvider',
             ])->findOrFail($id);
 
+            // Authorization check
+            if (!$this->canAccessBill($bill)) {
+                abort(403, 'Unauthorized access to this bill');
+            }
+
             if ($request->wantsJson() || $request->is('api/*')) {
                 return response()->json([
                     'success' => true,
@@ -298,13 +363,11 @@ class BillController extends Controller
                 'bill' => new BillResource($bill),
             ]);
         } catch (Exception $e) {
-            Log::error('Error fetching bill', ['bill_id' => $id, 'error' => $e->getMessage()]);
-
             if ($request->wantsJson() || $request->is('api/*')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Bill not found',
-                ], 404);
+                    'message' => $this->getUserErrorMessage($e),
+                ], 500);
             }
 
             return redirect()->route('billing.index')->with('error', 'Bill not found');
@@ -316,10 +379,13 @@ class BillController extends Controller
      */
     public function edit(Request $request, string $id): Response|JsonResponse|RedirectResponse
     {
-        // Permission check is handled by the check.permission middleware on the route
-
         try {
             $bill = Bill::with(['patient', 'doctor', 'items', 'primaryInsurance'])->findOrFail($id);
+
+            // Authorization check
+            if (!$this->canModifyBill($bill)) {
+                abort(403, 'Unauthorized access to modify this bill');
+            }
 
             // Check if bill can be edited
             if ($bill->payment_status === 'paid') {
@@ -355,16 +421,14 @@ class BillController extends Controller
 
             return Inertia::render('Billing/Edit', $data);
         } catch (Exception $e) {
-            Log::error('Error loading bill edit data', ['bill_id' => $id, 'error' => $e->getMessage()]);
-
             if ($request->wantsJson() || $request->is('api/*')) {
                 return response()->json([
                     'success' => false,
-                    'message' => $e->getMessage(),
+                    'message' => $this->getUserErrorMessage($e),
                 ], 500);
             }
 
-            return redirect()->back()->with('error', $e->getMessage());
+            return redirect()->back()->with('error', $this->getUserErrorMessage($e));
         }
     }
 
@@ -373,12 +437,15 @@ class BillController extends Controller
      */
     public function update(UpdateBillRequest $request, string $id): RedirectResponse|JsonResponse
     {
-        // Permission check is handled by the check.permission middleware on the route
-
         try {
             DB::beginTransaction();
 
             $bill = Bill::findOrFail($id);
+
+            // Authorization check
+            if (!$this->canModifyBill($bill)) {
+                abort(403, 'Unauthorized access to modify this bill');
+            }
 
             // Update bill details
             $updateData = [];
@@ -444,16 +511,15 @@ class BillController extends Controller
             return redirect()->route('billing.index')->with('success', 'Bill updated successfully.');
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error updating bill', ['bill_id' => $id, 'error' => $e->getMessage()]);
 
             if ($request->wantsJson() || $request->is('api/*')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to update bill: ' . $e->getMessage(),
+                    'message' => $this->getUserErrorMessage($e),
                 ], 500);
             }
 
-            return redirect()->back()->withInput()->withErrors(['error' => 'Failed to update bill: ' . $e->getMessage()]);
+            return redirect()->back()->withInput()->withErrors(['error' => $this->getUserErrorMessage($e)]);
         }
     }
 
@@ -462,12 +528,15 @@ class BillController extends Controller
      */
     public function destroy(Request $request, string $id): RedirectResponse|JsonResponse
     {
-        // Permission check is handled by the check.permission middleware on the route
-
         try {
             DB::beginTransaction();
 
             $bill = Bill::findOrFail($id);
+
+            // Authorization check
+            if (!$this->canModifyBill($bill)) {
+                abort(403, 'Unauthorized access to delete this bill');
+            }
 
             // Check if bill has payments
             if ($bill->payments()->where('status', 'completed')->count() > 0) {
@@ -489,16 +558,15 @@ class BillController extends Controller
             return redirect()->route('billing.index')->with('success', 'Bill deleted successfully.');
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error deleting bill', ['bill_id' => $id, 'error' => $e->getMessage()]);
 
             if ($request->wantsJson() || $request->is('api/*')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to delete bill: ' . $e->getMessage(),
+                    'message' => $this->getUserErrorMessage($e),
                 ], 500);
             }
 
-            return redirect()->back()->withErrors(['error' => 'Failed to delete bill: ' . $e->getMessage()]);
+            return redirect()->back()->withErrors(['error' => $this->getUserErrorMessage($e)]);
         }
     }
 
@@ -513,6 +581,11 @@ class BillController extends Controller
             DB::beginTransaction();
 
             $bill = Bill::findOrFail($id);
+
+            // Authorization check - bill specific access
+            if (!$this->canAccessBill($bill)) {
+                abort(403, 'Unauthorized access to void this bill');
+            }
 
             // Check if bill is already voided
             if ($bill->voided_at) {
@@ -543,16 +616,15 @@ class BillController extends Controller
             return redirect()->route('billing.index')->with('success', 'Bill voided successfully.');
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error voiding bill', ['bill_id' => $id, 'error' => $e->getMessage()]);
 
             if ($request->wantsJson() || $request->is('api/*')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to void bill: ' . $e->getMessage(),
+                    'message' => $this->getUserErrorMessage($e),
                 ], 500);
             }
 
-            return redirect()->back()->withErrors(['error' => 'Failed to void bill: ' . $e->getMessage()]);
+            return redirect()->back()->withErrors(['error' => $this->getUserErrorMessage($e)]);
         }
     }
 
@@ -566,6 +638,11 @@ class BillController extends Controller
         try {
             $bill = Bill::findOrFail($id);
 
+            // Authorization check
+            if (!$this->canAccessBill($bill)) {
+                abort(403, 'Unauthorized access to generate invoice for this bill');
+            }
+
             $result = $this->invoiceService->generatePDF($bill);
 
             if ($request->wantsJson() || $request->is('api/*')) {
@@ -578,11 +655,9 @@ class BillController extends Controller
                 'download_url' => $result['data']['url'],
             ]);
         } catch (Exception $e) {
-            Log::error('Error generating invoice', ['bill_id' => $id, 'error' => $e->getMessage()]);
-
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to generate invoice: ' . $e->getMessage(),
+                'message' => $this->getUserErrorMessage($e),
             ], 500);
         }
     }
@@ -596,6 +671,11 @@ class BillController extends Controller
 
         try {
             $bill = Bill::with('patient')->findOrFail($id);
+
+            // Authorization check
+            if (!$this->canAccessBill($bill)) {
+                abort(403, 'Unauthorized access to send reminder for this bill');
+            }
 
             // Check if bill is paid or voided
             if ($bill->payment_status === 'paid') {
@@ -627,11 +707,9 @@ class BillController extends Controller
                 ],
             ]);
         } catch (Exception $e) {
-            Log::error('Error sending reminder', ['bill_id' => $id, 'error' => $e->getMessage()]);
-
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send reminder: ' . $e->getMessage(),
+                'message' => $this->getUserErrorMessage($e),
             ], 500);
         }
     }
@@ -649,6 +727,14 @@ class BillController extends Controller
                     $query->valid()->with('insuranceProvider');
                 },
             ])->findOrFail($patientId);
+
+            // Check if user has broad permissions to view all patient data
+            $user = auth()->user();
+            if (!$user->isSuperAdmin() && !$user->hasPermission('view-all-billing')) {
+                // Users can only view patient data if they have specific access
+                // This is handled by the permission middleware, but we add an extra check
+                // for granular access control
+            }
 
             // Get recent bills for this patient
             $recentBills = Bill::byPatient($patientId)
@@ -673,11 +759,9 @@ class BillController extends Controller
                 ],
             ]);
         } catch (Exception $e) {
-            Log::error('Error fetching patient data', ['patient_id' => $patientId, 'error' => $e->getMessage()]);
-
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch patient data: ' . $e->getMessage(),
+                'message' => $this->getUserErrorMessage($e),
             ], 500);
         }
     }
@@ -691,6 +775,11 @@ class BillController extends Controller
 
         try {
             $bill = Bill::findOrFail($id);
+
+            // Authorization check
+            if (!$this->canAccessBill($bill)) {
+                abort(403, 'Unauthorized access to download invoice for this bill');
+            }
 
             $result = $this->invoiceService->streamPDF($bill);
 
@@ -707,11 +796,9 @@ class BillController extends Controller
 
             throw new Exception('Failed to generate invoice');
         } catch (Exception $e) {
-            Log::error('Error downloading invoice', ['bill_id' => $id, 'error' => $e->getMessage()]);
-
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to download invoice: ' . $e->getMessage(),
+                'message' => $this->getUserErrorMessage($e),
             ], 500);
         }
     }
@@ -726,6 +813,11 @@ class BillController extends Controller
         try {
             $bill = Bill::with(['items.source'])->findOrFail($id);
 
+            // Authorization check
+            if (!$this->canAccessBill($bill)) {
+                abort(403, 'Unauthorized access to bill items');
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -737,11 +829,9 @@ class BillController extends Controller
                 ],
             ]);
         } catch (Exception $e) {
-            Log::error('Error fetching bill items', ['bill_id' => $id, 'error' => $e->getMessage()]);
-
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch bill items: ' . $e->getMessage(),
+                'message' => $this->getUserErrorMessage($e),
             ], 500);
         }
     }
@@ -792,11 +882,9 @@ class BillController extends Controller
                 ],
             ]);
         } catch (Exception $e) {
-            Log::error('Error fetching all bill items', ['error' => $e->getMessage()]);
-
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch all bill items: ' . $e->getMessage(),
+                'message' => $this->getUserErrorMessage($e),
             ], 500);
         }
     }

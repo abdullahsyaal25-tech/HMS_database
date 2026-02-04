@@ -104,29 +104,7 @@ Route::prefix('v1')->group(function () {
     });
 });
 
-// Non-versioned API routes (for legacy frontend compatibility)
-Route::middleware(['auth:sanctum'])->group(function () {
-    // Debug endpoint to check authentication state
-    Route::get('/debug/auth', function () {
-        $user = auth()->user();
-        return response()->json([
-            'authenticated' => auth()->check(),
-            'user_id' => $user?->id,
-            'username' => $user?->username,
-            'role' => $user?->role,
-            'is_super_admin' => $user?->isSuperAdmin(),
-            'session_id' => session()->getId(),
-            'cookies' => request()->cookies->all(),
-            'headers' => [
-                'authorization' => request()->header('Authorization'),
-                'x_laravel_session' => request()->header('X-Laravel-Session'),
-                'cookie' => request()->header('Cookie'),
-            ],
-        ]);
-    });
-});
 
-// Public API routes (no authentication required)
-Route::prefix('billing')->group(function () {
+Route::middleware(['auth:sanctum'])->prefix('billing')->group(function () {
     Route::get('/all/items', [BillController::class, 'getAllItems']);
 });

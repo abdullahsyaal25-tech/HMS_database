@@ -52,9 +52,12 @@ class Patient extends Model
      */
     public function scopeSearchByName($query, string $name)
     {
-        return $query->where(function ($q) use ($name) {
-            $q->where('first_name', 'like', "%{$name}%")
-              ->orWhere('father_name', 'like', "%{$name}%");
+        // Sanitize the search term to prevent SQL injection
+        $sanitizedName = '%' . addcslashes($name, '%_\\') . '%';
+        
+        return $query->where(function ($q) use ($sanitizedName) {
+            $q->where('first_name', 'like', $sanitizedName)
+              ->orWhere('father_name', 'like', $sanitizedName);
         });
     }
 

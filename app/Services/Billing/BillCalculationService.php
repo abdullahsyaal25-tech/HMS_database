@@ -34,9 +34,7 @@ class BillCalculationService
      */
     public function calculateTotals(Bill $bill): array
     {
-        try {
-            DB::beginTransaction();
-
+        return DB::transaction(function () use ($bill) {
             // Load bill items if not already loaded
             if (!$bill->relationLoaded('items')) {
                 $bill->load('items');
@@ -82,13 +80,11 @@ class BillCalculationService
             // Update payment status based on balance
             $this->updatePaymentStatus($bill);
 
-            DB::commit();
-
-            // Log the calculation
+            // Log without sensitive data
             $this->auditLogService->logActivity(
                 'Bill Totals Calculated',
                 'Billing',
-                "Calculated totals for bill #{$bill->bill_number}: Subtotal: {$subtotal}, Discount: {$totalDiscount}, Tax: {$taxAmount}, Total: {$totalAmount}, Balance: {$balanceDue}",
+                "Bill #{$bill->bill_number} totals calculated successfully",
                 'info'
             );
 
@@ -104,16 +100,7 @@ class BillCalculationService
                 ],
                 'message' => 'Bill totals calculated successfully',
             ];
-        } catch (Exception $e) {
-            DB::rollBack();
-            Log::error('Error calculating bill totals', [
-                'bill_id' => $bill->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            throw new Exception('Failed to calculate bill totals: ' . $e->getMessage());
-        }
+        });
     }
 
     /**
@@ -127,9 +114,7 @@ class BillCalculationService
      */
     public function applyDiscount(Bill $bill, float $amount, string $type): array
     {
-        try {
-            DB::beginTransaction();
-
+        return DB::transaction(function () use ($bill, $amount, $type) {
             if (!in_array($type, ['fixed', 'percentage'])) {
                 throw new Exception('Invalid discount type. Must be "fixed" or "percentage".');
             }
@@ -163,13 +148,11 @@ class BillCalculationService
             // Recalculate totals
             $this->calculateTotals($bill);
 
-            DB::commit();
-
-            // Log the discount application
+            // Log without sensitive data
             $this->auditLogService->logActivity(
                 'Discount Applied',
                 'Billing',
-                "Applied {$type} discount of {$amount} to bill #{$bill->bill_number}. Discount amount: {$discountAmount}",
+                "Discount applied to bill #{$bill->bill_number}",
                 'info'
             );
 
@@ -182,17 +165,7 @@ class BillCalculationService
                 ],
                 'message' => 'Discount applied successfully',
             ];
-        } catch (Exception $e) {
-            DB::rollBack();
-            Log::error('Error applying discount', [
-                'bill_id' => $bill->id,
-                'amount' => $amount,
-                'type' => $type,
-                'error' => $e->getMessage(),
-            ]);
-
-            throw new Exception('Failed to apply discount: ' . $e->getMessage());
-        }
+        });
     }
 
     /**
@@ -205,7 +178,7 @@ class BillCalculationService
      */
     public function calculateTax(Bill $bill, float $rate): float
     {
-        try {
+        return DB::transaction(function () use ($bill, $rate) {
             if ($rate < 0) {
                 throw new Exception('Tax rate cannot be negative.');
             }
@@ -222,24 +195,16 @@ class BillCalculationService
             // Recalculate totals
             $this->calculateTotals($bill);
 
-            // Log the tax calculation
+            // Log without sensitive data
             $this->auditLogService->logActivity(
                 'Tax Calculated',
                 'Billing',
-                "Calculated tax at {$rate}% for bill #{$bill->bill_number}. Tax amount: {$taxAmount}",
+                "Tax calculated for bill #{$bill->bill_number}",
                 'info'
             );
 
             return $taxAmount;
-        } catch (Exception $e) {
-            Log::error('Error calculating tax', [
-                'bill_id' => $bill->id,
-                'rate' => $rate,
-                'error' => $e->getMessage(),
-            ]);
-
-            throw new Exception('Failed to calculate tax: ' . $e->getMessage());
-        }
+        });
     }
 
     /**
@@ -251,9 +216,7 @@ class BillCalculationService
      */
     public function updateBalanceDue(Bill $bill): array
     {
-        try {
-            DB::beginTransaction();
-
+        return DB::transaction(function () use ($bill) {
             // Load payments if not already loaded
             if (!$bill->relationLoaded('payments')) {
                 $bill->load('payments');
@@ -280,13 +243,11 @@ class BillCalculationService
             // Update payment status
             $this->updatePaymentStatus($bill);
 
-            DB::commit();
-
-            // Log the balance update
+            // Log without sensitive data
             $this->auditLogService->logActivity(
                 'Balance Updated',
                 'Billing',
-                "Updated balance for bill #{$bill->bill_number}. Amount paid: {$amountPaid}, Balance due: {$balanceDue}",
+                "Balance updated for bill #{$bill->bill_number}",
                 'info'
             );
 
@@ -299,15 +260,7 @@ class BillCalculationService
                 ],
                 'message' => 'Balance updated successfully',
             ];
-        } catch (Exception $e) {
-            DB::rollBack();
-            Log::error('Error updating balance', [
-                'bill_id' => $bill->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            throw new Exception('Failed to update balance: ' . $e->getMessage());
-        }
+        });
     }
 
     /**
@@ -320,7 +273,7 @@ class BillCalculationService
      */
     public function calculateInsuranceCoverage(Bill $bill, PatientInsurance $insurance): array
     {
-        try {
+        return DB::transaction(function () use ($bill, $insurance) {
             // Verify insurance is active and valid
             if (!$insurance->is_active) {
                 throw new Exception('Insurance policy is not active.');
@@ -371,11 +324,11 @@ class BillCalculationService
                 'patient_responsibility' => $patientResponsibility,
             ]);
 
-            // Log the insurance calculation
+            // Log without sensitive data
             $this->auditLogService->logActivity(
                 'Insurance Coverage Calculated',
                 'Billing',
-                "Calculated insurance coverage for bill #{$bill->bill_number}. Coverage: {$insuranceCoverage}, Patient responsibility: {$patientResponsibility}",
+                "Insurance coverage calculated for bill #{$bill->bill_number}",
                 'info'
             );
 
@@ -391,15 +344,7 @@ class BillCalculationService
                 ],
                 'message' => 'Insurance coverage calculated successfully',
             ];
-        } catch (Exception $e) {
-            Log::error('Error calculating insurance coverage', [
-                'bill_id' => $bill->id,
-                'insurance_id' => $insurance->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            throw new Exception('Failed to calculate insurance coverage: ' . $e->getMessage());
-        }
+        });
     }
 
     /**

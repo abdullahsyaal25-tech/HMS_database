@@ -46,6 +46,29 @@ class HandleInertiaRequests extends Middleware
         ];
     }
     
+    /**
+     * Handle the incoming request.
+     */
+    public function handle(Request $request, \Closure $next): \Symfony\Component\HttpFoundation\Response
+    {
+        $response = $next($request);
+        
+        // Add security headers
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+        $response->headers->set('X-Frame-Options', 'DENY');
+        $response->headers->set('X-XSS-Protection', '1; mode=block');
+        $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        $response->headers->set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+        
+        // Add CSP header for production
+        if (app()->environment('production')) {
+            $csp = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none';";
+            $response->headers->set('Content-Security-Policy', $csp);
+        }
+        
+        return $response;
+    }
+    
     private function getUserPermissions($user)
     {
         if (!$user) {

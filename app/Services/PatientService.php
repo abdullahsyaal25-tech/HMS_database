@@ -36,7 +36,7 @@ class PatientService
             $user = User::create([
                 'name' => $data['name'],
                 'username' => $data['email'], // Using email as username
-                'password' => bcrypt($data['phone']), // Using phone as default password
+                'password' => bcrypt(\Illuminate\Support\Str::random(12)), // Generate secure random password
                 // Patient role removed - patients should not have admin access
             ]);
 

@@ -50,9 +50,9 @@ class DoctorController extends Controller
             'phone_number' => 'required|string|max:20',
             'address' => 'nullable|string',
             'bio' => 'nullable|string',
-            'fees' => 'required|numeric|min:0',
-            'salary' => 'nullable|numeric|min:0',
-            'bonus' => 'nullable|numeric|min:0',
+            'fees' => 'required|numeric|min:0|regex:/^\d+(\.\d{1,2})?$/',
+            'salary' => 'nullable|numeric|min:0|regex:/^\d+(\.\d{1,2})?$/',
+            'bonus' => 'nullable|numeric|min:0|regex:/^\d+(\.\d{1,2})?$/',
             'department_id' => 'required|exists:departments,id',
         ]);
 
@@ -73,13 +73,16 @@ class DoctorController extends Controller
             $user = User::create([
                 'name' => $request->full_name,
                 'username' => $username,
-                'password' => 'password', // Default password - will be automatically hashed by model cast
+                'password' => bcrypt(\Illuminate\Support\Str::random(12)),
                 'role' => 'doctor',
             ]);
 
             // Create doctor record
             $doctor = Doctor::create([
-                'doctor_id' => 'D' . date('Y') . str_pad(Doctor::count() + 1, 5, '0', STR_PAD_LEFT),
+                'doctor_id' => 'D' . date('Y') . str_pad(
+                    Doctor::whereYear('created_at', date('Y'))->count() + 1,
+                    5, '0', STR_PAD_LEFT
+                ),
                 'full_name' => $request->full_name,
                 'father_name' => $request->father_name,
                 'age' => $request->age,
@@ -140,9 +143,9 @@ class DoctorController extends Controller
             'phone_number' => 'required|string|max:20',
             'address' => 'nullable|string',
             'bio' => 'nullable|string',
-            'fees' => 'required|numeric|min:0',
-            'salary' => 'nullable|numeric|min:0',
-            'bonus' => 'nullable|numeric|min:0',
+            'fees' => 'required|numeric|min:0|regex:/^\d+(\.\d{1,2})?$/',
+            'salary' => 'nullable|numeric|min:0|regex:/^\d+(\.\d{1,2})?$/',
+            'bonus' => 'nullable|numeric|min:0|regex:/^\d+(\.\d{1,2})?$/',
             'department_id' => 'required|exists:departments,id',
         ]);
 
