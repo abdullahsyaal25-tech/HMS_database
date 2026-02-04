@@ -75,9 +75,21 @@ return [
     */
 
     'middleware' => [
-        'authenticate_session' => Laravel\Sanctum\Http\Middleware\AuthenticateSession::class,
-        'encrypt_cookies' => Illuminate\Cookie\Middleware\EncryptCookies::class,
-        'validate_csrf_token' => Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+        'verify_csrf_token' => App\Http\Middleware\VerifyCsrfToken::class,
+        'encrypt_cookies' => App\Http\Middleware\EncryptCookies::class,
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cookie-based Authentication
+    |--------------------------------------------------------------------------
+    |
+    | This setting ensures Sanctum uses HttpOnly cookies for authentication.
+    | Tokens are managed by the backend and cannot be accessed by JavaScript,
+    | providing protection against XSS attacks.
+    |
+    */
+
+    'cookie_based_auth' => true,
 
 ];

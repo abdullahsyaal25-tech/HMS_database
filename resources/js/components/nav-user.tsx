@@ -12,14 +12,38 @@ import {
 import { UserInfo } from '@/components/user-info';
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { type SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
 import { ChevronsUpDown } from 'lucide-react';
 
 export function NavUser() {
-    const { auth } = usePage<SharedData>().props;
+    const page = usePage();
+    console.log('NavUser: page.props =', page.props);
+    const { auth } = page.props;
+    console.log('NavUser: auth =', auth);
     const { state } = useSidebar();
+    console.log('NavUser: sidebar state =', state);
     const isMobile = useIsMobile();
+    console.log('NavUser: isMobile =', isMobile);
+    
+    // Safely access user with fallback for undefined auth state
+    const user = auth?.user;
+
+    // Show loading state while auth is being determined
+    if (!user) {
+        return (
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <div className="flex items-center gap-2 px-4 py-2">
+                        <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+                        <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+                    </div>
+                </SidebarMenuItem>
+            </SidebarMenu>
+        );
+    }
+
+    console.log('NavUser: user =', user);
+    console.log('NavUser: rendering user menu');
 
     return (
         <SidebarMenu>
@@ -31,7 +55,7 @@ export function NavUser() {
                             className="group text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent"
                             data-test="sidebar-menu-button"
                         >
-                            <UserInfo user={auth.user} />
+                            <UserInfo user={user} />
                             <ChevronsUpDown className="ml-auto size-4" />
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
@@ -46,7 +70,7 @@ export function NavUser() {
                                   : 'bottom'
                         }
                     >
-                        <UserMenuContent user={auth.user} />
+                        <UserMenuContent user={user} />
                     </DropdownMenuContent>
                 </DropdownMenu>
             </SidebarMenuItem>

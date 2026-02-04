@@ -16,22 +16,22 @@ class AddUserPermissionsToInertia
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Only add permissions for authenticated users making Inertia requests
-        if ($request->user() && $request->header('X-Inertia')) {
+        // Only add auth data for authenticated users making Inertia requests
+        if ($request->user()) {
             $user = $request->user();
             
-            // Get user's effective permissions
-            $permissions = $user->getEffectivePermissions();
-            
-            // Share permissions with Inertia
+            // Share auth data with Inertia
             Inertia::share([
-                'auth' => function () use ($user, $permissions) {
-                    return array_merge(session('inertia_auth', []), [
-                        'user' => array_merge($user->toArray(), [
-                            'permissions' => $permissions,
-                        ]),
-                    ]);
-                },
+                'auth' => [
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'username' => $user->username,
+                        'email' => $user->email,
+                        'role' => $user->role,
+                        'role_id' => $user->role_id,
+                    ],
+                ],
             ]);
         }
 

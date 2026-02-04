@@ -8,7 +8,9 @@ interface AppShellProps {
 }
 
 export function AppShell({ children, variant = 'header' }: AppShellProps) {
-    const isOpen = usePage<SharedData>().props.sidebarOpen;
+    // Get sidebar state from props with default value
+    const pageProps = usePage<SharedData>().props;
+    const isOpen = pageProps.sidebarOpen !== undefined ? pageProps.sidebarOpen : true;
 
     if (variant === 'header') {
         return (

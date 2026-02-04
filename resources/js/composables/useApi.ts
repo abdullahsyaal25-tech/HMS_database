@@ -25,20 +25,17 @@ export function setOnUnauthorizedCallback(callback: UnauthorizedCallback): void 
 export function useApi() {
     const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
 
-    const getToken = useCallback((): string | null => {
-        return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+    const getToken = useCallback((): null => {
+        // Tokens are now handled via HttpOnly cookies by Sanctum
+        return null;
     }, [])
 
     const get = useCallback(async <T = unknown>(url: string, params?: Record<string, unknown>): Promise<AxiosResponse<T>> => {
         try {
-            // Get authentication token
-            const token = getToken();
-            
             // DEBUG: Log authentication state
             const cookies = document.cookie;
             console.debug('[API DEBUG] GET request starting', {
                 url: `${baseURL}${url}`,
-                hasToken: !!token,
                 cookiesPresent: cookies.length > 0,
                 cookieNames: cookies.split(';').map(c => c.trim().split('=')[0]),
                 withCredentials: true,
@@ -50,7 +47,7 @@ export function useApi() {
                 withCredentials: true, // Important for Sanctum cookies
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                    // Remove Authorization header - tokens are in HttpOnly cookies
                 },
             })
             // Reset 401 counter on successful response
@@ -150,17 +147,12 @@ export function useApi() {
         }
     }, [baseURL])
 
-    const setToken = useCallback((token: string, remember: boolean = false): void => {
-        if (remember) {
-            localStorage.setItem('auth_token', token)
-        } else {
-            sessionStorage.setItem('auth_token', token)
-        }
+    const setToken = useCallback((_token: string, _remember: boolean = false): void => {
+        // No-op: tokens are now HttpOnly cookies managed by backend
     }, [])
 
     const removeToken = useCallback((): void => {
-        localStorage.removeItem('auth_token');
-        sessionStorage.removeItem('auth_token');
+        // No-op: tokens are HttpOnly cookies managed by backend
     }, [])
 
     // DEBUG: Check and log authentication status

@@ -25,12 +25,12 @@ return new class extends Migration
             $table->decimal('salary', 10, 2)->default(0.00);
             $table->decimal('bonus', 10, 2)->default(0.00);
             $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->unsignedBigInteger('department_id')->nullable();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('department_id')
-                ->nullable()
-                ->constrained('departments')
-                ->onDelete('set null');
             $table->timestamps();
+            
+            // Index for performance (added by performance indexes migration)
+            // Foreign key constraint is added separately to ensure proper migration order
         });
     }
 

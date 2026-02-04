@@ -29,19 +29,30 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $userData = null;
+        
+        try {
+            if ($request->user()) {
+                $userData = [
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'username' => $request->user()->username,
+                    'role' => $request->user()->role,
+                    'permissions' => $this->getUserPermissions($request->user()),
+                ];
+            }
+        } catch (\Exception $e) {
+            report($e);
+            $userData = null;
+        }
+        
         return [
             ...parent::share($request),
             'csrf' => [
                 'token' => $request->session()->token(),
             ],
             'auth' => [
-                'user' => $request->user() ? [
-                    'id' => $request->user()->id,
-                    'name' => $request->user()->name,
-                    'username' => $request->user()->username,
-                    'role' => $request->user()->role,
-                    'permissions' => $this->getUserPermissions($request->user()),
-                ] : null,
+                'user' => $userData,
             ],
         ];
     }
