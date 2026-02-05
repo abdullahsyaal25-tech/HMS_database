@@ -29,7 +29,7 @@ use App\Http\Controllers\Admin\RBACController;
 use App\Http\Controllers\Admin\PermissionController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['web', 'auth'])->group(function () {
     // Dashboard
     Route::get('/dashboard', function () {
         return inertia('Dashboard');
