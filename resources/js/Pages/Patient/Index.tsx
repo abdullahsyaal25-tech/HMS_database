@@ -161,12 +161,12 @@ export default function PatientIndex({ patients, flash }: PatientIndexProps) {
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end space-x-2">
-                                                        <Link href={`/patients/${patient.id}/edit`}>
+                                                        <Link href={`/patients/${patient.patient_id}/edit`}>
                                                             <Button variant="outline" size="sm">
                                                                 Edit
                                                             </Button>
                                                         </Link>
-                                                        <Link href={`/patients/${patient.id}`}>
+                                                        <Link href={`/patients/${patient.patient_id}`}>
                                                             <Button variant="outline" size="sm">
                                                                 View
                                                             </Button>

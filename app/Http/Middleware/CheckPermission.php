@@ -68,6 +68,25 @@ class CheckPermission
         $requestId = uniqid('perm_', true);
         $request->merge(['_request_id' => $requestId]);
 
+        // DIAGNOSTIC: Log detailed session and auth state
+        $sessionId = null;
+        $sessionDataFromCache = null;
+        try {
+            $sessionId = $request->session()->getId();
+            $sessionDataFromCache = \Illuminate\Support\Facades\Cache::get('user_session:' . $sessionId);
+            Log::info("[{$requestId}] Session DIAGNOSTIC START:", [
+                'url' => $request->fullUrl(),
+                'auth_check' => Auth::check(),
+                'auth_user_id' => Auth::id(),
+                'session_id' => $sessionId,
+                'has_session' => $request->hasSession(),
+                'x_inertia_header' => $request->header('X-Inertia'),
+                'cache_session_exists' => !empty($sessionDataFromCache),
+            ]);
+        } catch (\Exception $e) {
+            Log::error("[{$requestId}] Session DIAGNOSTIC ERROR: " . $e->getMessage());
+        }
+
         Log::debug("[{$requestId}] Permission middleware ENTRY", [
             'url' => $request->fullUrl(),
             'method' => $request->method(),

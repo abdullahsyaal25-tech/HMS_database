@@ -10,7 +10,9 @@ use App\Services\Billing\BillCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
@@ -142,7 +144,7 @@ class PatientController extends Controller
             // Create user account for patient with secure password
             $user = User::create([
                 'name' => $request->first_name . ' ' . $request->father_name,
-                'email' => $patientId . '@patient.hms',
+                'username' => $patientId,
                 'password' => bcrypt(Str::password(16, true, true, true, true)),
                 'role' => 'patient',
             ]);
@@ -165,15 +167,8 @@ class PatientController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id): Response
+    public function show(Patient $patient): Response
     {
-        $patient = Patient::with('user')->findOrFail($id);
-        
-        // IDOR Protection - verify access before showing data
-        if (!$this->userCanAccessPatient($patient)) {
-            abort(403, 'Unauthorized access to patient record');
-        }
-        
         // Use proper eager loading with counts
         $bills = Bill::where('patient_id', $patient->id)
             ->with(['items', 'payments', 'primaryInsurance.insuranceProvider'])
@@ -246,9 +241,13 @@ class PatientController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id): Response
+    public function edit(Patient $patient): Response
     {
-        $patient = Patient::with('user')->findOrFail($id);
+        // DEBUG: Log the route binding
+        \Log::debug('Patient route binding debug', [
+            'route_patient_id' => $patient->patient_id ?? null,
+            'route_id' => request()->route('patient') ?? null,
+        ]);
         
         // IDOR Protection - verify access before showing data
         if (!$this->userCanAccessPatient($patient)) {
@@ -263,8 +262,14 @@ class PatientController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id): RedirectResponse
+    public function update(Request $request, Patient $patient): RedirectResponse
     {
+        // DEBUG: Log the update request
+        \Log::debug('Patient update debug', [
+            'patient_id' => $patient->patient_id,
+            'request_data' => $request->all(),
+        ]);
+        
         $validated = $request->validate([
             'first_name' => 'nullable|string|max:255',
             'father_name' => 'nullable|string|max:255',
@@ -277,19 +282,12 @@ class PatientController extends Controller
 
         $sanitizedData = $this->sanitizeInput($validated);
 
-        $patient = Patient::findOrFail($id);
-
-        // IDOR Protection - verify access before updating
-        if (!$this->userCanAccessPatient($patient)) {
-            abort(403, 'Unauthorized access to patient record');
+        // Update user information if user exists
+        if ($patient->user) {
+            $patient->user->update([
+                'name' => $sanitizedData['first_name'] ?: 'Patient',
+            ]);
         }
-
-        $user = $patient->user;
-
-        // Update user information
-        $user->update([
-            'name' => $sanitizedData['first_name'] ?: 'Patient',
-        ]);
 
         // Update patient information with sanitized data
         $patient->update([
@@ -308,21 +306,12 @@ class PatientController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id): RedirectResponse
+    public function destroy(Patient $patient): RedirectResponse
     {
-        $patient = Patient::findOrFail($id);
-        
-        // IDOR Protection - verify access before deleting
-        if (!$this->userCanAccessPatient($patient)) {
-            abort(403, 'Unauthorized access to patient record');
-        }
-        
-        $user = $patient->user;
-
         DB::beginTransaction();
         try {
             $patient->delete();
-            $user->delete(); // This will cascade due to foreign key constraint
+            $patient->user->delete(); // This will cascade due to foreign key constraint
 
             DB::commit();
             return redirect()->route('patients.index')->with('success', 'Patient deleted successfully.');

@@ -17,6 +17,10 @@ class RouteServiceProvider extends ServiceProvider
     {
         $this->configureRateLimiting();
 
+        // Explicit route model binding for patient using patient_id
+        Route::model('patient', \App\Models\Patient::class);
+        Route::model('doctor', \App\Models\Doctor::class);
+
         $this->routes(function () {
             Route::middleware('api')
                 ->prefix('api')

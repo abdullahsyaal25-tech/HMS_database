@@ -81,7 +81,6 @@ class PatientController extends Controller
             $validatedData = $request->validate([
                 'first_name' => 'nullable|string|max:255|min:2',
                 'father_name' => 'nullable|string|max:255',
-                'email' => 'nullable|email|unique:patients,email',
                 'phone' => 'nullable|string|max:20|regex:/^[\+]?[0-9\s\-\(\)]+$/',
                 'address' => 'nullable|string|max:500',
                 'age' => 'nullable|integer|min:0|max:150',

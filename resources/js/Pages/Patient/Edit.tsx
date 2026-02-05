@@ -29,7 +29,7 @@ export default function PatientEdit({ patient }: PatientEditProps) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(`/patients/${patient.id}`);
+        put(`/patients/${patient.patient_id}`);
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -49,7 +49,7 @@ export default function PatientEdit({ patient }: PatientEditProps) {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <Heading title={`Editing Patient: ${patient.patient_id}`} />
                     
-                    <Link href={`/patients/${patient.id}`}>
+                    <Link href={`/patients/${patient.patient_id}`}>
                         <Button variant="outline">
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             Back to Details

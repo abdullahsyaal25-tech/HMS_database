@@ -23,6 +23,8 @@ use App\Http\Controllers\Laboratory\LabTestController;
 use App\Http\Controllers\Laboratory\LabTestResultController;
 use App\Http\Controllers\Department\DepartmentController;
 use App\Http\Controllers\Department\DepartmentServiceController;
+use App\Http\Controllers\Medical\MedicalRecordController;
+use App\Http\Controllers\Medical\ClinicalAssessmentController;
 use App\Http\Controllers\Admin\RBACController;
 use App\Http\Controllers\Admin\PermissionController;
 use Illuminate\Support\Facades\Route;
@@ -37,11 +39,18 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('check.permission:view-patients')->prefix('patients')->group(function () {
         Route::get('/', [PatientController::class, 'index'])->name('patients.index');
         Route::get('/create', [PatientController::class, 'create'])->name('patients.create');
-        Route::post('/', [PatientController::class, 'store'])->name('patients.store');
-        Route::get('/{patient}', [PatientController::class, 'show'])->name('patients.show');
+        Route::post('/', [PatientController::class, 'store'])->name('patients.store')
+            ->middleware('check.permission:create-patients');
+        
+        // More specific routes MUST come before parameterized routes
         Route::get('/{patient}/edit', [PatientController::class, 'edit'])->name('patients.edit');
-        Route::put('/{patient}', [PatientController::class, 'update'])->name('patients.update');
-        Route::delete('/{patient}', [PatientController::class, 'destroy'])->name('patients.destroy');
+        Route::put('/{patient}', [PatientController::class, 'update'])->name('patients.update')
+            ->middleware('check.permission:edit-patients');
+        Route::delete('/{patient}', [PatientController::class, 'destroy'])->name('patients.destroy')
+            ->middleware('check.permission:delete-patients');
+        
+        // General parameterized route MUST come last
+        Route::get('/{patient}', [PatientController::class, 'show'])->name('patients.show');
     });
 
     // Doctor Routes
@@ -398,6 +407,31 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{department}/services', [DepartmentServiceController::class, 'store'])->name('departments.services.store');
         Route::put('/services/{service}', [DepartmentServiceController::class, 'update'])->name('departments.services.update');
         Route::delete('/services/{service}', [DepartmentServiceController::class, 'destroy'])->name('departments.services.destroy');
+    });
+
+    // Medical Records Routes
+    Route::middleware('check.permission:view-medical-records')->prefix('medical-records')->group(function () {
+        Route::get('/', [MedicalRecordController::class, 'index'])->name('medical-records.index');
+        Route::get('/create', [MedicalRecordController::class, 'create'])->name('medical-records.create');
+        Route::get('/create', [MedicalRecordController::class, 'create'])->name('medical-records.create');
+        Route::post('/', [MedicalRecordController::class, 'store'])->name('medical-records.store');
+        Route::get('/{medicalRecord}', [MedicalRecordController::class, 'show'])->name('medical-records.show');
+        Route::get('/{medicalRecord}/edit', [MedicalRecordController::class, 'edit'])->name('medical-records.edit');
+        Route::put('/{medicalRecord}', [MedicalRecordController::class, 'update'])->name('medical-records.update');
+        Route::post('/{medicalRecord}/finalize', [MedicalRecordController::class, 'finalize'])->name('medical-records.finalize');
+        Route::get('/patient/{patientId}/history', [MedicalRecordController::class, 'getPatientHistory'])->name('medical-records.patient-history');
+        Route::get('/patient/{patientId}/diagnostic', [MedicalRecordController::class, 'runDiagnostic'])->name('medical-records.diagnostic');
+    });
+
+    // Clinical Assessments Routes
+    Route::middleware('check.permission:view-clinical-assessments')->prefix('clinical-assessments')->group(function () {
+        Route::get('/', [ClinicalAssessmentController::class, 'index'])->name('clinical-assessments.index');
+        Route::get('/create', [ClinicalAssessmentController::class, 'create'])->name('clinical-assessments.create');
+        Route::post('/', [ClinicalAssessmentController::class, 'store'])->name('clinical-assessments.store');
+        Route::get('/{clinicalAssessment}', [ClinicalAssessmentController::class, 'show'])->name('clinical-assessments.show');
+        Route::get('/{clinicalAssessment}/edit', [ClinicalAssessmentController::class, 'edit'])->name('clinical-assessments.edit');
+        Route::put('/{clinicalAssessment}', [ClinicalAssessmentController::class, 'update'])->name('clinical-assessments.update');
+        Route::post('/{clinicalAssessment}/finalize', [ClinicalAssessmentController::class, 'finalize'])->name('clinical-assessments.finalize');
     });
 
     // Report Routes

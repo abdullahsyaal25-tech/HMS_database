@@ -11,6 +11,14 @@ use App\Models\LabTestResult;
 
 class Patient extends Model
 {
+    /**
+     * Get the route key for the model.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'patient_id';
+    }
+
     protected $fillable = [
         'patient_id',
         'first_name',

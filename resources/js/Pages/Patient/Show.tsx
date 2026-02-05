@@ -41,7 +41,7 @@ export default function PatientShow({ patient }: PatientShowProps) {
                     <Heading title={`Patient: ${patient.patient_id}`} />
                     
                     <div className="flex space-x-2">
-                        <Link href={`/patients/${patient.id}/edit`}>
+                        <Link href={`/patients/${patient.patient_id}/edit`}>
                             <Button variant="outline">
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Edit
