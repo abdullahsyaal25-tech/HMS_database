@@ -2,500 +2,1084 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\Permission;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class PermissionSeeder extends Seeder
 {
+    /**
+     * Convert risk level string to integer.
+     */
+    private function getRiskLevelValue(string $riskLevel): int
+    {
+        return match(strtolower($riskLevel)) {
+            'low' => 1,
+            'medium' => 2,
+            'high' => 3,
+            'critical' => 4,
+            default => 1,
+        };
+    }
+
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        $permissions = [
-            // User Management Permissions
-            [
-                'name' => 'view-users',
-                'description' => 'View user list',
-                'resource' => 'users',
-                'action' => 'view',
-                'category' => 'User Management'
-            ],
-            [
-                'name' => 'create-users',
-                'description' => 'Create new users',
-                'resource' => 'users',
-                'action' => 'create',
-                'category' => 'User Management'
-            ],
-            [
-                'name' => 'edit-users',
-                'description' => 'Edit existing users',
-                'resource' => 'users',
-                'action' => 'edit',
-                'category' => 'User Management'
-            ],
-            [
-                'name' => 'delete-users',
-                'description' => 'Delete users',
-                'resource' => 'users',
-                'action' => 'delete',
-                'category' => 'User Management'
-            ],
-            [
-                'name' => 'view-dashboard',
-                'description' => 'View main dashboard',
-                'resource' => 'dashboard',
-                'action' => 'view',
-                'category' => 'Dashboard'
-            ],
-            
-            // Patient Management Permissions
-            [
-                'name' => 'view-patients',
-                'description' => 'View patient list',
-                'resource' => 'patients',
-                'action' => 'view',
-                'category' => 'Patient Management'
-            ],
-            [
-                'name' => 'create-patients',
-                'description' => 'Create new patients',
-                'resource' => 'patients',
-                'action' => 'create',
-                'category' => 'Patient Management'
-            ],
-            [
-                'name' => 'edit-patients',
-                'description' => 'Edit existing patients',
-                'resource' => 'patients',
-                'action' => 'edit',
-                'category' => 'Patient Management'
-            ],
-            [
-                'name' => 'delete-patients',
-                'description' => 'Delete patients',
-                'resource' => 'patients',
-                'action' => 'delete',
-                'category' => 'Patient Management'
-            ],
-            
-            // Doctor Management Permissions
-            [
-                'name' => 'view-doctors',
-                'description' => 'View doctor list',
-                'resource' => 'doctors',
-                'action' => 'view',
-                'category' => 'Doctor Management'
-            ],
-            [
-                'name' => 'create-doctors',
-                'description' => 'Create new doctors',
-                'resource' => 'doctors',
-                'action' => 'create',
-                'category' => 'Doctor Management'
-            ],
-            [
-                'name' => 'edit-doctors',
-                'description' => 'Edit existing doctors',
-                'resource' => 'doctors',
-                'action' => 'edit',
-                'category' => 'Doctor Management'
-            ],
-            [
-                'name' => 'delete-doctors',
-                'description' => 'Delete doctors',
-                'resource' => 'doctors',
-                'action' => 'delete',
-                'category' => 'Doctor Management'
-            ],
-            
-            // Appointment Management Permissions
-            [
-                'name' => 'view-appointments',
-                'description' => 'View appointment list',
-                'resource' => 'appointments',
-                'action' => 'view',
-                'category' => 'Appointment Management'
-            ],
-            [
-                'name' => 'create-appointments',
-                'description' => 'Create new appointments',
-                'resource' => 'appointments',
-                'action' => 'create',
-                'category' => 'Appointment Management'
-            ],
-            [
-                'name' => 'edit-appointments',
-                'description' => 'Edit existing appointments',
-                'resource' => 'appointments',
-                'action' => 'edit',
-                'category' => 'Appointment Management'
-            ],
-            [
-                'name' => 'delete-appointments',
-                'description' => 'Delete appointments',
-                'resource' => 'appointments',
-                'action' => 'delete',
-                'category' => 'Appointment Management'
-            ],
-            
-            // Billing Management Permissions
-            [
-                'name' => 'view-billing',
-                'description' => 'View billing information',
-                'resource' => 'billing',
-                'action' => 'view',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'create-billing',
-                'description' => 'Create new billing records',
-                'resource' => 'billing',
-                'action' => 'create',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'edit-billing',
-                'description' => 'Edit existing billing records',
-                'resource' => 'billing',
-                'action' => 'edit',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'delete-billing',
-                'description' => 'Delete billing records',
-                'resource' => 'billing',
-                'action' => 'delete',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'void-billing',
-                'description' => 'Void billing records',
-                'resource' => 'billing',
-                'action' => 'void',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'manage-billing',
-                'description' => 'Manage billing records (send reminders, etc.)',
-                'resource' => 'billing',
-                'action' => 'manage',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'view-payments',
-                'description' => 'View payment records',
-                'resource' => 'payments',
-                'action' => 'view',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'record-payments',
-                'description' => 'Record new payments',
-                'resource' => 'payments',
-                'action' => 'create',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'process-refunds',
-                'description' => 'Process payment refunds',
-                'resource' => 'payments',
-                'action' => 'refund',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'view-insurance-claims',
-                'description' => 'View insurance claims',
-                'resource' => 'insurance-claims',
-                'action' => 'view',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'create-insurance-claims',
-                'description' => 'Create new insurance claims',
-                'resource' => 'insurance-claims',
-                'action' => 'create',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'edit-insurance-claims',
-                'description' => 'Edit existing insurance claims',
-                'resource' => 'insurance-claims',
-                'action' => 'edit',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'delete-insurance-claims',
-                'description' => 'Delete insurance claims',
-                'resource' => 'insurance-claims',
-                'action' => 'delete',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'submit-insurance-claims',
-                'description' => 'Submit insurance claims to providers',
-                'resource' => 'insurance-claims',
-                'action' => 'submit',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'process-insurance-claims',
-                'description' => 'Process insurance claims (approve/reject)',
-                'resource' => 'insurance-claims',
-                'action' => 'process',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'view-insurance-providers',
-                'description' => 'View insurance providers',
-                'resource' => 'insurance-providers',
-                'action' => 'view',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'create-insurance-providers',
-                'description' => 'Create new insurance providers',
-                'resource' => 'insurance-providers',
-                'action' => 'create',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'edit-insurance-providers',
-                'description' => 'Edit existing insurance providers',
-                'resource' => 'insurance-providers',
-                'action' => 'edit',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'delete-insurance-providers',
-                'description' => 'Delete insurance providers',
-                'resource' => 'insurance-providers',
-                'action' => 'delete',
-                'category' => 'Billing Management'
-            ],
-            [
-                'name' => 'view-billing-reports',
-                'description' => 'View billing reports',
-                'resource' => 'billing-reports',
-                'action' => 'view',
-                'category' => 'Billing Management'
-            ],
-            
-            // Pharmacy Management Permissions
-            [
-                'name' => 'view-pharmacy',
-                'description' => 'View pharmacy section',
-                'resource' => 'pharmacy',
-                'action' => 'view',
-                'category' => 'Pharmacy Management'
-            ],
-            [
-                'name' => 'create-medicines',
-                'description' => 'Create new medicines',
-                'resource' => 'medicines',
-                'action' => 'create',
-                'category' => 'Pharmacy Management'
-            ],
-            [
-                'name' => 'edit-medicines',
-                'description' => 'Edit existing medicines',
-                'resource' => 'medicines',
-                'action' => 'edit',
-                'category' => 'Pharmacy Management'
-            ],
-            [
-                'name' => 'delete-medicines',
-                'description' => 'Delete medicines',
-                'resource' => 'medicines',
-                'action' => 'delete',
-                'category' => 'Pharmacy Management'
-            ],
-            
-            // Laboratory Management Permissions
-            [
-                'name' => 'view-laboratory',
-                'description' => 'View laboratory section',
-                'resource' => 'laboratory',
-                'action' => 'view',
-                'category' => 'Laboratory Management'
-            ],
-            [
-                'name' => 'create-lab-tests',
-                'description' => 'Create new lab tests',
-                'resource' => 'lab-tests',
-                'action' => 'create',
-                'category' => 'Laboratory Management'
-            ],
-            [
-                'name' => 'edit-lab-tests',
-                'description' => 'Edit existing lab tests',
-                'resource' => 'lab-tests',
-                'action' => 'edit',
-                'category' => 'Laboratory Management'
-            ],
-            [
-                'name' => 'delete-lab-tests',
-                'description' => 'Delete lab tests',
-                'resource' => 'lab-tests',
-                'action' => 'delete',
-                'category' => 'Laboratory Management'
-            ],
-            
-            // Lab Test Request Permissions
-            [
-                'name' => 'view-lab-test-requests',
-                'description' => 'View lab test requests',
-                'resource' => 'lab-test-requests',
-                'action' => 'view',
-                'category' => 'Laboratory Management'
-            ],
-            [
-                'name' => 'create-lab-test-requests',
-                'description' => 'Create new lab test requests',
-                'resource' => 'lab-test-requests',
-                'action' => 'create',
-                'category' => 'Laboratory Management'
-            ],
-            [
-                'name' => 'edit-lab-test-requests',
-                'description' => 'Edit lab test requests',
-                'resource' => 'lab-test-requests',
-                'action' => 'edit',
-                'category' => 'Laboratory Management'
-            ],
-            [
-                'name' => 'delete-lab-test-requests',
-                'description' => 'Delete lab test requests',
-                'resource' => 'lab-test-requests',
-                'action' => 'delete',
-                'category' => 'Laboratory Management'
-            ],
-            [
-                'name' => 'process-lab-test-requests',
-                'description' => 'Process lab test requests (start/completed)',
-                'resource' => 'lab-test-requests',
-                'action' => 'process',
-                'category' => 'Laboratory Management'
-            ],
-            
-            // Lab Test Results Permissions
-            [
-                'name' => 'view-lab-test-results',
-                'description' => 'View lab test results',
-                'resource' => 'lab-test-results',
-                'action' => 'view',
-                'category' => 'Laboratory Management'
-            ],
-            [
-                'name' => 'create-lab-test-results',
-                'description' => 'Create lab test results',
-                'resource' => 'lab-test-results',
-                'action' => 'create',
-                'category' => 'Laboratory Management'
-            ],
-            [
-                'name' => 'edit-lab-test-results',
-                'description' => 'Edit lab test results',
-                'resource' => 'lab-test-results',
-                'action' => 'edit',
-                'category' => 'Laboratory Management'
-            ],
-            [
-                'name' => 'delete-lab-test-results',
-                'description' => 'Delete lab test results',
-                'resource' => 'lab-test-results',
-                'action' => 'delete',
-                'category' => 'Laboratory Management'
-            ],
-            
-            // Reports Management Permissions
-            [
-                'name' => 'view-reports',
-                'description' => 'View reports section',
-                'resource' => 'reports',
-                'action' => 'view',
-                'category' => 'Reports Management'
-            ],
-            
-            // Settings Management Permissions
-            [
-                'name' => 'view-settings',
-                'description' => 'View settings section',
-                'resource' => 'settings',
-                'action' => 'view',
-                'category' => 'Settings Management'
-            ],
-
-            // Admin Management Permissions
-            [
-                'name' => 'manage-users',
-                'description' => 'Full user management access',
-                'resource' => 'admin',
-                'action' => 'manage',
-                'category' => 'Admin Management'
-            ],
-            [
-                'name' => 'manage-permissions',
-                'description' => 'Manage user permissions and roles',
-                'resource' => 'admin',
-                'action' => 'manage',
-                'category' => 'Admin Management'
-            ],
-            [
-                'name' => 'view-activity-logs',
-                'description' => 'View system activity logs',
-                'resource' => 'admin',
-                'action' => 'view',
-                'category' => 'Admin Management'
-            ],
-            [
-                'name' => 'manage-departments',
-                'description' => 'Manage hospital departments',
-                'resource' => 'departments',
-                'action' => 'manage',
-                'category' => 'Department Management'
-            ],
-
-            // Department Management Permissions
-            [
-                'name' => 'view-departments',
-                'description' => 'View department list',
-                'resource' => 'departments',
-                'action' => 'view',
-                'category' => 'Department Management'
-            ],
-            [
-                'name' => 'create-departments',
-                'description' => 'Create new departments',
-                'resource' => 'departments',
-                'action' => 'create',
-                'category' => 'Department Management'
-            ],
-            [
-                'name' => 'edit-departments',
-                'description' => 'Edit existing departments',
-                'resource' => 'departments',
-                'action' => 'edit',
-                'category' => 'Department Management'
-            ],
-            [
-                'name' => 'delete-departments',
-                'description' => 'Delete departments',
-                'resource' => 'departments',
-                'action' => 'delete',
-                'category' => 'Department Management'
-            ],
-            
-
-        ];
+        // Disable foreign key checks for clean seeding
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         
-        foreach ($permissions as $permission) {
-            \App\Models\Permission::firstOrCreate(
-                ['name' => $permission['name']],
-                $permission
-            );
+        Permission::truncate();
+        
+        $permissions = $this->getPermissions();
+        
+        foreach ($permissions as $permissionData) {
+            Permission::create([
+                'name' => $permissionData['name'],
+                'slug' => $this->generateSlug($permissionData['name']),
+                'description' => $permissionData['description'],
+                'resource' => $permissionData['resource'] ?? null,
+                'action' => $permissionData['action'] ?? null,
+                'module' => $permissionData['module'],
+                'category' => $permissionData['category'],
+                'risk_level' => $this->getRiskLevelValue($permissionData['risk_level']),
+                'requires_mfa' => $permissionData['requires_mfa'],
+                'requires_approval' => $permissionData['requires_approval'] ?? false,
+                'is_critical' => $permissionData['is_critical'] ?? false,
+            ]);
         }
+        
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        
+        $this->command->info('Permissions seeded successfully!');
+    }
+
+    /**
+     * Generate a slug from a permission name.
+     */
+    private function generateSlug(string $name): string
+    {
+        return strtolower(str_replace(['.', ' ', '-'], '_', $name));
+    }
+
+    /**
+     * Get all permissions based on the RBAC design document.
+     */
+    private function getPermissions(): array
+    {
+        return [
+            // Authentication Permissions (AUTH)
+            [
+                'name' => 'auth.login',
+                'description' => 'Login to the system',
+                'module' => 'Authentication',
+                'category' => 'Authentication',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'auth.logout',
+                'description' => 'Logout from the system',
+                'module' => 'Authentication',
+                'category' => 'Authentication',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'auth.mfa.enable',
+                'description' => 'Enable MFA for own account',
+                'module' => 'Authentication',
+                'category' => 'Authentication',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'auth.mfa.disable',
+                'description' => 'Disable MFA for own account',
+                'module' => 'Authentication',
+                'category' => 'Authentication',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'auth.mfa.manage',
+                'description' => 'Manage MFA settings for other users',
+                'module' => 'Authentication',
+                'category' => 'Authentication',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'auth.password.reset',
+                'description' => 'Reset user passwords',
+                'module' => 'Authentication',
+                'category' => 'Authentication',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'auth.password.change',
+                'description' => 'Change own password',
+                'module' => 'Authentication',
+                'category' => 'Authentication',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'auth.session.view',
+                'description' => 'View active sessions',
+                'module' => 'Authentication',
+                'category' => 'Authentication',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'auth.session.terminate',
+                'description' => 'Terminate sessions',
+                'module' => 'Authentication',
+                'category' => 'Authentication',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+
+            // User Management Permissions (USR)
+            [
+                'name' => 'users.view',
+                'description' => 'View user list',
+                'module' => 'User Management',
+                'category' => 'User Management',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'users.view_all',
+                'description' => 'View all users including sensitive data',
+                'module' => 'User Management',
+                'category' => 'User Management',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'users.create',
+                'description' => 'Create new users',
+                'module' => 'User Management',
+                'category' => 'User Management',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'users.update',
+                'description' => 'Update user information',
+                'module' => 'User Management',
+                'category' => 'User Management',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'users.delete',
+                'description' => 'Delete users',
+                'module' => 'User Management',
+                'category' => 'User Management',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'users.manage_roles',
+                'description' => 'Assign roles to users',
+                'module' => 'User Management',
+                'category' => 'User Management',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'users.manage_permissions',
+                'description' => 'Assign permissions to users',
+                'module' => 'User Management',
+                'category' => 'User Management',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'users.export',
+                'description' => 'Export user data',
+                'module' => 'User Management',
+                'category' => 'User Management',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'users.view_audit',
+                'description' => 'View user audit logs',
+                'module' => 'User Management',
+                'category' => 'User Management',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+
+            // Patient Management Permissions (PAT)
+            [
+                'name' => 'patients.view',
+                'description' => 'View patient list',
+                'module' => 'Patient Management',
+                'category' => 'Patient Management',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'patients.view_own',
+                'description' => 'View assigned patients only',
+                'module' => 'Patient Management',
+                'category' => 'Patient Management',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'patients.create',
+                'description' => 'Register new patients',
+                'module' => 'Patient Management',
+                'category' => 'Patient Management',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'patients.update',
+                'description' => 'Update patient information',
+                'module' => 'Patient Management',
+                'category' => 'Patient Management',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'patients.delete',
+                'description' => 'Delete patient records',
+                'module' => 'Patient Management',
+                'category' => 'Patient Management',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'patients.medical_records',
+                'description' => 'Access medical records',
+                'module' => 'Patient Management',
+                'category' => 'Patient Management',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'patients.medical_records.write',
+                'description' => 'Write medical records',
+                'module' => 'Patient Management',
+                'category' => 'Patient Management',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'patients.history',
+                'description' => 'View patient history',
+                'module' => 'Patient Management',
+                'category' => 'Patient Management',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'patients.export',
+                'description' => 'Export patient data',
+                'module' => 'Patient Management',
+                'category' => 'Patient Management',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'patients.merge',
+                'description' => 'Merge duplicate patient records',
+                'module' => 'Patient Management',
+                'category' => 'Patient Management',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'patients.access_locked',
+                'description' => 'Access locked patient records',
+                'module' => 'Patient Management',
+                'category' => 'Patient Management',
+                'risk_level' => 'critical',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+                'is_critical' => true,
+            ],
+
+            // Appointment Management Permissions (APT)
+            [
+                'name' => 'appointments.view',
+                'description' => 'View appointment list',
+                'module' => 'Appointment Management',
+                'category' => 'Appointment Management',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'appointments.view_own',
+                'description' => 'View own appointments',
+                'module' => 'Appointment Management',
+                'category' => 'Appointment Management',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'appointments.create',
+                'description' => 'Create appointments',
+                'module' => 'Appointment Management',
+                'category' => 'Appointment Management',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'appointments.update',
+                'description' => 'Update appointments',
+                'module' => 'Appointment Management',
+                'category' => 'Appointment Management',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'appointments.delete',
+                'description' => 'Cancel/delete appointments',
+                'module' => 'Appointment Management',
+                'category' => 'Appointment Management',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'appointments.approve',
+                'description' => 'Approve appointments',
+                'module' => 'Appointment Management',
+                'category' => 'Appointment Management',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'appointments.manage_all',
+                'description' => 'Manage all appointments',
+                'module' => 'Appointment Management',
+                'category' => 'Appointment Management',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'appointments.export',
+                'description' => 'Export appointment data',
+                'module' => 'Appointment Management',
+                'category' => 'Appointment Management',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+
+            // Billing Permissions (BLL)
+            [
+                'name' => 'billing.view',
+                'description' => 'View billing information',
+                'module' => 'Billing',
+                'category' => 'Billing',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'billing.view_own',
+                'description' => 'View own billing data',
+                'module' => 'Billing',
+                'category' => 'Billing',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'billing.create',
+                'description' => 'Create invoices/bills',
+                'module' => 'Billing',
+                'category' => 'Billing',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'billing.update',
+                'description' => 'Update billing records',
+                'module' => 'Billing',
+                'category' => 'Billing',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'billing.delete',
+                'description' => 'Delete billing records',
+                'module' => 'Billing',
+                'category' => 'Billing',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'billing.approve',
+                'description' => 'Approve billing transactions',
+                'module' => 'Billing',
+                'category' => 'Billing',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'billing.refund',
+                'description' => 'Process refunds',
+                'module' => 'Billing',
+                'category' => 'Billing',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'billing.waive',
+                'description' => 'Waive charges',
+                'module' => 'Billing',
+                'category' => 'Billing',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'billing.payment.process',
+                'description' => 'Process payments',
+                'module' => 'Billing',
+                'category' => 'Billing',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'billing.insurance',
+                'description' => 'Manage insurance claims',
+                'module' => 'Billing',
+                'category' => 'Billing',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'billing.insurance.approve',
+                'description' => 'Approve insurance claims',
+                'module' => 'Billing',
+                'category' => 'Billing',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'billing.reports',
+                'description' => 'View billing reports',
+                'module' => 'Billing',
+                'category' => 'Billing',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'billing.export',
+                'description' => 'Export billing data',
+                'module' => 'Billing',
+                'category' => 'Billing',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'billing.void',
+                'description' => 'Void invoices',
+                'module' => 'Billing',
+                'category' => 'Billing',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+
+            // Pharmacy Permissions (PHM)
+            [
+                'name' => 'pharmacy.view',
+                'description' => 'View pharmacy data',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'pharmacy.medicines.view',
+                'description' => 'View medicine inventory',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'pharmacy.medicines.create',
+                'description' => 'Add new medicines',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'pharmacy.medicines.update',
+                'description' => 'Update medicine information',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'pharmacy.medicines.delete',
+                'description' => 'Delete medicines',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'pharmacy.inventory',
+                'description' => 'Manage inventory',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'pharmacy.inventory.adjust',
+                'description' => 'Adjust inventory levels',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'pharmacy.stock.receive',
+                'description' => 'Receive stock',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'pharmacy.stock.count',
+                'description' => 'Perform stock count',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'pharmacy.sales',
+                'description' => 'Process sales',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'pharmacy.prescriptions',
+                'description' => 'Process prescriptions',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'pharmacy.suppliers',
+                'description' => 'Manage suppliers',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'pharmacy.orders',
+                'description' => 'Manage purchase orders',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'pharmacy.reports',
+                'description' => 'View pharmacy reports',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'pharmacy.reports.export',
+                'description' => 'Export pharmacy reports',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'pharmacy.alerts.manage',
+                'description' => 'Manage alerts',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'pharmacy.categories',
+                'description' => 'Manage categories',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+
+            // Laboratory Permissions (LAB)
+            [
+                'name' => 'laboratory.view',
+                'description' => 'View laboratory data',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'laboratory.tests.view',
+                'description' => 'View available tests',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'laboratory.tests.create',
+                'description' => 'Create new test types',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'laboratory.tests.update',
+                'description' => 'Update test configurations',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'laboratory.tests.delete',
+                'description' => 'Delete test types',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'laboratory.requests.view',
+                'description' => 'View test requests',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'laboratory.requests.create',
+                'description' => 'Create test requests',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'laboratory.requests.process',
+                'description' => 'Process test requests',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'laboratory.results.view',
+                'description' => 'View test results',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'laboratory.results.enter',
+                'description' => 'Enter test results',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'laboratory.results.validate',
+                'description' => 'Validate test results',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'laboratory.results.critical',
+                'description' => 'Handle critical values',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'laboratory.quality',
+                'description' => 'Quality control',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'laboratory.reports',
+                'description' => 'View laboratory reports',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'laboratory.reports.export',
+                'description' => 'Export laboratory reports',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+
+            // Report Permissions (RPT)
+            [
+                'name' => 'reports.view',
+                'description' => 'View reports',
+                'module' => 'Reports',
+                'category' => 'Reports',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'reports.create',
+                'description' => 'Create custom reports',
+                'module' => 'Reports',
+                'category' => 'Reports',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'reports.export',
+                'description' => 'Export reports',
+                'module' => 'Reports',
+                'category' => 'Reports',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'reports.scheduled',
+                'description' => 'Manage scheduled reports',
+                'module' => 'Reports',
+                'category' => 'Reports',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'reports.audit',
+                'description' => 'View audit reports',
+                'module' => 'Reports',
+                'category' => 'Reports',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'reports.financial',
+                'description' => 'View financial reports',
+                'module' => 'Reports',
+                'category' => 'Reports',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'reports.hospital',
+                'description' => 'View hospital-wide reports',
+                'module' => 'Reports',
+                'category' => 'Reports',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'reports.department',
+                'description' => 'View department reports',
+                'module' => 'Reports',
+                'category' => 'Reports',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'reports.compliance',
+                'description' => 'View compliance reports',
+                'module' => 'Reports',
+                'category' => 'Reports',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+
+            // System Configuration Permissions (SYS)
+            [
+                'name' => 'system.settings.view',
+                'description' => 'View system settings',
+                'module' => 'System Configuration',
+                'category' => 'System',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'system.settings.update',
+                'description' => 'Update system settings',
+                'module' => 'System Configuration',
+                'category' => 'System',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'system.backup',
+                'description' => 'Manage backups',
+                'module' => 'System Configuration',
+                'category' => 'System',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'system.restore',
+                'description' => 'Restore from backup',
+                'module' => 'System Configuration',
+                'category' => 'System',
+                'risk_level' => 'critical',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+                'is_critical' => true,
+            ],
+            [
+                'name' => 'system.maintenance',
+                'description' => 'Perform maintenance',
+                'module' => 'System Configuration',
+                'category' => 'System',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'system.logging',
+                'description' => 'Manage logging settings',
+                'module' => 'System Configuration',
+                'category' => 'System',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'system.api.manage',
+                'description' => 'Manage API keys',
+                'module' => 'System Configuration',
+                'category' => 'System',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'system.integrations',
+                'description' => 'Manage integrations',
+                'module' => 'System Configuration',
+                'category' => 'System',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'system.cache',
+                'description' => 'Manage cache',
+                'module' => 'System Configuration',
+                'category' => 'System',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'system.departments',
+                'description' => 'Manage departments',
+                'module' => 'System Configuration',
+                'category' => 'System',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+
+            // Security Permissions (SEC)
+            [
+                'name' => 'security.audit',
+                'description' => 'View audit logs',
+                'module' => 'Security',
+                'category' => 'Security',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'security.alerts',
+                'description' => 'View security alerts',
+                'module' => 'Security',
+                'category' => 'Security',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'security.mfa',
+                'description' => 'Manage MFA settings',
+                'module' => 'Security',
+                'category' => 'Security',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'security.password.policy',
+                'description' => 'Manage password policy',
+                'module' => 'Security',
+                'category' => 'Security',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'security.ip_restrictions',
+                'description' => 'Manage IP restrictions',
+                'module' => 'Security',
+                'category' => 'Security',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'security.sessions',
+                'description' => 'Manage sessions',
+                'module' => 'Security',
+                'category' => 'Security',
+                'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'security.analyze',
+                'description' => 'Security analysis',
+                'module' => 'Security',
+                'category' => 'Security',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'security.block',
+                'description' => 'Block users/IPs',
+                'module' => 'Security',
+                'category' => 'Security',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+        ];
     }
 }

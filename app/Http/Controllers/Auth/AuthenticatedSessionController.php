@@ -12,9 +12,23 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Sanctum\PersonalAccessToken;
+use App\Services\SessionTimeoutService;
 
 class AuthenticatedSessionController extends Controller
 {
+    /**
+     * @var SessionTimeoutService
+     */
+    protected SessionTimeoutService $sessionTimeoutService;
+
+    /**
+     * Constructor.
+     */
+    public function __construct(SessionTimeoutService $sessionTimeoutService)
+    {
+        $this->sessionTimeoutService = $sessionTimeoutService;
+    }
+
     /**
      * Display the login view.
      */
@@ -36,6 +50,9 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
         
         $user = Auth::user();
+        
+        // Initialize session timeout service - THIS IS THE FIX!
+        $this->sessionTimeoutService->initializeSession($user, $request->session()->getId());
         
         // For API compatibility, also create a Sanctum token for the user
         // This allows the React frontend to make authenticated API requests
@@ -83,6 +100,10 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        // Clear session data from cache before invalidating
+        $sessionId = $request->session()->getId();
+        $this->sessionTimeoutService->terminateSession($sessionId);
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

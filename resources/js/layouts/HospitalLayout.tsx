@@ -44,9 +44,10 @@ interface HospitalLayoutProps {
 function usePermissionChecker() {
     const page = usePage();
     
-    // Check if user is authenticated
+    // Get auth directly from Inertia props - available during SSR
     const auth = page.props.auth;
-    const isAuthenticated = auth?.user !== undefined;
+    const user = auth?.user;
+    const isAuthenticated = !!user;
     
     const hasPermission = useCallback((permission: string): boolean => {
         // If user is not authenticated, deny all permission checks
@@ -54,33 +55,24 @@ function usePermissionChecker() {
             return false;
         }
         
-        const user = auth?.user;
         const userPermissions = user?.permissions || [];
         const userRole = user?.role;
         
         // Super Admin bypass
         if (userRole === 'Super Admin') return true;
         return userPermissions.includes(permission);
-    }, [auth, isAuthenticated]);
+    }, [user, isAuthenticated]);
 
-    return { hasPermission, isAuthenticated };
+    return { hasPermission, isAuthenticated, user };
 }
 
 const footerNavItems: NavItem[] = [
-    {
-        title: 'Profile',
-        href: '/profile',
-        icon: User,
-    },
-    {
-        title: 'Logout',
-        href: '/logout',
-        icon: Settings,
-    },
+
 ];
 
 export default function HospitalLayout({ header, children }: HospitalLayoutProps) {
-    const { hasPermission, isAuthenticated } = usePermissionChecker();
+    const page = usePage();
+    const { hasPermission, isAuthenticated, user } = usePermissionChecker();
     
     const filteredNavItems = useMemo(() => {
         // If user is not authenticated, return empty array
@@ -298,11 +290,6 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                         <SidebarMenuItem>
                             <SidebarMenuButton size="lg" asChild className="hover:bg-sidebar-accent transition-colors">
                                 <div className="flex items-center gap-2 py-2">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md">
-                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                                        </svg>
-                                    </div>
                                     <div className="flex flex-col">
                                         <span className="text-sm font-bold text-sidebar-foreground">HMS</span>
                                         <span className="text-xs text-muted-foreground">Hospital Management</span>

@@ -37,7 +37,7 @@ function NavItemComponent({ item }: { item: NavItem }) {
                             {item.icon && (
                                 <item.icon
                                     aria-hidden="true"
-                                    className="size-4 shrink-0 transition-colors group-data-[collapsible=icon]:size-5"
+                                    className="size-4 shrink-0 text-sidebar-foreground transition-colors group-data-[collapsible=icon]:size-5"
                                 />
                             )}
                             <span className="truncate group-data-[collapsible=icon]:hidden">
@@ -65,7 +65,7 @@ function NavItemComponent({ item }: { item: NavItem }) {
                                                 {subItem.icon && (
                                                     <subItem.icon
                                                         aria-hidden="true"
-                                                        className="size-4 shrink-0"
+                                                        className="size-4 shrink-0 text-sidebar-foreground"
                                                     />
                                                 )}
                                                 <span>{subItem.title || subItem.label}</span>
@@ -104,7 +104,7 @@ function NavItemComponent({ item }: { item: NavItem }) {
                     {item.icon && (
                         <item.icon
                             aria-hidden="true"
-                            className="size-4 shrink-0 transition-colors group-data-[collapsible=icon]:size-5"
+                            className="size-4 shrink-0 text-sidebar-foreground transition-colors group-data-[collapsible=icon]:size-5"
                         />
                     )}
                     <span className="truncate group-data-[collapsible=icon]:hidden group-data-[collapsible=icon]:absolute">{item.title || item.label}</span>

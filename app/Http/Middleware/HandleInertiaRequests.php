@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Illuminate\Support\Facades\Log;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -30,31 +31,59 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $userData = null;
+        $user = $request->user();
+        
+        Log::info('[HandleInertiaRequests] share() called:', [
+            'has_user' => !!$user,
+            'user_id' => $user?->id,
+            'session_exists' => $request->hasSession(),
+        ]);
+        
+        // Check if session exists - handle session_not_found error
+        try {
+            $sessionId = $request->session()->getId();
+        } catch (\Exception $e) {
+            Log::info('[HandleInertiaRequests] Session error: ' . $e->getMessage());
+            $sessionId = null;
+        }
         
         try {
-            if ($request->user()) {
+            if ($user && $sessionId) {
                 $userData = [
-                    'id' => $request->user()->id,
-                    'name' => $request->user()->name,
-                    'username' => $request->user()->username,
-                    'role' => $request->user()->role,
-                    'permissions' => $this->getUserPermissions($request->user()),
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'role' => $user->role,
+                    'role_id' => $user->role_id,
+                    'permissions' => $this->getUserPermissions($user),
                 ];
+                
+                Log::info('[HandleInertiaRequests] User data prepared:', [
+                    'user_id' => $user->id,
+                    'role' => $user->role,
+                    'permissions_count' => count($userData['permissions']),
+                ]);
+            } else {
+                Log::info('[HandleInertiaRequests] User data NOT prepared - user or session missing');
             }
         } catch (\Exception $e) {
+            Log::error('[HandleInertiaRequests] Error getting user data: ' . $e->getMessage());
             report($e);
             $userData = null;
         }
         
-        return [
-            ...parent::share($request),
+        return array_merge(parent::share($request), [
             'csrf' => [
                 'token' => $request->session()->token(),
             ],
             'auth' => [
                 'user' => $userData,
             ],
-        ];
+            'flash' => [
+                'message' => fn () => $request->session()->get('message'),
+                'error' => fn () => $request->session()->get('error'),
+            ],
+        ]);
     }
     
     /**

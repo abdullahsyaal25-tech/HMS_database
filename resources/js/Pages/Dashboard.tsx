@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { PageProps } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -41,7 +42,7 @@ interface MonthlyData {
     visits: number;
 }
 
-interface DashboardProps {
+interface DashboardProps extends PageProps {
     total_patients: number;
     total_doctors: number;
     appointments_today: number;

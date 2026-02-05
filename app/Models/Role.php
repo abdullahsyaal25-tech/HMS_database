@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Role extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'name',
         'slug',
@@ -22,11 +25,21 @@ class Role extends Model
         'system_configuration_access',
         'reporting_permissions',
         'role_specific_limitations',
+        'mfa_required',
+        'mfa_grace_period_days',
+        'session_timeout_minutes',
+        'concurrent_session_limit',
+        'is_super_admin',
     ];
 
     protected $casts = [
         'is_system' => 'boolean',
+        'is_super_admin' => 'boolean',
         'priority' => 'integer',
+        'mfa_required' => 'boolean',
+        'mfa_grace_period_days' => 'integer',
+        'session_timeout_minutes' => 'integer',
+        'concurrent_session_limit' => 'integer',
         'module_access' => 'array',
         'data_visibility_scope' => 'array',
         'user_management_capabilities' => 'array',
@@ -46,17 +59,25 @@ class Role extends Model
     /**
      * Get parent role (supervisor).
      */
-    public function parentRole()
+    public function parentRole(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_role_id');
     }
 
     /**
-     * Get subordinate roles.
+     * Get subordinate roles (children).
      */
-    public function subordinateRoles(): HasMany
+    public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_role_id');
+    }
+
+    /**
+     * Get all subordinate roles recursively.
+     */
+    public function childrenRecursive(): HasMany
+    {
+        return $this->children()->with('childrenRecursive');
     }
 
     /**
@@ -94,18 +115,41 @@ class Role extends Model
 
     /**
      * Get all permissions for this role including inherited permissions.
+     * Recursive permission collection from parent roles.
      */
-    public function getAllPermissions(): array
+    public function getAllPermissionsAttribute(): array
     {
         $permissions = $this->permissions->pluck('name')->toArray();
         
         // Include parent role permissions if exists
         if ($this->parentRole) {
-            $parentPermissions = $this->parentRole->getAllPermissions();
+            $parentPermissions = $this->parentRole->getAllPermissionsAttribute;
             $permissions = array_unique(array_merge($permissions, $parentPermissions));
         }
         
         return $permissions;
+    }
+
+    /**
+     * Get all permissions recursively.
+     */
+    public function getAllPermissions(): array
+    {
+        return $this->getAllPermissionsAttribute;
+    }
+
+    /**
+     * Get the is_super_admin attribute.
+     */
+    public function getIsSuperAdminAttribute(): bool
+    {
+        // Check explicit flag first
+        if (isset($this->attributes['is_super_admin'])) {
+            return (bool) $this->attributes['is_super_admin'];
+        }
+
+        // Fallback to slug check
+        return $this->slug === 'super-admin';
     }
 
     /**
@@ -171,6 +215,30 @@ class Role extends Model
     }
 
     /**
+     * Scope to get roles by priority level (descending).
+     */
+    public function scopeByPriorityDescending($query)
+    {
+        return $query->orderBy('priority', 'desc');
+    }
+
+    /**
+     * Scope to get roles with higher priority than given value.
+     */
+    public function scopeWithHigherPriority($query, int $priority)
+    {
+        return $query->where('priority', '>', $priority);
+    }
+
+    /**
+     * Scope to get roles with lower or equal priority.
+     */
+    public function scopeWithLowerOrEqualPriority($query, int $priority)
+    {
+        return $query->where('priority', '<=', $priority);
+    }
+
+    /**
      * Get role by slug.
      */
     public static function findBySlug(string $slug): ?self
@@ -191,7 +259,7 @@ class Role extends Model
      */
     public function scopeWithHierarchy($query)
     {
-        return $query->with(['parentRole', 'subordinateRoles']);
+        return $query->with(['parentRole', 'children']);
     }
 
     /**
@@ -201,11 +269,218 @@ class Role extends Model
     {
         $subordinates = [];
         
-        foreach ($this->subordinateRoles as $subordinate) {
-            $subordinates[] = $subordinate;
-            $subordinates = array_merge($subordinates, $subordinate->getAllSubordinates());
+        foreach ($this->children as $child) {
+            $subordinates[] = $child;
+            $subordinates = array_merge($subordinates, $child->getAllSubordinates());
         }
         
         return $subordinates;
+    }
+
+    /**
+     * Get all descendant role IDs recursively.
+     */
+    public function getAllDescendantIds(): array
+    {
+        $descendants = [];
+        
+        foreach ($this->children as $child) {
+            $descendants[] = $child->id;
+            $descendants = array_merge($descendants, $child->getAllDescendantIds());
+        }
+        
+        return $descendants;
+    }
+
+    /**
+     * Check if this role can inherit from a parent role.
+     *
+     * @param Role $parentRole The potential parent role
+     * @return bool Whether inheritance is allowed
+     */
+    public function canInheritFrom(self $parentRole): bool
+    {
+        // System roles can only inherit from other system roles
+        if ($this->is_system && !$parentRole->is_system) {
+            return false;
+        }
+
+        // Check for circular inheritance
+        $ancestors = $this->getAncestors();
+        $ancestorIds = array_column($ancestors, 'id');
+        
+        if (in_array($parentRole->id, $ancestorIds)) {
+            return false;
+        }
+
+        // Parent must have higher priority
+        if ($parentRole->priority <= $this->priority) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Get all ancestor roles recursively.
+     *
+     * @return array Array of ancestor roles
+     */
+    public function getAncestors(): array
+    {
+        $ancestors = [];
+        $current = $this->parentRole;
+        
+        while ($current) {
+            $ancestors[] = $current;
+            $current = $current->parentRole;
+        }
+        
+        return $ancestors;
+    }
+
+    /**
+     * Get all ancestor IDs recursively.
+     *
+     * @return array Array of ancestor IDs
+     */
+    public function getAncestorIds(): array
+    {
+        return array_column($this->getAncestors(), 'id');
+    }
+
+    /**
+     * Check if this role is an ancestor of another role.
+     *
+     * @param Role $role The role to check
+     * @return bool Whether this role is an ancestor
+     */
+    public function isAncestorOf(self $role): bool
+    {
+        return in_array($this->id, $role->getAncestorIds());
+    }
+
+    /**
+     * Check if this role is a descendant of another role.
+     *
+     * @param Role $role The potential ancestor
+     * @return bool Whether this role is a descendant
+     */
+    public function isDescendantOf(self $role): bool
+    {
+        return in_array($role->id, $this->getAncestorIds());
+    }
+
+    /**
+     * Check if this role can access a specific module.
+     *
+     * @param string $module The module name
+     * @return bool Whether the role has module access
+     */
+    public function canAccessModule(string $module): bool
+    {
+        if (!$this->module_access) {
+            return false;
+        }
+
+        // Check for wildcard access
+        if (in_array('*', $this->module_access)) {
+            return true;
+        }
+
+        return in_array($module, $this->module_access);
+    }
+
+    /**
+     * Check if MFA is required for this role.
+     *
+     * @return bool Whether MFA is required
+     */
+    public function isMfaRequired(): bool
+    {
+        return (bool) $this->mfa_required;
+    }
+
+    /**
+     * Get MFA grace period in days.
+     *
+     * @return int|null Days or null if not applicable
+     */
+    public function getMfaGracePeriodDays(): ?int
+    {
+        return $this->mfa_grace_period_days;
+    }
+
+    /**
+     * Get session timeout in minutes.
+     *
+     * @return int Session timeout
+     */
+    public function getSessionTimeoutMinutes(): int
+    {
+        return $this->session_timeout_minutes ?? 120;
+    }
+
+    /**
+     * Get concurrent session limit.
+     *
+     * @return int|null Limit or null for unlimited
+     */
+    public function getConcurrentSessionLimit(): ?int
+    {
+        return $this->concurrent_session_limit;
+    }
+
+    /**
+     * Check if role has a specific limitation.
+     *
+     * @param string $limitation The limitation to check
+     * @return bool Whether the limitation exists
+     */
+    public function hasLimitation(string $limitation): bool
+    {
+        if (!$this->role_specific_limitations) {
+            return false;
+        }
+
+        return in_array($limitation, $this->role_specific_limitations);
+    }
+
+    /**
+     * Get users count with this role.
+     */
+    public function getUsersCountAttribute(): int
+    {
+        return $this->users()->count();
+    }
+
+    /**
+     * Get permissions count.
+     */
+    public function getPermissionsCountAttribute(): int
+    {
+        return $this->permissions()->count();
+    }
+
+    /**
+     * Boot method for model events.
+     */
+    protected static function booted(): void
+    {
+        // Prevent modification of Super Admin role
+        static::updating(function (Role $role) {
+            if ($role->is_super_admin && $role->isDirty('slug')) {
+                if ($role->getOriginal('slug') !== 'super-admin') {
+                    throw new \Exception('Cannot modify Super Admin role slug');
+                }
+            }
+        });
+
+        // Prevent deletion of system roles
+        static::deleting(function (Role $role) {
+            if ($role->is_system) {
+                throw new \Exception('Cannot delete system roles');
+            }
+        });
     }
 }
