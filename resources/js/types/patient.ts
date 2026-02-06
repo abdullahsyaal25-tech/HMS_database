@@ -25,4 +25,9 @@ export interface PatientFormData {
     address: string;
     age: string;
     blood_group: string;
+    blood_type?: string;
+    allergies?: string;
+    emergency_contact_name?: string;
+    emergency_contact_phone?: string;
+    medical_history?: string;
 }

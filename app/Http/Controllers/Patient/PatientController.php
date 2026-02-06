@@ -45,6 +45,11 @@ class PatientController extends Controller
                 ? $data['gender']
                 : null,
             'blood_group' => $this->validateBloodGroup($data['blood_group'] ?? null),
+            'blood_type' => strip_tags($data['blood_type'] ?? ''),
+            'allergies' => strip_tags($data['allergies'] ?? ''),
+            'emergency_contact_name' => strip_tags($data['emergency_contact_name'] ?? ''),
+            'emergency_contact_phone' => preg_replace('/[^0-9+]/', '', $data['emergency_contact_phone'] ?? ''),
+            'medical_history' => strip_tags($data['medical_history'] ?? ''),
         ];
     }
 
@@ -247,12 +252,19 @@ class PatientController extends Controller
         \Log::debug('Patient route binding debug', [
             'route_patient_id' => $patient->patient_id ?? null,
             'route_id' => request()->route('patient') ?? null,
+            'all_request_data' => request()->all(),
+            'route_parameters' => request()->route()->parameters(),
         ]);
         
         // IDOR Protection - verify access before showing data
         if (!$this->userCanAccessPatient($patient)) {
             abort(403, 'Unauthorized access to patient record');
         }
+        
+        \Log::debug('Patient data being passed to Inertia:', [
+            'patient_id' => $patient->patient_id,
+            'first_name' => $patient->first_name,
+        ]);
         
         return Inertia::render('Patient/Edit', [
             'patient' => $patient
@@ -268,6 +280,7 @@ class PatientController extends Controller
         \Log::debug('Patient update debug', [
             'patient_id' => $patient->patient_id,
             'request_data' => $request->all(),
+            'route_parameters' => $request->route()->parameters(),
         ]);
         
         $validated = $request->validate([
@@ -278,6 +291,11 @@ class PatientController extends Controller
             'address' => 'nullable|string',
             'age' => 'nullable|integer|min:0|max:150',
             'blood_group' => 'nullable|string|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
+            'blood_type' => 'nullable|string|max:50',
+            'allergies' => 'nullable|string|max:1000',
+            'emergency_contact_name' => 'nullable|string|max:255',
+            'emergency_contact_phone' => 'nullable|string|max:20',
+            'medical_history' => 'nullable|string|max:5000',
         ]);
 
         $sanitizedData = $this->sanitizeInput($validated);
@@ -298,6 +316,11 @@ class PatientController extends Controller
             'address' => $sanitizedData['address'],
             'age' => $sanitizedData['age'],
             'blood_group' => $sanitizedData['blood_group'],
+            'blood_type' => $sanitizedData['blood_type'],
+            'allergies' => $sanitizedData['allergies'],
+            'emergency_contact_name' => $sanitizedData['emergency_contact_name'],
+            'emergency_contact_phone' => $sanitizedData['emergency_contact_phone'],
+            'medical_history' => $sanitizedData['medical_history'],
         ]);
 
         return redirect()->route('patients.index')->with('success', 'Patient updated successfully.');
