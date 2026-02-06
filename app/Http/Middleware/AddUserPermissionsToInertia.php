@@ -20,6 +20,9 @@ class AddUserPermissionsToInertia
         if ($request->user()) {
             $user = $request->user();
             
+            // Get all permissions - for Super Admin this returns ALL permissions
+            $allPermissions = $user->getAllPermissions()->pluck('name')->toArray();
+            
             // Share auth data with Inertia
             Inertia::share([
                 'auth' => [
@@ -29,8 +32,9 @@ class AddUserPermissionsToInertia
                         'username' => $user->username,
                         'role' => $user->role,
                         'role_id' => $user->role_id,
+                        'is_super_admin' => $user->isSuperAdmin(),
                         'profile_photo_url' => $user->profile_photo_url,
-                        'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
+                        'permissions' => $allPermissions,
                     ],
                 ],
             ]);

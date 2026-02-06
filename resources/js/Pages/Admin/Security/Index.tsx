@@ -182,7 +182,9 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
     const fetchUsers = async () => {
         setLoadingUsers(true);
         try {
-            const response = await axios.get('/api/v1/admin/users');
+            const response = await axios.get('/api/v1/admin/users', {
+                withCredentials: true
+            });
             setUsers(response.data);
         } catch (error) {
             console.error('Error fetching users:', error);
@@ -219,6 +221,8 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
                 current_password: currentPassword,
                 new_password: newPassword,
                 new_password_confirmation: confirmNewPassword,
+            }, {
+                withCredentials: true
             });
 
             setPasswordMessage('Password updated successfully');
@@ -259,6 +263,8 @@ export default function SecurityCenter({ auth }: SecurityCenterProps) {
             await axios.put('/api/v1/admin/update-profile', {
                 name: ownName,
                 username: ownUsername,
+            }, {
+                withCredentials: true
             });
 
             setOwnProfileMessage('Profile updated successfully');

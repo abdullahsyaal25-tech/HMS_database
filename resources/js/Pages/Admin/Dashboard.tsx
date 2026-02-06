@@ -51,17 +51,21 @@ export default function AdminDashboard() {
         // Fetch real data from backend API
         const fetchData = async () => {
             try {
-                // Fetch recent activity using Axios
+                // Fetch recent activity using Axios with credentials
                 try {
-                    const activityResponse = await axios.get('/api/v1/admin/recent-activity');
+                    const activityResponse = await axios.get('/api/v1/admin/recent-activity', {
+                        withCredentials: true
+                    });
                     setRecentActivity(activityResponse.data.slice(0, 5));
                 } catch (error) {
                     console.error('Failed to fetch recent activity:', error);
                 }
                 
-                // Fetch audit logs using Axios
+                // Fetch audit logs using Axios with credentials
                 try {
-                    const auditResponse = await axios.get('/api/v1/admin/audit-logs');
+                    const auditResponse = await axios.get('/api/v1/admin/audit-logs', {
+                        withCredentials: true
+                    });
                     setAuditLogs(auditResponse.data.slice(0, 5));
                     // Clear error state if both API calls succeed
                     setError(null);
@@ -84,25 +88,6 @@ export default function AdminDashboard() {
         fetchData();
     }, []);
     
-    // Guard against undefined auth
-    if (!auth || !auth.user) {
-        return (
-            <HospitalLayout>
-                <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-                    <div className="max-w-7xl mx-auto">
-                        <div className="text-center py-12">
-                            <AlertTriangle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Authentication Required</h2>
-                            <p className="text-gray-600 mb-4">Please log in to access the admin dashboard.</p>
-                            <Link href="/login">
-                                <Button>Go to Login</Button>
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </HospitalLayout>
-        );
-    }
     
     const getUserRoleBadge = (role: string) => {
         switch(role.toLowerCase()) {

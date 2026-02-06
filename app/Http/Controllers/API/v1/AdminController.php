@@ -18,14 +18,24 @@ class AdminController extends Controller
     public function getRecentActivity(Request $request)
     {
         try {
-            // Ensure user is authenticated via Sanctum
-            if (!$request->user()) {
-                return response()->json(['message' => 'Unauthenticated'], 401);
+            // Ensure user is authenticated - check both Sanctum and session
+            $user = $request->user();
+            
+            // If no user from Sanctum, try session authentication
+            if (!$user) {
+                $sessionUser = \Illuminate\Support\Facades\Auth::user();
+                if (!$sessionUser) {
+                    return response()->json(['message' => 'Unauthenticated'], 401);
+                }
+                $user = $sessionUser;
             }
             
-            // Check if user has permission to view admin data
-            if (!$request->user()->isSuperAdmin() && !$request->user()->hasPermission('view-dashboard')) {
-                return response()->json(['message' => 'Unauthorized'], 403);
+            // Check if user is super admin (bypasses all permission checks)
+            if (!$user->isSuperAdmin()) {
+                // For non-super admins, check permission
+                if (!$user->hasPermission('view-dashboard') && !$user->hasPermission('view-activity-logs')) {
+                    return response()->json(['message' => 'Unauthorized'], 403);
+                }
             }
             // Get recent audit log entries
             $recentActivities = AuditLog::orderBy('logged_at', 'desc')
@@ -71,13 +81,15 @@ class AdminController extends Controller
     public function getAuditLogs(Request $request)
     {
         try {
-            // Ensure user is authenticated via Sanctum
-            if (!$request->user()) {
+            // Get authenticated user (handle both Sanctum and session)
+            $user = $request->user() ?? \Illuminate\Support\Facades\Auth::user();
+            
+            if (!$user) {
                 return response()->json(['message' => 'Unauthenticated'], 401);
             }
 
-            // Check if user has permission to view audit logs
-            if (!$request->user()->isSuperAdmin() && !$request->user()->hasPermission('view-activity-logs')) {
+            // Super admin bypasses permission check
+            if (!$user->isSuperAdmin() && !$user->hasPermission('view-activity-logs')) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
 
@@ -138,7 +150,15 @@ class AdminController extends Controller
     public function getAuditAnalytics(Request $request)
     {
         try {
-            if (!$request->user() || (!$request->user()->isSuperAdmin() && !$request->user()->hasPermission('view-activity-logs'))) {
+            // Get authenticated user (handle both Sanctum and session)
+            $user = $request->user() ?? \Illuminate\Support\Facades\Auth::user();
+            
+            if (!$user) {
+                return response()->json(['message' => 'Unauthenticated'], 401);
+            }
+
+            // Super admin bypasses permission check
+            if (!$user->isSuperAdmin() && !$user->hasPermission('view-activity-logs')) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
 
@@ -194,13 +214,15 @@ class AdminController extends Controller
     public function getStats(Request $request)
     {
         try {
-            // Ensure user is authenticated via Sanctum
-            if (!$request->user()) {
+            // Get authenticated user (handle both Sanctum and session)
+            $user = $request->user() ?? \Illuminate\Support\Facades\Auth::user();
+            
+            if (!$user) {
                 return response()->json(['message' => 'Unauthenticated'], 401);
             }
             
-            // Check if user has permission to view admin stats
-            if (!$request->user()->isSuperAdmin() && !$request->user()->hasPermission('view-dashboard')) {
+            // Super admin bypasses permission check
+            if (!$user->isSuperAdmin() && !$user->hasPermission('view-dashboard')) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
             $stats = [

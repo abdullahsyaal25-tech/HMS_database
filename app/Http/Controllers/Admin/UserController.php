@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Role;
 use App\Models\RolePermission;
 use App\Models\Permission;
 use App\Models\UserPermission;
@@ -43,6 +44,9 @@ $users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_a
 
             return Inertia::render('Admin/Users/Index', [
                 'users' => $users,
+                'auth' => [
+                    'user' => $currentUser,
+                ],
             ]);
         } catch (\Exception $e) {
             Log::error('Error in UserController index', [
@@ -118,6 +122,11 @@ $users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_a
      */
     public function store(Request $request): RedirectResponse
     {
+        $currentUser = \Illuminate\Support\Facades\Auth::user();
+        
+        // Get available roles with their IDs
+        $availableRoles = $this->getAvailableRolesWithIds();
+        
         $request->validate([
             'name' => 'required|string|max:255',
             'username' => 'required|string|alpha_dash|max:255|unique:users,username',
@@ -125,21 +134,83 @@ $users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_a
             'role' => [
                 'required',
                 'string',
-                Rule::in($this->getAvailableRoles())
+                Rule::in(array_keys($availableRoles))
             ],
         ]);
+
+        // Validate role assignment against hierarchy
+        $requestedRoleId = $availableRoles[$request->role] ?? null;
+        $validation = $this->validateRoleAssignment($currentUser, $requestedRoleId);
+        
+        if (!$validation['valid']) {
+            return redirect()->back()->withErrors(['role' => $validation['message']])->withInput();
+        }
 
         $user = User::create([
             'name' => $request->name,
             'username' => $request->username,
             'password' => Hash::make($request->password),
             'role' => $request->role,
+            'role_id' => $requestedRoleId,
         ]);
 
-        // Removed automatic permission assignment - permissions should be assigned manually
-        // through the admin panel to ensure proper access control
+        // Log the user creation
+        AuditLog::create([
+            'user_id' => $currentUser->id,
+            'user_name' => $currentUser->name,
+            'user_role' => $currentUser->role,
+            'action' => 'Create User',
+            'description' => "Created user {$user->name} (ID: {$user->id}) with role {$request->role}",
+            'module' => 'User Management',
+            'severity' => 'medium',
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'logged_at' => now(),
+        ]);
 
         return redirect()->route('admin.users.index')->with('success', 'User created successfully.');
+    }
+    
+    /**
+     * Validate role assignment against hierarchy.
+     */
+    private function validateRoleAssignment($currentUser, ?int $requestedRoleId): array
+    {
+        // Super Admin can assign any role
+        if ($currentUser->isSuperAdmin()) {
+            return ['valid' => true, 'message' => ''];
+        }
+        
+        // If no role_id provided, invalid
+        if (!$requestedRoleId) {
+            return ['valid' => false, 'message' => 'Invalid role selected'];
+        }
+        
+        $requestedRole = Role::find($requestedRoleId);
+        if (!$requestedRole) {
+            return ['valid' => false, 'message' => 'Role not found'];
+        }
+        
+        // Get current user's role
+        $currentUserRole = $currentUser->roleModel;
+        if (!$currentUserRole) {
+            return ['valid' => false, 'message' => 'Your account has no role assigned'];
+        }
+        
+        // Prevent privilege escalation - cannot assign role with higher priority
+        if ($requestedRole->priority >= $currentUserRole->priority) {
+            return [
+                'valid' => false, 
+                'message' => 'Cannot assign a role with equal or higher priority than your own'
+            ];
+        }
+        
+        // Prevent assigning Super Admin roles
+        if ($requestedRole->slug === 'super-admin' || $requestedRole->priority === 100) {
+            return ['valid' => false, 'message' => 'Cannot assign Super Admin role'];
+        }
+        
+        return ['valid' => true, 'message' => ''];
     }
 
     /**
@@ -225,8 +296,12 @@ $users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_a
      */
     public function update(Request $request, string $id): RedirectResponse
     {
+        $currentUser = \Illuminate\Support\Facades\Auth::user();
         $user = User::findOrFail($id);
 
+        // Get available roles with their IDs
+        $availableRoles = $this->getAvailableRolesWithIds();
+        
         $request->validate([
             'name' => 'required|string|max:255',
             'username' => [
@@ -240,9 +315,20 @@ $users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_a
             'role' => [
                 'required',
                 'string',
-                Rule::in($this->getAvailableRoles())
+                Rule::in(array_keys($availableRoles))
             ],
         ]);
+
+        // Validate role assignment against hierarchy if role is changing
+        $roleChanging = $user->role !== $request->role;
+        if ($roleChanging) {
+            $requestedRoleId = $availableRoles[$request->role] ?? null;
+            $validation = $this->validateRoleAssignment($currentUser, $requestedRoleId);
+            
+            if (!$validation['valid']) {
+                return redirect()->back()->withErrors(['role' => $validation['message']])->withInput();
+            }
+        }
 
         $userData = [
             'name' => $request->name,
@@ -250,11 +336,30 @@ $users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_a
             'role' => $request->role,
         ];
 
+        // Update role_id if role is changing and we have a valid role_id
+        if ($roleChanging) {
+            $userData['role_id'] = $availableRoles[$request->role] ?? null;
+        }
+
         if ($request->filled('password')) {
             $userData['password'] = Hash::make($request->password);
         }
 
         $user->update($userData);
+
+        // Log the update
+        AuditLog::create([
+            'user_id' => $currentUser->id,
+            'user_name' => $currentUser->name,
+            'user_role' => $currentUser->role,
+            'action' => 'Update User',
+            'description' => "Updated user {$user->name} (ID: {$user->id})" . ($roleChanging ? " with new role {$request->role}" : ""),
+            'module' => 'User Management',
+            'severity' => 'medium',
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'logged_at' => now(),
+        ]);
 
         return redirect()->route('admin.users.index')->with('success', 'User updated successfully.');
     }
@@ -443,6 +548,7 @@ $users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_a
 
     /**
      * Check if current user can delete the target user
+     * Uses roleModel for consistent RBAC checking
      */
     private function canCurrentUserDelete($currentUser, $targetUser): bool
     {
@@ -456,21 +562,23 @@ $users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_a
             return true;
         }
 
-        // Sub Super Admin can delete regular users but not Super Admins
-        if ($currentUser->role === 'Sub Super Admin') {
-            return !$targetUser->isSuperAdmin();
+        // Get current user's role priority
+        $currentUserRole = $currentUser->roleModel;
+        if (!$currentUserRole) {
+            return false;
         }
 
-        // Regular admins with manage-users permission can delete non-admin users
-        if ($currentUser->hasPermission('manage-users')) {
-            return !$targetUser->isSuperAdmin() && $targetUser->role !== 'Sub Super Admin';
-        }
+        // Check target's role priority (Super Admin is priority 100)
+        $targetRole = $targetUser->roleModel;
+        $targetPriority = $targetRole ? $targetRole->priority : 0;
 
-        return false;
+        // Can delete if target has lower priority
+        return $targetPriority < $currentUserRole->priority;
     }
 
     /**
      * Check if current user can edit the target user
+     * Uses roleModel for consistent RBAC checking
      */
     private function canCurrentUserEdit($currentUser, $targetUser): bool
     {
@@ -484,17 +592,18 @@ $users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_a
             return true;
         }
 
-        // Sub Super Admin can edit regular users but not Super Admins
-        if ($currentUser->role === 'Sub Super Admin') {
-            return !$targetUser->isSuperAdmin();
+        // Get current user's role priority
+        $currentUserRole = $currentUser->roleModel;
+        if (!$currentUserRole) {
+            return false;
         }
 
-        // Regular admins with manage-users permission can edit non-admin users
-        if ($currentUser->hasPermission('manage-users')) {
-            return !$targetUser->isSuperAdmin() && $targetUser->role !== 'Sub Super Admin';
-        }
+        // Check target's role priority (Super Admin is priority 100)
+        $targetRole = $targetUser->roleModel;
+        $targetPriority = $targetRole ? $targetRole->priority : 0;
 
-        return false;
+        // Can edit if target has lower priority
+        return $targetPriority < $currentUserRole->priority;
     }
 
     /**
@@ -878,5 +987,44 @@ $users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_a
         ];
         
         return array_unique(array_merge($dbRoles, $defaultRoles));
+    }
+    
+    /**
+     * Get all available roles with their IDs.
+     * Used for proper role assignment with role_id.
+     */
+    private function getAvailableRolesWithIds(): array
+    {
+        $roles = Role::where('slug', '!=', 'super-admin')
+                    ->orderBy('priority', 'desc')
+                    ->pluck('id', 'name')
+                    ->toArray();
+        
+        // Add default roles if not in database
+        $defaultRoles = [
+            'Sub Super Admin' => null,
+            'Reception Admin' => null,
+            'Laboratory Admin' => null,
+            'Pharmacy Admin' => null,
+        ];
+        
+        foreach ($defaultRoles as $roleName => &$roleId) {
+            if (!isset($roles[$roleName])) {
+                // Try to find by slug
+                $slug = strtolower(str_replace(' ', '-', $roleName));
+                $role = Role::where('slug', $slug)->first();
+                if ($role) {
+                    $roleId = $role->id;
+                    $roles[$roleName] = $role->id;
+                }
+            } else {
+                $roleId = $roles[$roleName];
+            }
+        }
+        
+        // Remove roles without valid IDs (except Super Admin which is already excluded)
+        return array_filter($roles, function ($id) {
+            return $id !== null;
+        });
     }
 }

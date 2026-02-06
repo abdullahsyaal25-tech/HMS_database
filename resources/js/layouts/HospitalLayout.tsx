@@ -73,8 +73,20 @@ function usePermissionChecker() {
         const userPermissions = user?.permissions || [];
         const userRole = user?.role;
         
-        // Super Admin bypass
-        if (userRole === 'Super Admin') return true;
+        // Super Admin bypass - check for various formats
+        if (userRole === 'Super Admin' || 
+            userRole === 'super admin' || 
+            userRole?.toLowerCase() === 'super admin' ||
+            userRole === 'super-admin') {
+            return true;
+        }
+        
+        // Also check if user has isSuperAdmin flag (snake_case from PHP)
+        // Using bracket notation to avoid TypeScript error since type doesn't include this property
+        if ((user as any)?.is_super_admin === true) {
+            return true;
+        }
+        
         return userPermissions.includes(permission);
     }, [user, isAuthenticated]);
 
