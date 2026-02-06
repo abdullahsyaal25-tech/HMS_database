@@ -261,11 +261,6 @@ class PatientController extends Controller
             abort(403, 'Unauthorized access to patient record');
         }
         
-        \Log::debug('Patient data being passed to Inertia:', [
-            'patient_id' => $patient->patient_id,
-            'first_name' => $patient->first_name,
-        ]);
-        
         return Inertia::render('Patient/Edit', [
             'patient' => $patient
         ]);
@@ -276,12 +271,7 @@ class PatientController extends Controller
      */
     public function update(Request $request, Patient $patient): RedirectResponse
     {
-        // DEBUG: Log the update request
-        \Log::debug('Patient update debug', [
-            'patient_id' => $patient->patient_id,
-            'request_data' => $request->all(),
-            'route_parameters' => $request->route()->parameters(),
-        ]);
+      
         
         $validated = $request->validate([
             'first_name' => 'nullable|string|max:255',

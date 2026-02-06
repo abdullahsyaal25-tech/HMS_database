@@ -8,6 +8,11 @@ export interface Patient {
     address: string | null;
     blood_group: string | null;
     age: number | null;
+    blood_type: string | null;
+    allergies: string | null;
+    emergency_contact_name: string | null;
+    emergency_contact_phone: string | null;
+    medical_history: string | null;
     created_at: string;
     updated_at: string;
     user?: {

@@ -31,6 +31,10 @@ interface PatientEditProps {
 type TabValue = 'personal' | 'medical' | 'emergency';
 
 export default function PatientEdit({ patient }: PatientEditProps) {
+    // Debug: Log the patient data
+    console.log('Patient data received:', patient);
+    console.log('Patient ID:', patient?.patient_id);
+    
     const [activeTab, setActiveTab] = useState<TabValue>('personal');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -84,15 +88,29 @@ export default function PatientEdit({ patient }: PatientEditProps) {
         e.preventDefault();
         setIsSubmitting(true);
 
+        console.log('=== FORM SUBMISSION DEBUG ===');
         console.log('Form submitted with data:', data);
+        console.log('Patient object:', patient);
         console.log('Patient ID:', patient.patient_id);
+        console.log('Patient ID type:', typeof patient.patient_id);
+        console.log('Patient ID length:', patient.patient_id?.length);
+        
+        // Validate patient ID exists
+        if (!patient.patient_id) {
+            console.error('Patient ID is missing!');
+            setIsSubmitting(false);
+            return;
+        }
 
         // Construct URL directly since route() helper may have caching issues
         const updateUrl = `/patients/${patient.patient_id}`;
         console.log('Update URL:', updateUrl);
+        console.log('Full URL that will be used:', `${window.location.origin}${updateUrl}`);
 
         try {
-            put(updateUrl, {
+            console.log('Making PUT request to:', updateUrl);
+            console.log('With data:', data);
+            put(updateUrl, data, {
                 onSuccess: () => {
                     setIsSubmitting(false);
                     console.log('Update successful!');
