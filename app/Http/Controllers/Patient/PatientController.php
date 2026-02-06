@@ -281,8 +281,8 @@ class PatientController extends Controller
             'blood_group' => $sanitizedData['blood_group'],
         ]);
 
-        // Return Inertia response for SPA behavior - redirect back to edit page with success message
-        return redirect()->back()->with('success', 'Patient updated successfully.');
+        // Use Inertia's back() for proper SPA behavior and flash message handling
+        return Inertia::back()->with('success', 'Patient updated successfully.');
     }
 
     /**
