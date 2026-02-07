@@ -10,6 +10,14 @@ use App\Models\Bill;
 
 class Doctor extends Model
 {
+    /**
+     * The route key name for model binding.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'id';
+    }
+
     protected $fillable = [
         'doctor_id',
         'full_name',

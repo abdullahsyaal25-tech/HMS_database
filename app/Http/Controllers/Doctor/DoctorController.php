@@ -9,6 +9,7 @@ use App\Models\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
@@ -111,10 +112,17 @@ class DoctorController extends Controller
      */
     public function show(string $id): Response
     {
-        $doctor = Doctor::with('user', 'department')->findOrFail($id);
-        return Inertia::render('Doctor/Show', [
-            'doctor' => $doctor
-        ]);
+        \Log::info('[DoctorController] show() called with id: ' . $id);
+        try {
+            $doctor = Doctor::with('user', 'department')->findOrFail($id);
+            \Log::info('[DoctorController] Doctor found: ' . $doctor->full_name);
+            return Inertia::render('Doctor/Show', [
+                'doctor' => $doctor
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('[DoctorController] Error in show(): ' . $e->getMessage());
+            throw $e;
+        }
     }
 
     /**

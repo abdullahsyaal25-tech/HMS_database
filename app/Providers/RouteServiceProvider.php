@@ -19,8 +19,7 @@ class RouteServiceProvider extends ServiceProvider
 
         // Explicit route model binding for patient using patient_id
         Route::model('patient', \App\Models\Patient::class);
-        Route::model('doctor', \App\Models\Doctor::class);
-
+        
         // Explicit binding for doctor using id column
         Route::bind('doctor', function ($value) {
             return \App\Models\Doctor::findOrFail($value);

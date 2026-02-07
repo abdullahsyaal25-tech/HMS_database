@@ -20,7 +20,12 @@ class HandleInertiaRequests extends Middleware
      */
     public function version(Request $request): ?string
     {
-        return parent::version($request);
+        try {
+            return parent::version($request);
+        } catch (\Exception $e) {
+            Log::warning('[HandleInertiaRequests] version() error: ' . $e->getMessage());
+            return null;
+        }
     }
 
     /**
