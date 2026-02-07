@@ -110,11 +110,11 @@ class DoctorController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id): Response
+    public function show(Doctor $doctor): Response
     {
-        \Log::info('[DoctorController] show() called with id: ' . $id);
+        \Log::info('[DoctorController] show() called with doctor id: ' . $doctor->id);
         try {
-            $doctor = Doctor::with('user', 'department')->findOrFail($id);
+            $doctor->load('user', 'department');
             \Log::info('[DoctorController] Doctor found: ' . $doctor->full_name);
             return Inertia::render('Doctor/Show', [
                 'doctor' => $doctor
@@ -128,9 +128,9 @@ class DoctorController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id): Response
+    public function edit(Doctor $doctor): Response
     {
-        $doctor = Doctor::with('user', 'department')->findOrFail($id);
+        $doctor->load('user', 'department');
         $departments = Department::all();
         return Inertia::render('Doctor/Edit', [
             'doctor' => $doctor,
@@ -141,7 +141,7 @@ class DoctorController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id): RedirectResponse
+    public function update(Request $request, Doctor $doctor): RedirectResponse
     {
         $request->validate([
             'full_name' => 'required|string|max:255',
@@ -157,7 +157,6 @@ class DoctorController extends Controller
             'department_id' => 'required|exists:departments,id',
         ]);
 
-        $doctor = Doctor::findOrFail($id);
         $user = $doctor->user;
 
         // Update user information
@@ -186,9 +185,8 @@ class DoctorController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id): RedirectResponse
+    public function destroy(Doctor $doctor): RedirectResponse
     {
-        $doctor = Doctor::findOrFail($id);
         $user = $doctor->user;
 
         DB::beginTransaction();
