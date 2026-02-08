@@ -1,39 +1,13 @@
-import { router } from '@inertiajs/core';
-import { Plugin } from 'vue';
+import { useEffect } from 'react';
 
 /**
- * Inertia Session Error Handler Plugin
+ * Inertia Session Error Handler Hook
  * 
  * Handles session_not_found and 401 Unauthorized errors gracefully
  * by redirecting to login page with return URL preserved.
  */
-export const sessionErrorHandler: Plugin = {
-  install(app) {
-    // Handle Inertia response errors
-    router.onError((error) => {
-      console.error('[SessionHandler] Inertia error:', error);
-      
-      // Check for session-related errors
-      if (error.message?.includes('session_not_found') || 
-          error.message?.includes('Session expired') ||
-          error.status === 401) {
-        
-        console.warn('[SessionHandler] Session expired or invalid, redirecting to login...');
-        
-        // Store current URL for redirect after login
-        const currentUrl = window.location.href;
-        sessionStorage.setItem('redirect_after_login', currentUrl);
-        
-        // Redirect to login
-        window.location.href = '/login?reason=session_expired';
-      }
-    });
-    
-    // Handle navigation failures
-    router.onFail(() => {
-      console.warn('[SessionHandler] Navigation failed');
-    });
-    
+export function useSessionHandler() {
+  useEffect(() => {
     // Check session validity on page load
     const checkSession = () => {
       const authUser = document.querySelector('[data-auth-user]');
@@ -48,8 +22,13 @@ export const sessionErrorHandler: Plugin = {
     } else {
       checkSession();
     }
-  }
-};
+    
+    // Cleanup
+    return () => {
+      // Inertia.js error handling is done in useApi.ts
+    };
+  }, []);
+}
 
 /**
  * Helper function to check if session is valid
@@ -68,7 +47,7 @@ export function isSessionValid(): boolean {
       .find(row => row.startsWith('laravel_session='));
     
     return !!sessionCookie;
-  } catch (e) {
+  } catch {
     return false;
   }
 }

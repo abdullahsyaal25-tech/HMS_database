@@ -7,12 +7,16 @@ export interface User {
     role?: string;
     role_id?: number;
     permissions?: string[];
+    two_factor_confirmed_at?: string | null;
+    is_super_admin?: boolean;
     roleModel?: {
         id: number;
         name: string;
         slug: string;
         priority: number;
         is_system: boolean;
+        module_access?: string[];
+        data_visibility_scope?: Record<string, unknown>;
     };
 }
 export interface NavItem {
@@ -24,6 +28,13 @@ export interface NavItem {
     icon?: any; // Icon component type
     items?: NavItem[]; // Submenu items
     permission?: string; // Required permission to view this item
+}
+
+export interface BreadcrumbItem {
+    label?: string;
+    title?: string;
+    href?: string;
+    active?: boolean;
 }
 
 export interface SharedData {

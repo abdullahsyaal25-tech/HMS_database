@@ -27,7 +27,7 @@ export function usePermissions() {
     if (auth?.user?.permissions) {
       setState(prev => ({
         ...prev,
-        permissions: auth.user.permissions,
+        permissions: auth.user.permissions ?? [],
         isLoading: false,
       }));
     } else if (auth?.user) {
@@ -50,11 +50,13 @@ export function usePermissions() {
 
   // Check if user has any of the given permissions
   const hasAnyPermission = useCallback((permissions: string[]): boolean => {
+    if (!permissions || permissions.length === 0) return false;
     return permissions.some(permission => hasPermission(permission));
   }, [hasPermission]);
 
   // Check if user has all of the given permissions
   const hasAllPermissions = useCallback((permissions: string[]): boolean => {
+    if (!permissions || permissions.length === 0) return true;
     return permissions.every(permission => hasPermission(permission));
   }, [hasPermission]);
 
@@ -160,14 +162,14 @@ export function checkPermissions(user: User | null, permission: string): boolean
 export function checkAnyPermission(user: User | null, permissions: string[]): boolean {
   if (!user) return false;
   if (!user.permissions) return false;
-  return permissions.some(permission => user.permissions.includes(permission));
+  return permissions.some(permission => user.permissions?.includes(permission) ?? false);
 }
 
 // Utility function to check if user has all permissions
 export function checkAllPermissions(user: User | null, permissions: string[]): boolean {
   if (!user) return false;
   if (!user.permissions) return false;
-  return permissions.every(permission => user.permissions.includes(permission));
+  return permissions.every(permission => user.permissions?.includes(permission) ?? false);
 }
 
 // Utility function to check if user is Super Admin

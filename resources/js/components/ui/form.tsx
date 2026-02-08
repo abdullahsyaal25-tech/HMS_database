@@ -25,7 +25,7 @@ function useFormContext() {
 }
 
 // Form component
-interface FormProps extends React.ComponentProps<"form"> {
+interface FormProps extends Omit<React.ComponentProps<"form">, 'onSubmit'> {
   onSubmit: (values: Record<string, unknown>) => void | Promise<void>
   initialValues?: Record<string, unknown>
   validationSchema?: Record<string, (value: unknown) => string | undefined>

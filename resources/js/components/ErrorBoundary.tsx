@@ -4,12 +4,14 @@ interface ErrorBoundaryState {
   hasError: boolean;
   error?: Error;
   errorInfo?: React.ErrorInfo;
+  errorId?: string;
 }
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
   fallback?: React.ComponentType<{ error: Error; errorInfo: React.ErrorInfo; resetError: () => void }>;
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+  context?: Record<string, unknown>;
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -18,21 +20,36 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+    return {
+      hasError: true,
+      error,
+      errorId: ErrorBoundary.generateErrorId(),
+    };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     this.setState({ error, errorInfo });
+    
+    // Call custom error handler if provided
     this.props.onError?.(error, errorInfo);
     
     // Log error to console for debugging
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+    
+    // Log error with context if provided
+    if (this.props.context) {
+      console.error('Error context:', this.props.context);
+    }
   }
 
   resetError = () => {
     this.setState({ hasError: false, error: undefined, errorInfo: undefined });
   };
+
+  static generateErrorId(): string {
+    return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
 
   render() {
     if (this.state.hasError) {
@@ -61,6 +78,11 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
               <p className="mt-2 text-sm text-gray-600">
                 We're sorry, but something unexpected happened. Please try refreshing the page.
               </p>
+              {this.state.errorId && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Error ID: {this.state.errorId}
+                </p>
+              )}
             </div>
 
             <div className="mt-6 space-y-3">

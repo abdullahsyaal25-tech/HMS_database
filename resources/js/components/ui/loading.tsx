@@ -321,8 +321,8 @@ export function useLoading(initialLoading = false) {
 export {
   Loading,
   LoadingOverlay,
+  Skeleton,
   LoadingList,
   LoadingForm,
-  LoadingTable,
-  useLoading
+  LoadingTable
 }

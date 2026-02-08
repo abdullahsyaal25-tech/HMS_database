@@ -492,7 +492,7 @@ export function checkModuleAccess(
   }
   
   const permission = `${module}.${action}`;
-  return user.permissions?.includes(permission) || user.permissions?.includes(`${module}.manage`);
+  return (user.permissions?.includes(permission) || user.permissions?.includes(`${module}.manage`)) ?? false;
 }
 
 export default usePermission;

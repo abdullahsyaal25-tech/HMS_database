@@ -2,15 +2,17 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Input } from "./input"
 import { Button } from "./button"
-import { Search, Filter, X, Calendar, Stethoscope } from "lucide-react"
+import { Popover, PopoverTrigger, PopoverContent } from "./popover"
+import { Search, FilterIcon, X, Calendar, Stethoscope } from "lucide-react"
 import { Checkbox } from "./checkbox"
 import { Label } from "./label"
 
-interface SearchFilterProps extends React.ComponentProps<"div"> {
+interface SearchFilterProps {
   placeholder?: string
   onSearch: (query: string) => void
   debounceMs?: number
   className?: string
+  value?: string
 }
 
 function SearchInput({
@@ -79,7 +81,7 @@ interface FilterOption {
   count?: number
 }
 
-interface FilterProps extends React.ComponentProps<"div"> {
+interface FilterPanelProps {
   title?: string
   options: FilterOption[]
   selected: string[]
@@ -88,15 +90,14 @@ interface FilterProps extends React.ComponentProps<"div"> {
   className?: string
 }
 
-function Filter({
+function FilterPanel({
   title = "Filter",
   options,
   selected,
   onToggle,
   onClear,
   className,
-  ...props
-}: FilterProps) {
+}: FilterPanelProps) {
   const isAllSelected = selected.length === options.length
 
   const toggleAll = () => {
@@ -108,7 +109,7 @@ function Filter({
   }
 
   return (
-    <div className={cn("space-y-2", className)} {...props}>
+    <div className={cn("space-y-2", className)}>
       {title && (
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium text-foreground">{title}</h3>
@@ -168,7 +169,7 @@ interface DateRange {
   to?: Date
 }
 
-interface DateFilterProps extends React.ComponentProps<"div"> {
+interface DateFilterProps {
   label?: string
   value?: DateRange
   onChange: (range: DateRange) => void
@@ -180,10 +181,9 @@ function DateFilter({
   value = {},
   onChange,
   className,
-  ...props
 }: DateFilterProps) {
   return (
-    <div className={cn("space-y-2", className)} {...props}>
+    <div className={cn("space-y-2", className)}>
       <Label className="text-sm font-medium">{label}</Label>
       <div className="grid grid-cols-2 gap-2">
         <input
@@ -241,7 +241,7 @@ function AdvancedSearch({
     onSearch(localFilters)
   }, [localFilters, onSearch])
 
-  const updateFilter = (key: keyof SearchFilters, value: any) => {
+  const updateFilter = (key: keyof SearchFilters, value: unknown) => {
     setLocalFilters(prev => ({ ...prev, [key]: value }))
   }
 
@@ -259,7 +259,7 @@ function AdvancedSearch({
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm">
-              <Filter className="mr-2 h-4 w-4" />
+              <FilterIcon className="mr-2 h-4 w-4" />
               Status
               {localFilters.status.length > 0 && (
                 <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
@@ -269,7 +269,7 @@ function AdvancedSearch({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-64">
-            <Filter
+            <FilterPanel
               title="Appointment Status"
               options={[
                 { value: "scheduled", label: "Scheduled" },
@@ -279,7 +279,7 @@ function AdvancedSearch({
                 { value: "no-show", label: "No Show" }
               ]}
               selected={localFilters.status}
-              onToggle={(value) => {
+              onToggle={(value: string) => {
                 if (value === "all") {
                   updateFilter("status", localFilters.status.length === 5 ? [] : ["scheduled", "confirmed", "completed", "cancelled", "no-show"])
                 } else {
@@ -317,7 +317,7 @@ function AdvancedSearch({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-64">
-            <Filter
+            <FilterPanel
               title="Departments"
               options={[
                 { value: "cardiology", label: "Cardiology" },
@@ -327,7 +327,7 @@ function AdvancedSearch({
                 { value: "general", label: "General Medicine" }
               ]}
               selected={localFilters.departments}
-              onToggle={(value) => {
+              onToggle={(value: string) => {
                 if (value === "all") {
                   updateFilter("departments", localFilters.departments.length === 5 ? [] : ["cardiology", "neurology", "orthopedics", "pediatrics", "general"])
                 } else {
@@ -481,7 +481,7 @@ export function useSearch<T>(
 
 export {
   SearchInput,
-  Filter,
+  FilterPanel,
   DateFilter,
   AdvancedSearch,
   type SearchFilters,

@@ -1,7 +1,9 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from 'react';
 import type { Doctor, Patient, Appointment, Medicine, LabTest, Bill } from '../types';
 
+// ============================================================================
 // Auth State Types
+// ============================================================================
 interface AuthState {
     user: {
         id: number;
@@ -18,7 +20,9 @@ type AuthAction =
     | { type: 'LOGOUT' }
     | { type: 'UPDATE_PERMISSIONS'; payload: string[] };
 
+// ============================================================================
 // Patient State Types
+// ============================================================================
 interface PatientState {
     patients: Patient[];
     selectedPatient: Patient | null;
@@ -44,10 +48,12 @@ type PatientAction =
     | { type: 'UPDATE_PATIENT'; payload: Patient }
     | { type: 'REMOVE_PATIENT'; payload: number };
 
+// ============================================================================
 // UI State Types
+// ============================================================================
 interface UIState {
     sidebarCollapsed: boolean;
-    theme: 'light' | 'dark';
+    theme: 'light' | 'dark' | 'system';
     notifications: Array<{
         id: string;
         type: 'success' | 'error' | 'warning' | 'info';
@@ -67,7 +73,7 @@ interface UIState {
 
 type UIAction =
     | { type: 'TOGGLE_SIDEBAR' }
-    | { type: 'SET_THEME'; payload: 'light' | 'dark' }
+    | { type: 'SET_THEME'; payload: 'light' | 'dark' | 'system' }
     | { type: 'ADD_NOTIFICATION'; payload: Omit<UIState['notifications'][0], 'id' | 'timestamp'> }
     | { type: 'REMOVE_NOTIFICATION'; payload: string }
     | { type: 'CLEAR_NOTIFICATIONS' }
@@ -75,7 +81,10 @@ type UIAction =
     | { type: 'CLOSE_MODAL'; payload: keyof UIState['modals'] }
     | { type: 'TOGGLE_MODAL'; payload: keyof UIState['modals'] };
 
-// Auth Reducer
+// ============================================================================
+// Reducers
+// ============================================================================
+
 const authReducer = (state: AuthState, action: AuthAction): AuthState => {
     switch (action.type) {
         case 'LOGIN':
@@ -102,7 +111,6 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
     }
 };
 
-// Patient Reducer
 const patientReducer = (state: PatientState, action: PatientAction): PatientState => {
     switch (action.type) {
         case 'SET_PATIENTS':
@@ -119,7 +127,7 @@ const patientReducer = (state: PatientState, action: PatientAction): PatientStat
             return {
                 ...state,
                 filters: { ...state.filters, ...action.payload },
-                currentPage: 1, // Reset to first page when filters change
+                currentPage: 1,
             };
         case 'ADD_PATIENT':
             return {
@@ -143,7 +151,6 @@ const patientReducer = (state: PatientState, action: PatientAction): PatientStat
     }
 };
 
-// UI Reducer
 const uiReducer = (state: UIState, action: UIAction): UIState => {
     switch (action.type) {
         case 'TOGGLE_SIDEBAR':
@@ -185,7 +192,10 @@ const uiReducer = (state: UIState, action: UIAction): UIState => {
     }
 };
 
+// ============================================================================
 // Initial States
+// ============================================================================
+
 const initialAuthState: AuthState = {
     user: null,
     isAuthenticated: false,
@@ -220,7 +230,10 @@ const initialUIState: UIState = {
     },
 };
 
+// ============================================================================
 // Context Types
+// ============================================================================
+
 interface StoreContextType {
     auth: {
         state: AuthState;
@@ -246,7 +259,7 @@ interface StoreContextType {
         state: UIState;
         dispatch: React.Dispatch<UIAction>;
         toggleSidebar: () => void;
-        setTheme: (theme: 'light' | 'dark') => void;
+        setTheme: (theme: 'light' | 'dark' | 'system') => void;
         addNotification: (notification: Omit<UIState['notifications'][0], 'id' | 'timestamp'>) => void;
         removeNotification: (id: string) => void;
         clearNotifications: () => void;
@@ -256,141 +269,168 @@ interface StoreContextType {
     };
 }
 
-// Create Context
+// ============================================================================
+// Context Creation
+// ============================================================================
+
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
+// ============================================================================
 // Provider Component
+// ============================================================================
+
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [authState, authDispatch] = useReducer(authReducer, initialAuthState);
     const [patientState, patientDispatch] = useReducer(patientReducer, initialPatientState);
     const [uiState, uiDispatch] = useReducer(uiReducer, initialUIState);
 
-    // Load initial data from localStorage
-    useEffect(() => {
-        // Load auth state
-        const savedAuth = localStorage.getItem('auth-storage');
-        if (savedAuth) {
-            try {
-                const parsed = JSON.parse(savedAuth);
-                authDispatch({ type: 'LOGIN', payload: parsed });
-            } catch (error) {
-                console.error('Failed to parse saved auth state:', error);
-            }
-        }
+    /**
+     * SECURITY FIX: Removed localStorage persistence for auth data
+     * 
+     * Reason: Storing authentication data in localStorage creates XSS vulnerabilities.
+     * Malicious scripts can access localStorage and steal user tokens/permissions.
+     * 
+     * Solution: 
+     * - Auth state is now stored only in memory (React state)
+     - Auth persistence is handled by the backend via HttpOnly cookies (Sanctum)
+     * - Only non-sensitive UI preferences (theme, sidebar) are stored in localStorage
+     * 
+     * This ensures that even if XSS occurs, the attacker cannot steal session data
+     * from localStorage since it's no longer stored there.
+     */
 
-        // Load UI state
-        const savedUI = localStorage.getItem('ui-storage');
+    // Load only UI preferences from localStorage (non-sensitive data)
+    useEffect(() => {
+        const savedUI = localStorage.getItem('hms-ui-preferences');
         if (savedUI) {
             try {
                 const parsed = JSON.parse(savedUI);
-                uiDispatch({ type: 'SET_THEME', payload: parsed.theme || 'light' });
-                uiDispatch({ type: 'TOGGLE_SIDEBAR' });
+                if (parsed.theme && ['light', 'dark', 'system'].includes(parsed.theme)) {
+                    uiDispatch({ type: 'SET_THEME', payload: parsed.theme });
+                }
+                if (typeof parsed.sidebarCollapsed === 'boolean') {
+                    // Apply sidebar state directly without toggle
+                    if (parsed.sidebarCollapsed !== uiState.sidebarCollapsed) {
+                        uiDispatch({ type: 'TOGGLE_SIDEBAR' });
+                    }
+                }
             } catch (error) {
-                console.error('Failed to parse saved UI state:', error);
+                if (import.meta.env.DEV) {
+                    // eslint-disable-next-line no-console
+                    console.error('Failed to parse saved UI preferences:', error);
+                }
             }
         }
-    }, []);
+    }, []); // Run only once on mount
 
-    // Save auth state to localStorage
+    // Save only UI preferences to localStorage (non-sensitive data)
     useEffect(() => {
-        localStorage.setItem('auth-storage', JSON.stringify({
-            user: authState.user,
-            permissions: authState.permissions,
-        }));
-    }, [authState.user, authState.permissions]);
-
-    // Save UI state to localStorage
-    useEffect(() => {
-        localStorage.setItem('ui-storage', JSON.stringify({
+        const preferences = {
             theme: uiState.theme,
             sidebarCollapsed: uiState.sidebarCollapsed,
-        }));
+        };
+        localStorage.setItem('hms-ui-preferences', JSON.stringify(preferences));
     }, [uiState.theme, uiState.sidebarCollapsed]);
 
+    // ============================================================================
     // Auth Actions
-    const login = (user: AuthState['user'], permissions: string[]) => {
+    // ============================================================================
+
+    const login = useCallback((user: AuthState['user'], permissions: string[]) => {
         authDispatch({ type: 'LOGIN', payload: { user, permissions } });
-    };
+    }, []);
 
-    const logout = () => {
+    const logout = useCallback(() => {
         authDispatch({ type: 'LOGOUT' });
-    };
+        // Clear any cached data
+        patientDispatch({ type: 'SET_PATIENTS', payload: [] });
+    }, []);
 
-    const updatePermissions = (permissions: string[]) => {
+    const updatePermissions = useCallback((permissions: string[]) => {
         authDispatch({ type: 'UPDATE_PERMISSIONS', payload: permissions });
-    };
+    }, []);
 
+    // ============================================================================
     // Patient Actions
-    const setPatients = (patients: Patient[]) => {
+    // ============================================================================
+
+    const setPatients = useCallback((patients: Patient[]) => {
         patientDispatch({ type: 'SET_PATIENTS', payload: patients });
-    };
+    }, []);
 
-    const setSelectedPatient = (patient: Patient | null) => {
+    const setSelectedPatient = useCallback((patient: Patient | null) => {
         patientDispatch({ type: 'SET_SELECTED_PATIENT', payload: patient });
-    };
+    }, []);
 
-    const setLoading = (loading: boolean) => {
+    const setLoading = useCallback((loading: boolean) => {
         patientDispatch({ type: 'SET_LOADING', payload: loading });
-    };
+    }, []);
 
-    const setError = (error: string | null) => {
+    const setError = useCallback((error: string | null) => {
         patientDispatch({ type: 'SET_ERROR', payload: error });
-    };
+    }, []);
 
-    const setCurrentPage = (page: number) => {
+    const setCurrentPage = useCallback((page: number) => {
         patientDispatch({ type: 'SET_CURRENT_PAGE', payload: page });
-    };
+    }, []);
 
-    const setFilters = (filters: Partial<PatientState['filters']>) => {
+    const setFilters = useCallback((filters: Partial<PatientState['filters']>) => {
         patientDispatch({ type: 'SET_FILTERS', payload: filters });
-    };
+    }, []);
 
-    const addPatient = (patient: Patient) => {
+    const addPatient = useCallback((patient: Patient) => {
         patientDispatch({ type: 'ADD_PATIENT', payload: patient });
-    };
+    }, []);
 
-    const updatePatient = (patient: Patient) => {
+    const updatePatient = useCallback((patient: Patient) => {
         patientDispatch({ type: 'UPDATE_PATIENT', payload: patient });
-    };
+    }, []);
 
-    const removePatient = (patientId: number) => {
+    const removePatient = useCallback((patientId: number) => {
         patientDispatch({ type: 'REMOVE_PATIENT', payload: patientId });
-    };
+    }, []);
 
+    // ============================================================================
     // UI Actions
-    const toggleSidebar = () => {
+    // ============================================================================
+
+    const toggleSidebar = useCallback(() => {
         uiDispatch({ type: 'TOGGLE_SIDEBAR' });
-    };
+    }, []);
 
-    const setTheme = (theme: 'light' | 'dark') => {
+    const setTheme = useCallback((theme: 'light' | 'dark' | 'system') => {
         uiDispatch({ type: 'SET_THEME', payload: theme });
-    };
+    }, []);
 
-    const addNotification = (notification: Omit<UIState['notifications'][0], 'id' | 'timestamp'>) => {
+    const addNotification = useCallback((notification: Omit<UIState['notifications'][0], 'id' | 'timestamp'>) => {
         uiDispatch({ type: 'ADD_NOTIFICATION', payload: notification });
-    };
+    }, []);
 
-    const removeNotification = (id: string) => {
+    const removeNotification = useCallback((id: string) => {
         uiDispatch({ type: 'REMOVE_NOTIFICATION', payload: id });
-    };
+    }, []);
 
-    const clearNotifications = () => {
+    const clearNotifications = useCallback(() => {
         uiDispatch({ type: 'CLEAR_NOTIFICATIONS' });
-    };
+    }, []);
 
-    const openModal = (modal: keyof UIState['modals']) => {
+    const openModal = useCallback((modal: keyof UIState['modals']) => {
         uiDispatch({ type: 'OPEN_MODAL', payload: modal });
-    };
+    }, []);
 
-    const closeModal = (modal: keyof UIState['modals']) => {
+    const closeModal = useCallback((modal: keyof UIState['modals']) => {
         uiDispatch({ type: 'CLOSE_MODAL', payload: modal });
-    };
+    }, []);
 
-    const toggleModal = (modal: keyof UIState['modals']) => {
+    const toggleModal = useCallback((modal: keyof UIState['modals']) => {
         uiDispatch({ type: 'TOGGLE_MODAL', payload: modal });
-    };
+    }, []);
 
-    const value: StoreContextType = {
+    // ============================================================================
+    // Memoized Context Value
+    // ============================================================================
+
+    const value = useMemo<StoreContextType>(() => ({
         auth: {
             state: authState,
             dispatch: authDispatch,
@@ -423,12 +463,39 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             closeModal,
             toggleModal,
         },
-    };
+    }), [
+        authState,
+        patientState,
+        uiState,
+        login,
+        logout,
+        updatePermissions,
+        setPatients,
+        setSelectedPatient,
+        setLoading,
+        setError,
+        setCurrentPage,
+        setFilters,
+        addPatient,
+        updatePatient,
+        removePatient,
+        toggleSidebar,
+        setTheme,
+        addNotification,
+        removeNotification,
+        clearNotifications,
+        openModal,
+        closeModal,
+        toggleModal,
+    ]);
 
     return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 };
 
+// ============================================================================
 // Custom Hooks
+// ============================================================================
+
 export const useAuthStore = () => {
     const context = useContext(StoreContext);
     if (context === undefined) {
@@ -453,7 +520,6 @@ export const useUIStore = () => {
     return context.ui;
 };
 
-// Combined store hook for complex operations
 export const useAppStore = () => {
     const context = useContext(StoreContext);
     if (context === undefined) {
