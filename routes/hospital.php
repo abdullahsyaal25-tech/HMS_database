@@ -44,6 +44,8 @@ Route::middleware(['web', 'auth'])->group(function () {
         
         // More specific routes MUST come before parameterized routes
         Route::get('/{patient}/edit', [PatientController::class, 'edit'])->name('patients.edit');
+        Route::post('/{patient}', [PatientController::class, 'update'])->name('patients.update.post')
+            ->middleware('check.permission:edit-patients');
         Route::put('/{patient}', [PatientController::class, 'update'])->name('patients.update')
             ->middleware('check.permission:edit-patients');
         Route::delete('/{patient}', [PatientController::class, 'destroy'])->name('patients.destroy')
@@ -61,8 +63,13 @@ Route::middleware(['web', 'auth'])->group(function () {
         
         // More specific routes MUST come before parameterized routes
         Route::get('/{doctor}/edit', [DoctorController::class, 'edit'])->name('doctors.edit');
+        Route::post('/{doctor}', [DoctorController::class, 'update'])->name('doctors.update.post');
         Route::put('/{doctor}', [DoctorController::class, 'update'])->name('doctors.update');
+        Route::post('/{doctor}/delete', [DoctorController::class, 'destroy'])->name('doctors.destroy.post');
         Route::delete('/{doctor}', [DoctorController::class, 'destroy'])->name('doctors.destroy');
+        
+        // Removed workaround route to prevent conflicts
+        // Route::put('/', [DoctorController::class, 'update'])->name('doctors.update.workaround');
         
         // General parameterized route MUST come last
         Route::get('/{doctor}', [DoctorController::class, 'show'])->name('doctors.show');
@@ -75,6 +82,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::post('/', [AppointmentController::class, 'store'])->name('appointments.store');
         Route::get('/{appointment}', [AppointmentController::class, 'show'])->name('appointments.show');
         Route::get('/{appointment}/edit', [AppointmentController::class, 'edit'])->name('appointments.edit');
+        Route::post('/{appointment}', [AppointmentController::class, 'update'])->name('appointments.update.post');
         Route::put('/{appointment}', [AppointmentController::class, 'update'])->name('appointments.update');
         Route::delete('/{appointment}', [AppointmentController::class, 'destroy'])->name('appointments.destroy');
     });

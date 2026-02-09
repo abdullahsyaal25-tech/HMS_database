@@ -72,7 +72,7 @@ trait HasPerformanceOptimization
     protected function getDepartments(): mixed
     {
         return $this->getCachedStaticData('departments', function () {
-            return \App\Models\Department::select('id', 'name', 'code')
+            return \App\Models\Department::select('id', 'name')
                 ->orderBy('name')
                 ->get();
         }, 120);
@@ -163,7 +163,7 @@ trait HasPerformanceOptimization
             'medicine' => ['id', 'name', 'generic_name', 'category_id', 'unit_price', 'stock_quantity'],
             'bill' => ['id', 'bill_id', 'patient_id', 'doctor_id', 'total_amount', 'payment_status', 'bill_date'],
             'appointment' => ['id', 'patient_id', 'doctor_id', 'appointment_date', 'status'],
-            'department' => ['id', 'name', 'code'],
+            'department' => ['id', 'name'],
             'supplier' => ['id', 'name', 'phone', 'email', 'status'],
         ];
 

@@ -68,7 +68,8 @@ export default function DoctorShow({ doctor }: DoctorShowProps) {
     const handleDelete = () => {
         if (confirm(`Are you sure you want to delete Dr. ${doctor.full_name}? This action cannot be undone.`)) {
             setIsDeleting(true);
-            router.delete(`/doctors/${doctor.id}`, {
+            router.visit(`/doctors/${doctor.id}/delete`, {
+                method: 'post',
                 onFinish: () => setIsDeleting(false),
             });
         }

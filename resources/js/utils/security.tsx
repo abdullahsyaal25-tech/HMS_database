@@ -3,6 +3,8 @@
  * Prevents XSS attacks and ensures data integrity
  */
 
+import React from 'react';
+
 // Basic HTML sanitization - removes potentially dangerous tags and attributes
 export function sanitizeHtml(html: string): string {
   if (!html || typeof html !== 'string') return ''
@@ -137,12 +139,12 @@ export function escapeHtml(text: string): string {
 export interface SafeHtmlProps {
   html: string
   className?: string
-  tagName?: keyof JSX.IntrinsicElements
+  tagName?: keyof React.JSX.IntrinsicElements
 }
 
-export function SafeHtml({ html, className, tagName = 'div' }: SafeHtmlProps): JSX.Element {
+export function SafeHtml({ html, className, tagName = 'div' }: SafeHtmlProps): React.ReactElement {
   const sanitizedHtml = sanitizeHtml(html)
-  const Tag = tagName
+  const Tag = tagName as React.ElementType
   
   return <Tag 
     className={className}

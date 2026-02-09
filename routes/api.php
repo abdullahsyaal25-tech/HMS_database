@@ -105,6 +105,3 @@ Route::prefix('v1')->group(function () {
 });
 
 
-Route::middleware(['auth:sanctum'])->prefix('billing')->group(function () {
-    Route::get('/all/items', [BillController::class, 'getAllItems']);
-});

@@ -193,6 +193,14 @@ class DoctorController extends Controller
     {
         $this->authorizeDoctorModify();
         
+        // Log for debugging
+        \Illuminate\Support\Facades\Log::info('Doctor update request received', [
+            'url' => $request->url(),
+            'method' => $request->method(),
+            'doctor_id' => $doctor->id,
+            'request_data' => $request->all(),
+        ]);
+        
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
             'father_name' => 'nullable|string|max:255',

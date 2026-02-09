@@ -51,19 +51,6 @@ function usePermissionChecker() {
     // More robust authentication check
     const isAuthenticated = !!(user && user.id);
     
-    // Debug logging in development
-    if (import.meta.env.DEV) {
-        console.log('Auth debug:', { 
-            authExists: !!auth, 
-            userExists: !!user, 
-            userId: user?.id,
-            userName: user?.name,
-            userRole: user?.role,
-            permissions: user?.permissions,
-            isAuthenticated 
-        });
-    }
-    
     const hasPermission = useCallback((permission: string): boolean => {
         // If user is not authenticated, deny all permission checks
         if (!isAuthenticated) {
@@ -82,8 +69,7 @@ function usePermissionChecker() {
         }
         
         // Also check if user has isSuperAdmin flag (snake_case from PHP)
-        // Using bracket notation to avoid TypeScript error since type doesn't include this property
-        if ((user as any)?.is_super_admin === true) {
+        if (user?.is_super_admin === true) {
             return true;
         }
         
@@ -98,20 +84,7 @@ const footerNavItems: NavItem[] = [
 ];
 
 export default function HospitalLayout({ header, children }: HospitalLayoutProps) {
-    const page = usePage();
-    const { hasPermission, isAuthenticated, user } = usePermissionChecker();
-    
-    // Debug logging in development
-    if (import.meta.env.DEV) {
-        console.log('HospitalLayout debug:', { 
-            pagePropsKeys: Object.keys(page.props),
-            authPropExists: 'auth' in page.props,
-            isAuthenticated,
-            userExists: !!user,
-            userId: user?.id,
-            userRole: user?.role
-        });
-    }
+    const { hasPermission, isAuthenticated } = usePermissionChecker();
     
     const filteredNavItems = useMemo(() => {
         const allNavItems: (NavItem & { permission?: string })[] = [

@@ -23,7 +23,6 @@ class HandleInertiaRequests extends Middleware
         try {
             return parent::version($request);
         } catch (\Exception $e) {
-            Log::warning('[HandleInertiaRequests] version() error: ' . $e->getMessage());
             return null;
         }
     }
@@ -38,17 +37,10 @@ class HandleInertiaRequests extends Middleware
         $userData = null;
         $user = $request->user();
         
-        Log::info('[HandleInertiaRequests] share() called:', [
-            'has_user' => !!$user,
-            'user_id' => $user?->id,
-            'session_exists' => $request->hasSession(),
-        ]);
-        
         // Check if session exists - handle session_not_found error
         try {
             $sessionId = $request->session()->getId();
         } catch (\Exception $e) {
-            Log::info('[HandleInertiaRequests] Session error: ' . $e->getMessage());
             $sessionId = null;
         }
         
@@ -63,14 +55,6 @@ class HandleInertiaRequests extends Middleware
                     'is_super_admin' => $user->isSuperAdmin(),
                     'permissions' => $this->getUserPermissions($user),
                 ];
-                
-                Log::info('[HandleInertiaRequests] User data prepared:', [
-                    'user_id' => $user->id,
-                    'role' => $user->role,
-                    'permissions_count' => count($userData['permissions']),
-                ]);
-            } else {
-                Log::info('[HandleInertiaRequests] User data NOT prepared - user or session missing');
             }
         } catch (\Exception $e) {
             Log::error('[HandleInertiaRequests] Error getting user data: ' . $e->getMessage());

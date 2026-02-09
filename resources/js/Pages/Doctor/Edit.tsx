@@ -1,4 +1,4 @@
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, useForm, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -46,7 +46,7 @@ interface DoctorEditProps {
 }
 
 export default function DoctorEdit({ doctor, departments = [] }: DoctorEditProps) {
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, processing, errors } = useForm({
         full_name: doctor.full_name,
         father_name: doctor.father_name || '',
         age: doctor.age || '',
@@ -64,19 +64,29 @@ export default function DoctorEdit({ doctor, departments = [] }: DoctorEditProps
         e.preventDefault();
         
         if (!doctor?.id) {
-            // Security: Use toast/notification system instead of alert in production
-            // alert is used here temporarily for error visibility
+            console.error('Doctor ID is missing:', doctor);
             alert('Error: Doctor ID is missing. Please refresh the page.');
             return;
         }
         
-        // Use the route helper to generate the correct URL
-        const updateUrl = route('doctors.update', doctor.id);
+        // Use relative URL with ID
+        const updateUrl = `/doctors/${doctor.id}`;
+        console.log('Submitting doctor update to:', updateUrl);
+        console.log('Form data being sent:', data);
         
-        put(updateUrl, {
+        // Use router.visit with explicit POST method and _method spoofing
+        router.visit(updateUrl, {
+            method: 'post',
+            data: {
+                ...data,
+                _method: 'PUT',
+            },
             preserveScroll: true,
+            onSuccess: () => {
+                console.log('Update successful');
+            },
             onError: (errors) => {
-                // Error handling done via Inertia error bag
+                console.error('Update failed:', errors);
             },
         });
     };

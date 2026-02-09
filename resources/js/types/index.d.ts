@@ -1,3 +1,5 @@
+import type React from 'react';
+
 export interface User {
     id: number;
     name: string;
@@ -22,10 +24,8 @@ export interface User {
 export interface NavItem {
     label?: string;
     title?: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    href: string | any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    icon?: any; // Icon component type
+    href: string;
+    icon?: React.ComponentType<{ className?: string }>;
     items?: NavItem[]; // Submenu items
     permission?: string; // Required permission to view this item
 }
@@ -41,8 +41,7 @@ export interface SharedData {
     auth: {
         user: User;
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export type PageProps<

@@ -158,9 +158,17 @@ export function BillItemManager({
 }: BillItemManagerProps) {
     const [showAddDialog, setShowAddDialog] = React.useState(false);
     const [selectedSource, setSelectedSource] = React.useState<ItemSourceOption['type'] | null>(null);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [_editingItem, setEditingItem] = React.useState<BillItemFormData | null>(null);
+    const [editingItem, setEditingItem] = React.useState<BillItemFormData | null>(null);
     const [searchTerm, setSearchTerm] = React.useState('');
+
+    // TODO: Implement edit functionality when needed
+    // The editingItem state is prepared for future edit feature
+    React.useEffect(() => {
+        if (editingItem) {
+            // Future: Populate form with editingItem data
+            setEditingItem(null);
+        }
+    }, [editingItem]);
 
     // Form state for manual entry
     const [manualForm, setManualForm] = React.useState<Partial<BillItemFormData>>({

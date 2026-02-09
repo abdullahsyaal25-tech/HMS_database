@@ -179,11 +179,7 @@ export default function Dashboard({
             shouldReconnect: () => true,
             reconnectInterval: 3000,
             reconnectAttempts: 10,
-            onError: (error) => {
-                if (import.meta.env.DEV) {
-                    // eslint-disable-next-line no-console
-                    console.error('WebSocket error:', error);
-                }
+            onError: () => {
                 setWsError('Live mode connection failed. Retrying...');
             },
             onOpen: () => {
@@ -214,11 +210,8 @@ export default function Dashboard({
                     clearTimeout(updateTimeoutRef.current);
                 }
                 updateTimeoutRef.current = setTimeout(() => setUpdated(false), 2000);
-            } catch (error) {
-                if (import.meta.env.DEV) {
-                    // eslint-disable-next-line no-console
-                    console.error('Failed to parse WebSocket message:', error);
-                }
+            } catch {
+                // Silently ignore parse errors
             }
         }
     }, [lastMessage]);

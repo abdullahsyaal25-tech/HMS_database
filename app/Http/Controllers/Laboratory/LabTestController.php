@@ -112,7 +112,7 @@ class LabTestController extends Controller
         $user = Auth::user();
 
         // Debug logging
-        \Log::debug('LabTestController index access attempt', [
+        \Log::info('Lab test index accessed', [
             'user_id' => $user->id,
             'username' => $user->username,
             'role' => $user->role,

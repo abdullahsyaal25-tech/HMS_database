@@ -1,4 +1,4 @@
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, useForm, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -46,7 +46,7 @@ interface AppointmentEditProps {
 }
 
 export default function AppointmentEdit({ appointment, patients, doctors }: AppointmentEditProps) {
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, processing, errors } = useForm({
         patient_id: appointment.patient_id.toString(),
         doctor_id: appointment.doctor_id.toString(),
         appointment_date: appointment.appointment_date,
@@ -59,7 +59,14 @@ export default function AppointmentEdit({ appointment, patients, doctors }: Appo
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(`/appointments/${appointment.id}`);
+        router.visit(`/appointments/${appointment.id}`, {
+            method: 'post',
+            data: {
+                ...data,
+                _method: 'PUT',
+            },
+            preserveScroll: true,
+        });
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
