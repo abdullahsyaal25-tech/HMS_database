@@ -1,4 +1,4 @@
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, useForm, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,7 +37,7 @@ interface DepartmentEditProps {
 }
 
 export default function DepartmentEdit({ department, doctors = [] }: DepartmentEditProps) {
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, processing, errors } = useForm({
         name: department.name,
         description: department.description || '',
         head_doctor_id: department.head_doctor_id?.toString() || '',
@@ -47,10 +47,31 @@ export default function DepartmentEdit({ department, doctors = [] }: DepartmentE
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(`/departments/${department.id}`, {
+        
+        if (!department?.id) {
+            console.error('Department ID is missing:', department);
+            alert('Error: Department ID is missing. Please refresh the page.');
+            return;
+        }
+        
+        // Use relative URL with ID
+        const updateUrl = `/departments/${department.id}`;
+        console.log('Submitting department update to:', updateUrl);
+        console.log('Form data being sent:', data);
+        
+        // Use router.visit with explicit POST method and _method spoofing
+        router.visit(updateUrl, {
+            method: 'post',
+            data: {
+                ...data,
+                _method: 'PUT',
+            },
             preserveScroll: true,
+            onSuccess: () => {
+                console.log('Update successful');
+            },
             onError: (errors) => {
-                console.error('Form submission errors:', errors);
+                console.error('Update failed:', errors);
             },
         });
     };

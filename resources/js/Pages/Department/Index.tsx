@@ -49,7 +49,10 @@ export default function DepartmentIndex({ departments }: DepartmentIndexProps) {
     const handleDelete = (id: number, name: string) => {
         if (confirm(`Are you sure you want to delete ${name}? This action cannot be undone.`)) {
             setDeletingId(id);
-            router.delete(`/departments/${id}`, {
+            // Use POST with _method spoofing instead of direct DELETE
+            router.post(`/departments/${id}`, {
+                _method: 'DELETE',
+            }, {
                 onFinish: () => setDeletingId(null),
             });
         }

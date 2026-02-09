@@ -38,7 +38,7 @@ interface BillEditProps {
 }
 
 export default function BillEdit({ bill, patients }: BillEditProps) {
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         patient_id: bill.patient_id.toString(),
         total_amount: bill.total_amount,
         discount: bill.discount,
@@ -47,11 +47,12 @@ export default function BillEdit({ bill, patients }: BillEditProps) {
         status: bill.status,
         due_date: bill.due_date,
         notes: bill.notes || '',
+        _method: 'put',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(`/billing/${bill.id}`);
+        post(`/billing/${bill.id}`);
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

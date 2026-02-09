@@ -109,7 +109,10 @@ export default function DepartmentShow({ department }: DepartmentShowProps) {
     const handleDelete = () => {
         if (confirm(`Are you sure you want to delete ${department.name}? This action cannot be undone.`)) {
             setIsDeleting(true);
-            router.delete(`/departments/${department.id}`, {
+            // Use POST with _method spoofing instead of direct DELETE
+            router.post(`/departments/${department.id}`, {
+                _method: 'DELETE',
+            }, {
                 onFinish: () => setIsDeleting(false),
             });
         }
