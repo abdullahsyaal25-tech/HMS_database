@@ -23,7 +23,9 @@ Route::get('/auth-status', function () {
     ]);
 });
 
-Route::get('/dashboard', [ReportController::class, 'dashboardStats'])->middleware(['auth'])->name('dashboard');
+use App\Http\Controllers\Dashboard\DashboardController;
+
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
 
 Route::get('/dashboard-redirect', function () {
     $user = Auth::user();

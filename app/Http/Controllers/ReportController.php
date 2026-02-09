@@ -23,15 +23,17 @@ use Carbon\Carbon;
 class ReportController extends Controller
 {
     protected StatsService $statsService;
+    protected \App\Services\DashboardService $dashboardService;
 
     /**
      * Maximum records for PDF exports to prevent memory issues.
      */
     protected int $maxExportRecords = 1000;
 
-    public function __construct(StatsService $statsService)
+    public function __construct(StatsService $statsService, \App\Services\DashboardService $dashboardService)
     {
         $this->statsService = $statsService;
+        $this->dashboardService = $dashboardService;
     }
 
     /**
@@ -261,7 +263,7 @@ class ReportController extends Controller
     /**
      * Get dashboard statistics with real data.
      */
-    public function dashboardStats()
+    public function dashboardStats(Request $request)
     {
         try {
             $user = Auth::user();
@@ -269,46 +271,40 @@ class ReportController extends Controller
             if (!$user->hasPermission('view-dashboard')) {
                 abort(403, 'Unauthorized access');
             }
-    
-            $today = now()->toDateString();
+
+            // Get period from request (today, week, month, year)
+            $period = $request->input('period', 'today');
             
-            // Calculate stats with optimized queries
-            $total_patients = Patient::count();
-            $total_doctors = Doctor::where('status', 'active')->count();
-            $appointments_today = Appointment::whereDate('appointment_date', $today)->count();
-            $revenue_today = Appointment::whereDate('appointment_date', $today)->sum('fee');
+            // Use the new comprehensive DashboardService
+            $dashboardData = $this->dashboardService->getDashboardStats($period);
             
-            // Get real recent activities from audit logs
-            $recent_activities = $this->getRecentActivities();
-            
-            // Get real monthly appointment data
-            $monthly_data = $this->getMonthlyAppointmentData();
-            
-            // Get real department distribution data
-            $department_data = $this->getDepartmentDistribution();
-            
-            return Inertia::render('Dashboard', [
-                'total_patients' => $total_patients,
-                'total_doctors' => $total_doctors,
-                'appointments_today' => $appointments_today,
-                'revenue_today' => floatval($revenue_today),
-                'recent_activities' => $recent_activities,
-                'monthly_data' => $monthly_data,
-                'department_data' => $department_data,
-            ]);
+            return Inertia::render('Dashboard', $dashboardData);
         } catch (\Exception $e) {
             Log::error('Error in dashboardStats: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
             
             return Inertia::render('Dashboard', [
-                'total_patients' => 0,
-                'total_doctors' => 0,
-                'appointments_today' => 0,
-                'revenue_today' => 0,
+                'summary' => [
+                    'total_patients' => 0,
+                    'new_patients' => 0,
+                    'total_doctors' => 0,
+                    'total_appointments' => 0,
+                    'completed_appointments' => 0,
+                    'total_revenue' => 0,
+                    'pending_bills' => 0,
+                    'outstanding_amount' => 0,
+                ],
+                'patients' => [],
+                'appointments' => [],
+                'financial' => [],
+                'pharmacy' => [],
+                'laboratory' => [],
+                'departments' => [],
                 'recent_activities' => [],
-                'monthly_data' => [],
-                'department_data' => [],
+                'trends' => [],
+                'period' => 'today',
+                'last_updated' => now()->toIso8601String(),
                 'error' => 'Unable to load dashboard data',
             ]);
         }

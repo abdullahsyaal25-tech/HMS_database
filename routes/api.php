@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Admin\PermissionsController;
 use App\Http\Controllers\Billing\BillController;
 use App\Http\Controllers\Billing\PaymentController;
+use App\Http\Controllers\Dashboard\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -87,6 +88,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [PaymentController::class, 'listAll']);
             Route::get('/{payment}', [PaymentController::class, 'show']);
             Route::post('/{payment}/refund', [PaymentController::class, 'refund']);
+        });
+
+        // Dashboard routes
+        Route::prefix('dashboard')->group(function () {
+            Route::get('/data', [DashboardController::class, 'data']);
+            Route::get('/realtime', [DashboardController::class, 'realtime']);
         });
 
         // Pharmacy routes
