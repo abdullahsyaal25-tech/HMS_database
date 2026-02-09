@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Heading from '@/components/heading';
+import LaboratoryLayout from '@/layouts/LaboratoryLayout';
 import { PriorityBadge } from '@/components/laboratory';
 import {
   ArrowLeft,
@@ -141,7 +142,16 @@ export default function LabTestRequestCreate({ patients, doctors }: LabTestReque
   const selectedPriority = priorityOptions.find(p => p.value === data.test_type);
 
   return (
-    <>
+    <LaboratoryLayout
+      header={
+        <div>
+          <Heading title="Create Lab Test Request" />
+          <p className="text-muted-foreground mt-1">
+            Submit a new laboratory test request for a patient
+          </p>
+        </div>
+      }
+    >
       <Head title="Create Lab Test Request" />
 
       <div className="space-y-6">
@@ -617,6 +627,6 @@ export default function LabTestRequestCreate({ patients, doctors }: LabTestReque
           </div>
         </form>
       </div>
-    </>
+    </LaboratoryLayout>
   );
 }

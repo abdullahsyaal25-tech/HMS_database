@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Heading from '@/components/heading';
+import LaboratoryLayout from '@/layouts/LaboratoryLayout';
 import {
   PriorityBadge,
   LabStatusBadge,
@@ -311,7 +312,16 @@ export default function LabTestRequestIndex({
   };
 
   return (
-    <>
+    <LaboratoryLayout
+      header={
+        <div>
+          <Heading title="Lab Test Requests" />
+          <p className="text-muted-foreground mt-1">
+            Manage and track laboratory test requests
+          </p>
+        </div>
+      }
+    >
       <Head title="Lab Test Requests" />
 
       <div className="space-y-6">
@@ -600,6 +610,6 @@ export default function LabTestRequestIndex({
           </div>
         )}
       </div>
-    </>
+    </LaboratoryLayout>
   );
 }

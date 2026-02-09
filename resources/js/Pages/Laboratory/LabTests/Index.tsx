@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { LabTestCard } from '@/components/laboratory/LabTestCard';
 import { FilterBar, type FilterConfig, type FilterState } from '@/components/laboratory/FilterBar';
 import Heading from '@/components/heading';
+import LaboratoryLayout from '@/layouts/LaboratoryLayout';
 import {
   Plus,
   FlaskConical,
@@ -157,7 +158,16 @@ export default function LabTestIndex({ labTests, query = '', status = '', catego
   });
 
   return (
-    <>
+    <LaboratoryLayout
+      header={
+        <div>
+          <Heading title="Lab Tests" />
+          <p className="text-muted-foreground mt-1">
+            Manage laboratory tests and procedures
+          </p>
+        </div>
+      }
+    >
       <Head title="Lab Tests" />
       
       <div className="space-y-6">
@@ -417,6 +427,6 @@ export default function LabTestIndex({ labTests, query = '', status = '', catego
           </div>
         )}
       </div>
-    </>
+    </LaboratoryLayout>
   );
 }

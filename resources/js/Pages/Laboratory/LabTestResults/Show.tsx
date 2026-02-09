@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import Heading from '@/components/heading';
-import HospitalLayout from '@/layouts/HospitalLayout';
+import LaboratoryLayout from '@/layouts/LaboratoryLayout';
 import { LabStatusBadge } from '@/components/laboratory';
 import {
   ArrowLeft,
@@ -210,7 +210,16 @@ export default function LabTestResultShow({
   };
 
   return (
-    <HospitalLayout>
+    <LaboratoryLayout
+      header={
+        <div>
+          <Heading title={`Lab Test Result: ${labTestResult.result_id}`} />
+          <p className="text-muted-foreground mt-1">
+            Full laboratory report
+          </p>
+        </div>
+      }
+    >
       <Head title={`Lab Test Result - ${labTestResult.result_id}`} />
 
       <div className="space-y-6 print:space-y-4">
@@ -704,6 +713,6 @@ export default function LabTestResultShow({
           </div>
         </div>
       </div>
-    </HospitalLayout>
+    </LaboratoryLayout>
   );
 }

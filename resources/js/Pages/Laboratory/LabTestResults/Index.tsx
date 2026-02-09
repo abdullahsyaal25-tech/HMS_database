@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import HospitalLayout from '@/layouts/HospitalLayout';
+import LaboratoryLayout from '@/layouts/LaboratoryLayout';
 
 interface Patient {
   id: number;
@@ -408,7 +408,16 @@ export default function LabTestResultIndex({
   };
 
   return (
-    <HospitalLayout>
+    <LaboratoryLayout
+      header={
+        <div>
+          <Heading title="Laboratory Test Results" />
+          <p className="text-muted-foreground mt-1">
+            View and manage patient lab test results
+          </p>
+        </div>
+      }
+    >
       <Head title="Lab Test Results" />
 
       <div className="space-y-6">
@@ -708,6 +717,6 @@ export default function LabTestResultIndex({
           </div>
         )}
       </div>
-    </HospitalLayout>
+    </LaboratoryLayout>
   );
 }

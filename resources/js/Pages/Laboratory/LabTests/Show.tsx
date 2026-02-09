@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Heading from '@/components/heading';
+import LaboratoryLayout from '@/layouts/LaboratoryLayout';
 import { 
   ArrowLeft, 
   Edit, 
@@ -142,7 +143,16 @@ export default function LabTestShow({ labTest, recentResults = [] }: LabTestShow
   const isActive = labTest.status === 'active';
 
   return (
-    <>
+    <LaboratoryLayout
+      header={
+        <div>
+          <Heading title={`Lab Test: ${labTest.test_id}`} />
+          <p className="text-muted-foreground mt-1">
+            View laboratory test details
+          </p>
+        </div>
+      }
+    >
       <Head title={`Lab Test - ${labTest.test_id}`} />
       
       <div className="space-y-6">
@@ -480,6 +490,6 @@ export default function LabTestShow({ labTest, recentResults = [] }: LabTestShow
           </Card>
         </div>
       </div>
-    </>
+    </LaboratoryLayout>
   );
 }

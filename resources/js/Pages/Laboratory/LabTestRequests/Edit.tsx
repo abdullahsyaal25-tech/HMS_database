@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import Heading from '@/components/heading';
+import LaboratoryLayout from '@/layouts/LaboratoryLayout';
 import { PriorityBadge, LabStatusBadge, RequestTimeline } from '@/components/laboratory';
 import {
   ArrowLeft,
@@ -217,7 +218,22 @@ export default function LabTestRequestEdit({ labTestRequest, patients, doctors }
   }, [labTestRequest]);
 
   return (
-    <>
+    <LaboratoryLayout
+      header={
+        <div className="flex items-center gap-4">
+          <div>
+            <Heading title={`Edit Request`} />
+            <p className="text-muted-foreground mt-1">
+              Request ID: <span className="font-mono">{labTestRequest.request_id}</span>
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <PriorityBadge priority={data.test_type} size="sm" />
+            <LabStatusBadge status={data.status} size="sm" animate />
+          </div>
+        </div>
+      }
+    >
       <Head title={`Edit Request - ${labTestRequest.request_id}`} />
 
       <div className="space-y-6">
@@ -856,6 +872,6 @@ export default function LabTestRequestEdit({ labTestRequest, patients, doctors }
           </div>
         </form>
       </div>
-    </>
+    </LaboratoryLayout>
   );
 }

@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Heading from '@/components/heading';
-import HospitalLayout from '@/layouts/HospitalLayout';
+import LaboratoryLayout from '@/layouts/LaboratoryLayout';
 import {
   ArrowLeft,
   Save,
@@ -221,7 +221,16 @@ export default function LabTestResultEdit({ labTestResult, patients, labTests, c
   const criticalCount = data.results.filter(r => r.status === 'critical').length;
 
   return (
-    <HospitalLayout>
+    <LaboratoryLayout
+      header={
+        <div>
+          <Heading title={`Edit Lab Test Result: ${labTestResult.result_id}`} />
+          <p className="text-muted-foreground mt-1">
+            {isVerified ? 'View verified result (read-only)' : 'Update test results and status'}
+          </p>
+        </div>
+      }
+    >
       <Head title={`Edit Lab Test Result - ${labTestResult.result_id}`} />
 
       <div className="space-y-6">
@@ -642,6 +651,6 @@ export default function LabTestResultEdit({ labTestResult, patients, labTests, c
           </div>
         </form>
       </div>
-    </HospitalLayout>
+    </LaboratoryLayout>
   );
 }

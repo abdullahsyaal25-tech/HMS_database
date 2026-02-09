@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import Heading from '@/components/heading';
+import LaboratoryLayout from '@/layouts/LaboratoryLayout';
 import { PriorityBadge, LabStatusBadge, RequestTimeline } from '@/components/laboratory';
 import {
   ArrowLeft,
@@ -193,7 +194,22 @@ export default function LabTestRequestShow({ labTestRequest }: LabTestRequestSho
   const contextualActions = getContextualActions();
 
   return (
-    <>
+    <LaboratoryLayout
+      header={
+        <div className="flex items-center gap-4 flex-wrap">
+          <div>
+            <Heading title={`Request Details`} />
+            <p className="text-muted-foreground mt-1">
+              Request ID: <span className="font-mono">{labTestRequest.request_id}</span>
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <PriorityBadge priority={labTestRequest.test_type} size="sm" animate={labTestRequest.test_type === 'stat'} />
+            <LabStatusBadge status={labTestRequest.status} size="sm" animate />
+          </div>
+        </div>
+      }
+    >
       <Head title={`Request - ${labTestRequest.request_id}`} />
 
       <div className="space-y-6">
@@ -728,6 +744,6 @@ export default function LabTestRequestShow({ labTestRequest }: LabTestRequestSho
           </div>
         </div>
       </div>
-    </>
+    </LaboratoryLayout>
   );
 }

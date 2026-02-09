@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import Heading from '@/components/heading';
+import LaboratoryLayout from '@/layouts/LaboratoryLayout';
 import { 
   ArrowLeft, 
   Save, 
@@ -162,7 +163,16 @@ export default function LabTestEdit({ labTest }: LabTestEditProps) {
   const selectedCategoryConfig = data.category ? categoryConfig[data.category] : null;
 
   return (
-    <>
+    <LaboratoryLayout
+      header={
+        <div>
+          <Heading title={`Edit Lab Test: ${labTest.test_id}`} />
+          <p className="text-muted-foreground mt-1">
+            Update laboratory test details
+          </p>
+        </div>
+      }
+    >
       <Head title={`Edit Lab Test - ${labTest.test_id}`} />
       
       <div className="space-y-6">
@@ -592,6 +602,6 @@ export default function LabTestEdit({ labTest }: LabTestEditProps) {
           </div>
         </form>
       </div>
-    </>
+    </LaboratoryLayout>
   );
 }

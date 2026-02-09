@@ -2,11 +2,18 @@ import { Head } from '@inertiajs/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FlaskConical } from 'lucide-react';
-import HospitalLayout from '@/layouts/HospitalLayout';
+import LaboratoryLayout from '@/layouts/LaboratoryLayout';
 
 export default function LabTestReportIndex() {
     return (
-        <HospitalLayout>
+        <LaboratoryLayout
+            header={
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900">Lab Test Reports</h1>
+                    <p className="text-gray-600 mt-2">View and generate laboratory test-related reports</p>
+                </div>
+            }
+        >
             <div className="min-h-screen bg-gray-50 p-4 md:p-8">
                 <Head title="Lab Test Reports" />
                 
@@ -46,6 +53,6 @@ export default function LabTestReportIndex() {
                     </Card>
                 </div>
             </div>
-        </HospitalLayout>
+        </LaboratoryLayout>
     );
 }

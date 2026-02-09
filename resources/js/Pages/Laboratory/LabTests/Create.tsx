@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import Heading from '@/components/heading';
+import LaboratoryLayout from '@/layouts/LaboratoryLayout';
 import {
   ArrowLeft,
   Save,
@@ -138,7 +139,16 @@ export default function LabTestCreate() {
   const CategoryIcon = selectedCategoryConfig?.icon || FlaskConical;
 
   return (
-    <>
+    <LaboratoryLayout
+      header={
+        <div>
+          <Heading title="Add New Lab Test" />
+          <p className="text-muted-foreground mt-1">
+            Create a new laboratory test with complete details
+          </p>
+        </div>
+      }
+    >
       <Head title="Add New Lab Test" />
       
       <div className="space-y-6">
@@ -558,6 +568,6 @@ export default function LabTestCreate() {
           </div>
         </form>
       </div>
-    </>
+    </LaboratoryLayout>
   );
 }

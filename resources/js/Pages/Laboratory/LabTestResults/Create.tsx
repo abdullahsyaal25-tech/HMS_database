@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Heading from '@/components/heading';
-import HospitalLayout from '@/layouts/HospitalLayout';
+import LaboratoryLayout from '@/layouts/LaboratoryLayout';
 import {
   ArrowLeft,
   Save,
@@ -280,7 +280,16 @@ export default function LabTestResultCreate({ patients, labTests, requests }: La
   };
 
   return (
-    <HospitalLayout>
+    <LaboratoryLayout
+      header={
+        <div>
+          <Heading title="Add New Lab Test Result" />
+          <p className="text-muted-foreground mt-1">
+            Enter test results with automatic flagging
+          </p>
+        </div>
+      }
+    >
       <Head title="Add New Lab Test Result" />
 
       <div className="space-y-6">
@@ -821,6 +830,6 @@ export default function LabTestResultCreate({ patients, labTests, requests }: La
           </Tabs>
         </form>
       </div>
-    </HospitalLayout>
+    </LaboratoryLayout>
   );
 }
