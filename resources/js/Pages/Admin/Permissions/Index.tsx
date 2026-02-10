@@ -129,15 +129,20 @@ export default function PermissionsIndex({
   // Save changes
   const handleSave = () => {
     setIsSaving(true);
-    router.put(`/admin/permissions/roles/${selectedRoleId}`, {
-      permissions: currentRolePerms
-    }, {
+    router.visit(`/admin/permissions/roles/${selectedRoleId}`, {
+      method: 'post',
+      data: {
+        _method: 'PUT',
+        permissions: currentRolePerms
+      },
+      preserveScroll: true,
       onSuccess: () => {
         setIsSaving(false);
         // Refresh mapping from props is handled by Inertia
       },
-      onError: () => {
+      onError: (errors) => {
         setIsSaving(false);
+        console.error('Failed to save permissions:', errors);
         alert('Failed to save permissions');
       }
     });

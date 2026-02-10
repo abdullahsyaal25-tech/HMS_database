@@ -187,10 +187,11 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/medicines/expired', [MedicineController::class, 'expired'])->name('pharmacy.medicines.expired');
         Route::get('/medicines/expiring-soon', [MedicineController::class, 'expiringSoon'])->name('pharmacy.medicines.expiring-soon');
 
-        Route::get('/medicines/{medicine}', [MedicineController::class, 'show'])->name('pharmacy.medicines.show');
+        // Edit route must come before show route to avoid being caught by route model binding
         Route::get('/medicines/{medicine}/edit', [MedicineController::class, 'edit'])->name('pharmacy.medicines.edit');
-        Route::put('/medicines/{medicine}', [MedicineController::class, 'update'])->name('pharmacy.medicines.update');
-        Route::delete('/medicines/{medicine}', [MedicineController::class, 'destroy'])->name('pharmacy.medicines.destroy');
+        Route::get('/medicines/{medicine}', [MedicineController::class, 'show'])->name('pharmacy.medicines.show');
+        Route::put('/medicines/{id}', [MedicineController::class, 'update'])->name('pharmacy.medicines.update');
+        Route::delete('/medicines/{id}', [MedicineController::class, 'destroy'])->name('pharmacy.medicines.destroy');
 
         // Stock Management Routes
         Route::get('/stock', [StockController::class, 'index'])->name('pharmacy.stock.index');

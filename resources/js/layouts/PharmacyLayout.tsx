@@ -21,13 +21,11 @@ import {
     AlertTriangle,
     ArrowRight,
     BarChart3,
-    ClipboardList,
     LayoutGrid,
     Package,
     Pill,
     Plus,
     ShoppingCart,
-    Truck,
     TrendingDown,
     AlertCircle,
 } from 'lucide-react';
@@ -162,45 +160,7 @@ const pharmacyNavItems: (NavItem & { permission?: string })[] = [
             },
         ],
     },
-    {
-        title: 'Purchase Orders',
-        href: '/pharmacy/purchase-orders',
-        icon: ClipboardList,
-        items: [
-            {
-                title: 'All Orders',
-                href: '/pharmacy/purchase-orders',
-                icon: ClipboardList,
-            },
-            {
-                title: 'New Order',
-                href: '/pharmacy/purchase-orders/create',
-                icon: Plus,
-            },
-            {
-                title: 'Receive Stock',
-                href: '/pharmacy/purchase-orders/receive',
-                icon: Package,
-            },
-        ],
-    },
-    {
-        title: 'Suppliers',
-        href: '/pharmacy/suppliers',
-        icon: Truck,
-        items: [
-            {
-                title: 'All Suppliers',
-                href: '/pharmacy/suppliers',
-                icon: Truck,
-            },
-            {
-                title: 'Add Supplier',
-                href: '/pharmacy/suppliers/create',
-                icon: Plus,
-            },
-        ],
-    },
+
     {
         title: 'Alerts',
         href: '/pharmacy/alerts',
@@ -251,13 +211,6 @@ const quickActions = [
         href: '/pharmacy/medicines/create',
         icon: Pill,
         color: 'bg-emerald-600 hover:bg-emerald-700',
-    },
-    {
-        id: 'purchase-order',
-        label: 'Purchase Order',
-        href: '/pharmacy/purchase-orders/create',
-        icon: ClipboardList,
-        color: 'bg-purple-600 hover:bg-purple-700',
     },
 ];
 

@@ -17,12 +17,9 @@ use App\Services\Billing\BillCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Http\RedirectResponse;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SalesController extends Controller
 {
@@ -142,6 +139,50 @@ class SalesController extends Controller
     }
 
     /**
+     * Show the dispense form for prescription sales.
+     */
+    public function dispense(): Response
+    {
+        $user = Auth::user();
+        
+        // Check if user has appropriate permission
+        if (!$user->hasPermission('create-sales')) {
+            abort(403, 'Unauthorized access');
+        }
+        
+        $medicines = Medicine::where('quantity', '>', 0)
+            ->with('category')
+            ->get();
+        
+        $patients = Patient::select('id', 'patient_id', 'first_name', 'father_name', 'phone')
+            ->orderBy('first_name')
+            ->get();
+        
+        // Get pending prescriptions - only if table exists
+        $prescriptions = [];
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('prescriptions')) {
+                $prescriptions = \App\Models\Prescription::where('status', 'pending')
+                    ->with(['patient', 'doctor', 'items.medicine'])
+                    ->get();
+            }
+        } catch (\Exception $e) {
+            // Prescriptions table doesn't exist, return empty array
+            $prescriptions = [];
+        }
+        
+        // Get tax rate from settings (default to 0)
+        $taxRate = config('pharmacy.tax_rate', 0);
+        
+        return Inertia::render('Pharmacy/Sales/Dispense', [
+            'medicines' => $medicines,
+            'patients' => $patients,
+            'prescriptions' => $prescriptions,
+            'taxRate' => $taxRate,
+        ]);
+    }
+
+    /**
      * Store a newly created sale in storage.
      */
     public function store(StoreSaleRequest $request)
@@ -155,11 +196,24 @@ class SalesController extends Controller
         
         $validated = $request->validated();
         
+        // Debug logging
+        Log::info('Sale creation started', [
+            'user_id' => $user->id,
+            'items_count' => count($validated['items'] ?? []),
+            'payment_method' => $validated['payment_method'] ?? 'none',
+        ]);
+        
         try {
             DB::beginTransaction();
             
             // Process the sale using SalesService
             $sale = $this->salesService->processSale($validated, $user->id);
+            
+            // Debug logging
+            Log::info('Sale processed successfully', [
+                'sale_id' => $sale->id,
+                'sale_code' => $sale->sale_id,
+            ]);
             
             // Log the activity
             $this->auditLogService->logActivity(
@@ -176,11 +230,20 @@ class SalesController extends Controller
             
             DB::commit();
             
+            Log::info('Sale transaction committed', ['sale_id' => $sale->id]);
+            
             return redirect()->route('pharmacy.sales.show', $sale->id)
                 ->with('success', 'Sale completed successfully.');
                 
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            // Log the error with full stack trace
+            Log::error('Sale creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'validated_data' => $validated,
+            ]);
             
             // Log the error
             $this->auditLogService->logActivity(
@@ -258,9 +321,9 @@ class SalesController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Void the specified sale.
      */
-    public function destroy(string $id)
+    public function void(string $id)
     {
         $user = Auth::user();
         

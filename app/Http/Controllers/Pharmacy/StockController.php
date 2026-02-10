@@ -269,7 +269,18 @@ class StockController extends Controller
                 $categoryValue = $items->sum(function ($item) {
                     return $item->stock_quantity * $item->unit_price;
                 });
-                
+
+                // Handle uncategorized medicines
+                if ($category === null) {
+                    $category = (object) [
+                        'id' => 0,
+                        'name' => 'Uncategorized',
+                        'description' => null,
+                        'created_at' => null,
+                        'updated_at' => null,
+                    ];
+                }
+
                 return [
                     'category' => $category,
                     'item_count' => $itemCount,

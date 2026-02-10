@@ -1,4 +1,4 @@
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, useForm, Link, router } from '@inertiajs/react';
 import PharmacyLayout from '@/layouts/PharmacyLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -47,7 +47,7 @@ const dosageForms = [
 ];
 
 export default function MedicineEdit({ medicine, categories }: MedicineEditProps) {
-  const { data, setData, put, processing, errors } = useForm({
+  const { data, setData, processing, errors } = useForm({
     name: medicine.name,
     medicine_id: medicine.medicine_id,
     description: medicine.description || '',
@@ -56,8 +56,11 @@ export default function MedicineEdit({ medicine, categories }: MedicineEditProps
     dosage_form: medicine.dosage_form || '',
     strength: medicine.strength || '',
     batch_number: medicine.batch_number || '',
-    barcode: '', // Add barcode field if needed
-    unit_price: medicine.unit_price,
+    barcode: medicine.barcode || '',
+    // Send both unit_price (for display) and sale_price/cost_price (for controller validation)
+    unit_price: Number(medicine.unit_price) || 0,
+    sale_price: Number(medicine.sale_price) || Number(medicine.unit_price) || 0,
+    cost_price: Number(medicine.cost_price) || Number(medicine.unit_price) || 0,
     stock_quantity: medicine.stock_quantity,
     reorder_level: medicine.reorder_level,
     expiry_date: medicine.expiry_date ? new Date(medicine.expiry_date).toISOString().split('T')[0] : '',
@@ -65,16 +68,51 @@ export default function MedicineEdit({ medicine, categories }: MedicineEditProps
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    put(`/pharmacy/medicines/${medicine.id}`);
+    
+    if (!medicine?.id) {
+      console.error('Medicine ID is missing:', medicine);
+      alert('Error: Medicine ID is missing. Please refresh the page.');
+      return;
+    }
+    
+    // Use relative URL with medicine ID
+    const updateUrl = `/pharmacy/medicines/${medicine.id}`;
+    console.log('Submitting medicine update to:', updateUrl);
+    console.log('Form data being sent:', data);
+    
+    // Use router.visit with explicit POST method and _method spoofing
+    router.visit(updateUrl, {
+      method: 'post',
+      data: {
+        ...data,
+        _method: 'PUT',
+      },
+      preserveScroll: true,
+      onSuccess: () => {
+        console.log('Update successful');
+      },
+      onError: (errors) => {
+        console.error('Update failed:', errors);
+      },
+    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setData(name as keyof typeof data, 
-      name === 'unit_price' ? parseFloat(value) || 0 : 
-      name === 'stock_quantity' || name === 'reorder_level' ? parseInt(value) || 0 : 
-      value
-    );
+    
+    if (name === 'unit_price') {
+      const priceValue = parseFloat(value) || 0;
+      // Sync unit_price with sale_price and cost_price for controller compatibility
+      setData('unit_price', priceValue);
+      setData('sale_price', priceValue);
+      setData('cost_price', priceValue);
+    } else if (name === 'stock_quantity' || name === 'reorder_level') {
+      // Ensure integer values for stock fields
+      const intValue = parseInt(value, 10) || 0;
+      setData(name as keyof typeof data, intValue);
+    } else {
+      setData(name as keyof typeof data, value);
+    }
   };
 
   const handleSelectChange = (name: string, value: string) => {

@@ -52,9 +52,9 @@ interface Patient {
     id: number;
     patient_id: string;
     first_name: string;
-    last_name: string;
+    father_name: string;
     phone?: string;
-    date_of_birth?: string;
+    age?: number;
 }
 
 interface PrescriptionItem {
@@ -118,11 +118,12 @@ export default function Dispense({ medicines, patients, prescriptions, taxRate =
     const filteredPatients = useMemo(() => {
         if (!patientSearchQuery.trim()) return patients.slice(0, 5);
         const query = patientSearchQuery.toLowerCase();
-        return patients.filter(p => 
-            p.first_name.toLowerCase().includes(query) ||
-            p.last_name.toLowerCase().includes(query) ||
-            p.patient_id.toLowerCase().includes(query)
-        ).slice(0, 5);
+        return patients.filter(p => {
+            const nameMatch = p.first_name?.toLowerCase().includes(query) ||
+                             p.father_name?.toLowerCase().includes(query);
+            const idMatch = p.patient_id?.toLowerCase().includes(query);
+            return nameMatch || idMatch;
+        }).slice(0, 5);
     }, [patients, patientSearchQuery]);
 
     // Filter prescriptions based on search
@@ -625,7 +626,7 @@ export default function Dispense({ medicines, patients, prescriptions, taxRate =
                                         <div className="flex items-start justify-between">
                                             <div>
                                                 <p className="font-medium">
-                                                    {selectedPatient.first_name} {selectedPatient.last_name}
+                                                    {selectedPatient.first_name} {selectedPatient.father_name || ''}
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">
                                                     {selectedPatient.patient_id}
@@ -635,9 +636,9 @@ export default function Dispense({ medicines, patients, prescriptions, taxRate =
                                                         {selectedPatient.phone}
                                                     </p>
                                                 )}
-                                                {selectedPatient.date_of_birth && (
+                                                {selectedPatient.age && (
                                                     <p className="text-sm text-muted-foreground">
-                                                        DOB: {formatDate(selectedPatient.date_of_birth)}
+                                                        Age: {selectedPatient.age}
                                                     </p>
                                                 )}
                                             </div>
@@ -674,7 +675,7 @@ export default function Dispense({ medicines, patients, prescriptions, taxRate =
                                                             <User className="h-4 w-4 text-muted-foreground" />
                                                             <div>
                                                                 <p className="font-medium text-sm">
-                                                                    {patient.first_name} {patient.last_name}
+                                                                    {patient.first_name} {patient.father_name}
                                                                 </p>
                                                                 <p className="text-xs text-muted-foreground">
                                                                     {patient.patient_id}
@@ -899,7 +900,7 @@ export default function Dispense({ medicines, patients, prescriptions, taxRate =
                                 {selectedPatient && (
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Patient</span>
-                                        <span>{selectedPatient.first_name} {selectedPatient.last_name}</span>
+                                        <span>{selectedPatient.first_name} {selectedPatient.father_name}</span>
                                     </div>
                                 )}
                                 {selectedPrescription && (

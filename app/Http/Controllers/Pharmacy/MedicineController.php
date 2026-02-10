@@ -55,15 +55,27 @@ class MedicineController extends Controller
      */
     private function sanitizeInput(array $data): array
     {
+        // Helper to convert value to integer (handles strings like "10.00")
+        $toInt = function ($value, $default = 0) {
+            if (is_numeric($value)) {
+                return (int) floatval($value);
+            }
+            return $default;
+        };
+
         return [
             'name' => htmlspecialchars(strip_tags($data['name'] ?? ''), ENT_QUOTES, 'UTF-8'),
             'description' => htmlspecialchars(strip_tags($data['description'] ?? ''), ENT_QUOTES, 'UTF-8'),
             'manufacturer' => htmlspecialchars(strip_tags($data['manufacturer'] ?? ''), ENT_QUOTES, 'UTF-8'),
             'batch_number' => htmlspecialchars(strip_tags($data['batch_number'] ?? ''), ENT_QUOTES, 'UTF-8'),
-            'unit' => htmlspecialchars(strip_tags($data['unit'] ?? ''), ENT_QUOTES, 'UTF-8'),
-            'category_id' => filter_var($data['category_id'] ?? null, FILTER_VALIDATE_INT),
-            'price' => filter_var($data['price'] ?? 0, FILTER_VALIDATE_FLOAT),
-            'quantity' => filter_var($data['quantity'] ?? 0, FILTER_VALIDATE_INT),
+            'strength' => htmlspecialchars(strip_tags($data['strength'] ?? ''), ENT_QUOTES, 'UTF-8'),
+            'medicine_id' => htmlspecialchars(strip_tags($data['medicine_id'] ?? ''), ENT_QUOTES, 'UTF-8'),
+            'barcode' => htmlspecialchars(strip_tags($data['barcode'] ?? ''), ENT_QUOTES, 'UTF-8'),
+            'category_id' => $toInt($data['category_id'] ?? null),
+            'cost_price' => filter_var($data['cost_price'] ?? 0, FILTER_VALIDATE_FLOAT) ?: 0,
+            'sale_price' => filter_var($data['sale_price'] ?? 0, FILTER_VALIDATE_FLOAT) ?: 0,
+            'stock_quantity' => $toInt($data['stock_quantity'] ?? 0),
+            'reorder_level' => $toInt($data['reorder_level'] ?? 10, 10),
         ];
     }
 
@@ -169,14 +181,18 @@ class MedicineController extends Controller
         
         $validated = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
+            'medicine_id' => 'required|string|max:100|unique:medicines,medicine_id',
             'category_id' => 'required|exists:medicine_categories,id',
             'description' => 'nullable|string|max:5000',
-            'price' => 'required|numeric|min:0',
-            'quantity' => 'required|integer|min:0',
-            'unit' => 'required|string|max:50',
-            'manufacturer' => 'nullable|string|max:255',
+            'cost_price' => 'required|numeric|min:0',
+            'sale_price' => 'required|numeric|min:0',
+            'stock_quantity' => 'required|integer|min:0',
+            'reorder_level' => 'required|integer|min:0',
+            'manufacturer' => 'required|string|max:255',
+            'strength' => 'nullable|string|max:100',
             'expiry_date' => 'required|date',
             'batch_number' => 'required|string|max:100',
+            'barcode' => 'nullable|string|max:100',
         ]);
         
         if ($validated->fails()) {
@@ -184,19 +200,27 @@ class MedicineController extends Controller
         }
         
         // Sanitize input data
-        $sanitized = $this->sanitizeInput($validated->validated());
+        $sanitized = $this->sanitizeInput($request->all());
         
-        DB::transaction(function () use ($sanitized, $validated) {
+        DB::transaction(function () use ($sanitized, $request) {
             Medicine::create([
                 'name' => $sanitized['name'],
+                'medicine_id' => $sanitized['medicine_id'],
+                'medicine_code' => $sanitized['medicine_id'], // Use medicine_id as medicine_code
                 'category_id' => $sanitized['category_id'],
                 'description' => $sanitized['description'],
-                'price' => $sanitized['price'],
-                'quantity' => $sanitized['quantity'],
-                'unit' => $sanitized['unit'],
+                'cost_price' => $sanitized['cost_price'],
+                'sale_price' => $sanitized['sale_price'],
+                'unit_price' => $sanitized['sale_price'], // Map sale_price to unit_price for compatibility
+                'stock_quantity' => $sanitized['stock_quantity'],
+                'quantity' => $sanitized['stock_quantity'], // Map stock_quantity to quantity for compatibility
+                'reorder_level' => $sanitized['reorder_level'],
                 'manufacturer' => $sanitized['manufacturer'],
-                'expiry_date' => $validated->validated()['expiry_date'],
+                'strength' => $sanitized['strength'],
+                'expiry_date' => $request->input('expiry_date'),
                 'batch_number' => $sanitized['batch_number'],
+                'barcode' => $sanitized['barcode'],
+                'form' => $request->input('dosage_form'), // Map dosage_form to form
             ]);
         });
         
@@ -278,14 +302,18 @@ class MedicineController extends Controller
         
         $validated = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
+            'medicine_id' => 'required|string|max:100|unique:medicines,medicine_id,' . $medicine->id,
             'category_id' => 'required|exists:medicine_categories,id',
             'description' => 'nullable|string|max:5000',
-            'price' => 'required|numeric|min:0',
-            'quantity' => 'required|integer|min:0',
-            'unit' => 'required|string|max:50',
-            'manufacturer' => 'nullable|string|max:255',
+            'cost_price' => 'required|numeric|min:0',
+            'sale_price' => 'required|numeric|min:0',
+            'stock_quantity' => 'required|integer|min:0',
+            'reorder_level' => 'required|integer|min:0',
+            'manufacturer' => 'required|string|max:255',
+            'strength' => 'nullable|string|max:100',
             'expiry_date' => 'required|date',
             'batch_number' => 'required|string|max:100',
+            'barcode' => 'nullable|string|max:100',
         ]);
         
         if ($validated->fails()) {
@@ -293,19 +321,26 @@ class MedicineController extends Controller
         }
         
         // Sanitize input data
-        $sanitized = $this->sanitizeInput($validated->validated());
+        $sanitized = $this->sanitizeInput($request->all());
         
-        DB::transaction(function () use ($medicine, $sanitized, $validated) {
+        DB::transaction(function () use ($medicine, $sanitized, $request) {
             $medicine->update([
                 'name' => $sanitized['name'],
+                'medicine_id' => $sanitized['medicine_id'],
                 'category_id' => $sanitized['category_id'],
                 'description' => $sanitized['description'],
-                'price' => $sanitized['price'],
-                'quantity' => $sanitized['quantity'],
-                'unit' => $sanitized['unit'],
+                'cost_price' => $sanitized['cost_price'],
+                'sale_price' => $sanitized['sale_price'],
+                'unit_price' => $sanitized['sale_price'], // Map sale_price to unit_price for compatibility
+                'stock_quantity' => $sanitized['stock_quantity'],
+                'quantity' => $sanitized['stock_quantity'], // Map stock_quantity to quantity for compatibility
+                'reorder_level' => $sanitized['reorder_level'],
                 'manufacturer' => $sanitized['manufacturer'],
-                'expiry_date' => $validated->validated()['expiry_date'],
+                'strength' => $sanitized['strength'],
+                'expiry_date' => $request->input('expiry_date'),
                 'batch_number' => $sanitized['batch_number'],
+                'barcode' => $sanitized['barcode'],
+                'form' => $request->input('dosage_form'), // Map dosage_form to form
             ]);
         });
         

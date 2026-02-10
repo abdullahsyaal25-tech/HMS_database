@@ -211,14 +211,14 @@ export default function Valuation({
                             <div className="space-y-4">
                                 {categoryBreakdown.length > 0 ? (
                                     categoryBreakdown.map((item, index) => (
-                                        <div key={item.category.id} className="space-y-2">
+                                        <div key={item.category?.id ?? index} className="space-y-2">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
                                                     <div className={cn(
                                                         'w-3 h-3 rounded-full',
                                                         categoryColors[index % categoryColors.length]
                                                     )} />
-                                                    <span className="font-medium">{item.category.name}</span>
+                                                    <span className="font-medium">{item.category?.name ?? 'Uncategorized'}</span>
                                                     <Badge variant="secondary" className="text-xs">
                                                         {item.item_count} items
                                                     </Badge>

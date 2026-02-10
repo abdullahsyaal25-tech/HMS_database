@@ -85,7 +85,20 @@ export default function MedicineShow({ medicine, recentSales, stockHistory }: Me
 
   const handleDelete = () => {
     if (confirm('Are you sure you want to delete this medicine? This action cannot be undone.')) {
-      router.delete(`/pharmacy/medicines/${medicine.id}`);
+      // Use router.visit with POST method and _method spoofing to avoid 405 errors
+      router.visit(`/pharmacy/medicines/${medicine.id}`, {
+        method: 'post',
+        data: {
+          _method: 'DELETE',
+        },
+        onSuccess: () => {
+          console.log('Medicine deleted successfully');
+        },
+        onError: (errors) => {
+          console.error('Delete failed:', errors);
+          alert('Failed to delete medicine. Please try again.');
+        },
+      });
     }
   };
 

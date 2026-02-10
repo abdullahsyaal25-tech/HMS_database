@@ -110,7 +110,7 @@ class DashboardController extends Controller
         $activities = [];
 
         // Recent sales
-        $recentSales = Sale::with('user')
+        $recentSales = Sale::with('soldBy')
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get()
@@ -119,7 +119,7 @@ class DashboardController extends Controller
                     'id' => $sale->id,
                     'type' => 'sale',
                     'description' => "Sale #{$sale->sale_id} - " . number_format($sale->total_amount, 2),
-                    'user' => $sale->user->name ?? 'Unknown',
+                    'user' => $sale->soldBy->name ?? 'Unknown',
                     'created_at' => $sale->created_at->toISOString(),
                 ];
             });

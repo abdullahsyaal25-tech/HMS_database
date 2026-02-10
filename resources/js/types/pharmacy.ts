@@ -239,13 +239,12 @@ export interface StockMovement {
 export interface MedicineAlert {
     id: number;
     medicine_id: number;
-    type: 'low_stock' | 'expired' | 'expiring_soon';
-    severity: 'low' | 'medium' | 'high' | 'critical';
+    alert_type: 'low_stock' | 'expired' | 'expiring_soon' | 'low_stock_expiring';
+    priority: 'low' | 'medium' | 'high' | 'critical';
     message: string;
     status: 'pending' | 'resolved';
-    is_resolved: boolean;
-    resolved_at: string | null;
-    resolved_by: number | null;
+    is_read?: boolean;
+    triggered_at?: string | null;
     created_at: string;
     updated_at: string;
     medicine?: Medicine;

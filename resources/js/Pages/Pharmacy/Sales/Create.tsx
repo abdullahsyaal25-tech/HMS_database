@@ -50,7 +50,7 @@ interface Patient {
     id: number;
     patient_id: string;
     first_name: string;
-    last_name: string;
+    father_name: string;
     phone?: string;
 }
 
@@ -98,7 +98,7 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
         const query = patientSearchQuery.toLowerCase();
         return patients.filter(p => 
             p.first_name.toLowerCase().includes(query) ||
-            p.last_name.toLowerCase().includes(query) ||
+            p.father_name.toLowerCase().includes(query) ||
             p.patient_id.toLowerCase().includes(query)
         ).slice(0, 5);
     }, [patients, patientSearchQuery]);
@@ -182,7 +182,7 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
             id: Date.now(), // Temporary ID
             patient_id: `TMP-${Date.now()}`,
             first_name: quickPatient.first_name,
-            last_name: quickPatient.last_name,
+            father_name: quickPatient.last_name,
             phone: quickPatient.phone,
         };
         setSelectedPatient(newPatient);
@@ -375,7 +375,7 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
                                         <div className="flex items-start justify-between">
                                             <div>
                                                 <p className="font-medium">
-                                                    {selectedPatient.first_name} {selectedPatient.last_name}
+                                                    {selectedPatient.first_name} {selectedPatient.father_name}
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">
                                                     {selectedPatient.patient_id}
@@ -419,7 +419,7 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
                                                             <User className="h-4 w-4 text-muted-foreground" />
                                                             <div>
                                                                 <p className="font-medium text-sm">
-                                                                    {patient.first_name} {patient.last_name}
+                                                                    {patient.first_name} {patient.father_name}
                                                                 </p>
                                                                 <p className="text-xs text-muted-foreground">
                                                                     {patient.patient_id}
@@ -696,7 +696,7 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
                                 {selectedPatient && (
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Customer</span>
-                                        <span>{selectedPatient.first_name} {selectedPatient.last_name}</span>
+                                        <span>{selectedPatient.first_name} {selectedPatient.father_name}</span>
                                     </div>
                                 )}
                             </div>
