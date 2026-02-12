@@ -38,23 +38,42 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user();
         
         // Check if session exists - handle session_not_found error
+        $sessionId = null;
         try {
             $sessionId = $request->session()->getId();
         } catch (\Exception $e) {
+            Log::warning('[HandleInertiaRequests] Failed to get session ID: ' . $e->getMessage());
             $sessionId = null;
         }
         
+        Log::debug('[HandleInertiaRequests] Share method', [
+            'has_user' => !!$user,
+            'user_id' => $user?->id,
+            'session_id' => $sessionId,
+        ]);
+        
         try {
-            if ($user && $sessionId) {
+            // Only check for user, not sessionId - the user being authenticated is enough
+            if ($user) {
+                // Load roleModel to get proper role name
+                $user->loadMissing('roleModel');
+                
                 $userData = [
                     'id' => $user->id,
                     'name' => $user->name,
                     'username' => $user->username,
-                    'role' => $user->role,
+                    'role' => $user->roleModel?->name ?? $user->role,
                     'role_id' => $user->role_id,
                     'is_super_admin' => $user->isSuperAdmin(),
                     'permissions' => $this->getUserPermissions($user),
                 ];
+                Log::debug('[HandleInertiaRequests] User data prepared', [
+                    'user_id' => $user->id,
+                    'is_super_admin' => $userData['is_super_admin'],
+                    'permissions_count' => count($userData['permissions']),
+                ]);
+            } else {
+                Log::debug('[HandleInertiaRequests] No user found in request');
             }
         } catch (\Exception $e) {
             Log::error('[HandleInertiaRequests] Error getting user data: ' . $e->getMessage());

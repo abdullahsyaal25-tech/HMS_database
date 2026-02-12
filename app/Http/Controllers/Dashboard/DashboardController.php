@@ -44,6 +44,15 @@ class DashboardController extends Controller
             // Get comprehensive dashboard data
             $dashboardData = $this->dashboardService->getDashboardStats($period);
             
+            // Get admin activities and stats for admin users
+            $adminData = [];
+            if ($user->isSuperAdmin() || $user->hasPermission('view-admin-activities')) {
+                $adminData = [
+                    'admin_activities' => $this->dashboardService->getAdminActivities(20),
+                    'admin_stats' => $this->dashboardService->getAdminStats(),
+                ];
+            }
+            
             // Debug: Log what we're sending to the frontend
             Log::info('DashboardController - Data being sent:', [
                 'summary' => $dashboardData['summary'] ?? 'missing',
@@ -51,7 +60,7 @@ class DashboardController extends Controller
                 'has_data' => !empty($dashboardData['summary']['total_patients']),
             ]);
 
-            return Inertia::render('Dashboard', $dashboardData);
+            return Inertia::render('Dashboard', array_merge($dashboardData, $adminData));
         } catch (\Exception $e) {
             Log::error('Dashboard index error: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),

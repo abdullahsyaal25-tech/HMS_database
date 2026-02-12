@@ -34,18 +34,39 @@ class UserController extends Controller
                 abort(401, 'Authentication required');
             }
             
-            $adminRoles = ['Super Admin', 'Sub Super Admin', 'Reception Admin', 'Laboratory Admin', 'Pharmacy Admin'];
-$users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_at')
-                         ->whereIn('role', $adminRoles)
-                         ->orderBy('id', 'asc') // Add explicit ordering to prevent potential issues
-                         ->paginate(10);
+            // Super Admin can see all users, otherwise filter by admin roles
+            if ($currentUser->isSuperAdmin()) {
+                $users = User::with('roleModel')
+                             ->orderBy('id', 'asc')
+                             ->paginate(10);
+            } else {
+                $adminRoles = ['Super Admin', 'Sub Super Admin', 'Reception Admin', 'Laboratory Admin', 'Pharmacy Admin'];
+                $users = User::with('roleModel')
+                             ->whereIn('role', $adminRoles)
+                             ->orderBy('id', 'asc')
+                             ->paginate(10);
+            }
+            
+            // Transform users to include proper role name from roleModel
+            $users->getCollection()->transform(function ($user) {
+                $user->role = $user->roleModel?->name ?? $user->role;
+                return $user;
+            });
 
             Log::debug('User query executed successfully', ['user_count' => $users->count()]);
 
             return Inertia::render('Admin/Users/Index', [
                 'users' => $users,
                 'auth' => [
-                    'user' => $currentUser,
+                    'user' => [
+                        'id' => $currentUser->id,
+                        'name' => $currentUser->name,
+                        'username' => $currentUser->username,
+                        'role' => $currentUser->role,
+                        'role_id' => $currentUser->role_id,
+                        'is_super_admin' => $currentUser->isSuperAdmin(),
+                        'permissions' => $this->getUserPermissions($currentUser),
+                    ],
                 ],
             ]);
         } catch (\Exception $e) {
@@ -989,6 +1010,66 @@ $users = User::select('id', 'name', 'username', 'role', 'created_at', 'updated_a
         return array_unique(array_merge($dbRoles, $defaultRoles));
     }
     
+    /**
+     * Get user permissions for auth data.
+     */
+    private function getUserPermissions($user): array
+    {
+        if (!$user) {
+            return [];
+        }
+        
+        $permissions = [];
+        
+        // Super Admin has all permissions
+        if ($user->isSuperAdmin()) {
+            $allPermissions = Permission::all();
+            foreach ($allPermissions as $permission) {
+                $permissions[] = $permission->name;
+            }
+            return $permissions;
+        }
+        
+        // Check normalized role permissions first
+        if ($user->role_id && $user->roleModel) {
+            $normalizedRolePermissions = $user->roleModel->permissions()->pluck('name');
+            foreach ($normalizedRolePermissions as $permissionName) {
+                $permissions[] = $permissionName;
+            }
+        }
+        
+        // Fallback: Check legacy role_permissions table
+        $legacyRolePermissions = RolePermission::where('role', $user->role)
+            ->join('permissions', 'role_permissions.permission_id', '=', 'permissions.id')
+            ->select('permissions.name')
+            ->get();
+            
+        foreach ($legacyRolePermissions as $permission) {
+            if (!in_array($permission->name, $permissions)) {
+                $permissions[] = $permission->name;
+            }
+        }
+        
+        // Get user-specific permissions (overrides)
+        $userPermissions = $user->userPermissions()->with('permission')->get();
+        
+        foreach ($userPermissions as $userPermission) {
+            $permissionName = $userPermission->permission->name;
+            
+            if ($userPermission->allowed) {
+                if (!in_array($permissionName, $permissions)) {
+                    $permissions[] = $permissionName;
+                }
+            } else {
+                $permissions = array_filter($permissions, function($perm) use ($permissionName) {
+                    return $perm !== $permissionName;
+                });
+            }
+        }
+        
+        return $permissions;
+    }
+
     /**
      * Get all available roles with their IDs.
      * Used for proper role assignment with role_id.

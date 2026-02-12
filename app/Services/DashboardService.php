@@ -416,6 +416,78 @@ class DashboardService
     }
 
     /**
+     * Get admin activities for dashboard
+     */
+    public function getAdminActivities(int $limit = 20): array
+    {
+        return AuditLog::with('user')
+            ->select('id', 'user_id', 'user_name', 'user_role', 'action', 'description', 'module', 'severity', 'logged_at', 'ip_address')
+            ->orderBy('logged_at', 'desc')
+            ->limit($limit)
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'id' => $log->id,
+                    'user_name' => $log->user_name ?? 'System',
+                    'user_role' => $log->user_role ?? 'System',
+                    'action' => $log->action,
+                    'description' => $log->description ?? $log->action,
+                    'module' => $log->module ?? 'system',
+                    'severity' => $log->severity ?? 'low',
+                    'time' => $log->logged_at->diffForHumans(),
+                    'timestamp' => $log->logged_at->toIso8601String(),
+                    'ip_address' => $log->ip_address,
+                ];
+            })
+            ->toArray();
+    }
+
+    /**
+     * Get admin user statistics
+     */
+    public function getAdminStats(): array
+    {
+        $adminRoles = ['Super Admin', 'Sub Super Admin', 'Hospital Admin', 'Reception Admin', 'Pharmacy Admin', 'Laboratory Admin'];
+        
+        // Get admin users with their activity counts
+        $adminUsers = \App\Models\User::whereIn('role', $adminRoles)
+            ->orWhereHas('roleModel', function ($query) use ($adminRoles) {
+                $query->whereIn('name', $adminRoles);
+            })
+            ->withCount(['auditLogs' => function ($query) {
+                $query->where('logged_at', '>=', now()->subDays(7));
+            }])
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'role' => $user->roleModel?->name ?? $user->role,
+                    'last_login' => $user->last_login_at?->diffForHumans() ?? 'Never',
+                    'activity_count' => $user->audit_logs_count,
+                    'is_online' => $user->last_login_at && $user->last_login_at->gt(now()->subMinutes(30)),
+                ];
+            });
+
+        // Get activity by module for last 7 days
+        $activityByModule = AuditLog::where('logged_at', '>=', now()->subDays(7))
+            ->select('module', DB::raw('COUNT(*) as count'))
+            ->groupBy('module')
+            ->pluck('count', 'module')
+            ->toArray();
+
+        return [
+            'total_admins' => $adminUsers->count(),
+            'online_admins' => $adminUsers->where('is_online', true)->count(),
+            'admin_users' => $adminUsers->toArray(),
+            'activity_by_module' => $activityByModule,
+            'total_activities_24h' => AuditLog::where('logged_at', '>=', now()->subDay())->count(),
+            'total_activities_7d' => AuditLog::where('logged_at', '>=', now()->subDays(7))->count(),
+        ];
+    }
+
+    /**
      * Get trends data for charts
      */
     protected function getTrendsData(): array
