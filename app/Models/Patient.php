@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
 use App\Models\Appointment;
 use App\Models\Bill;
@@ -11,6 +12,8 @@ use App\Models\LabTestResult;
 
 class Patient extends Model
 {
+    use HasFactory;
+
     /**
      * Get the route key for the model.
      */

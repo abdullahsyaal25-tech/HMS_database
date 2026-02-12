@@ -59,34 +59,9 @@ class UserFactory extends Factory
             'nurse_hospital'
         ];
         
-        // Try to get an existing user from the database to use their data
-        $existingUser = User::inRandomOrder()->first();
-        
-        if ($existingUser) {
-            // Use real data from existing user if available, otherwise fallback to predefined data
-            $name = $existingUser->name;
-            $username = $existingUser->username . '_new'; // Add suffix to ensure uniqueness
-            
-            // Ensure unique username by adding a random number if it already exists
-            $counter = 1;
-            $originalUsername = $username;
-            while (User::where('username', $username)->exists()) {
-                $username = preg_replace('/(_new.*)/', '_new' . $counter . '$1', $originalUsername);
-                $counter++;
-            }
-        } else {
-            // Use predefined real names and usernames
-            $name = $this->getRandomElement($realNames);
-            $username = $this->getRandomElement($realUsernames);
-            
-            // Ensure unique username by adding a random number if it already exists
-            $counter = 1;
-            $originalUsername = $username;
-            while (User::where('username', $username)->exists()) {
-                $username = preg_replace('/(_hospital.*)/', $counter . '$1', $originalUsername);
-                $counter++;
-            }
-        }
+        // Use predefined real names and usernames with unique suffix
+        $name = $this->getRandomElement($realNames);
+        $username = $this->getRandomElement($realUsernames) . '_' . Str::random(8);
         
         return [
             'name' => $name,

@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Patient;
 use App\Models\Doctor;
 use App\Models\Department;
 
 class Appointment extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'appointment_id',
         'patient_id',

@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\MedicineCategory;
 use App\Models\SalesItem;
 use App\Models\MedicineAlert;
 
 class Medicine extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'medicine_id',
         'medicine_code',
