@@ -217,7 +217,7 @@ function FormInput({
 }: FormInputProps) {
   const { setFieldValue, setFieldTouched, errors, touched, values } = useFormContext()
   const hasError = touched[name] && errors[name]
-  const value = values[name] || ''
+  const value = (values[name] as string | number | undefined) ?? ''
 
   return (
     <FormField
@@ -273,7 +273,7 @@ function FormSelect({
 }: FormSelectProps) {
   const { setFieldValue, setFieldTouched, errors, touched, values } = useFormContext()
   const hasError = touched[name] && errors[name]
-  const value = values[name] || ''
+  const value = (values[name] as string | number | undefined) ?? ''
 
   return (
     <FormField
@@ -336,7 +336,7 @@ function FormTextarea({
 }: FormTextareaProps) {
   const { setFieldValue, setFieldTouched, errors, touched, values } = useFormContext()
   const hasError = touched[name] && errors[name]
-  const value = values[name] || ''
+  const value = (values[name] as string | undefined) ?? ''
 
   return (
     <FormField
@@ -388,7 +388,7 @@ function FormCheckbox({
 }: FormCheckboxProps) {
   const { setFieldValue, setFieldTouched, errors, touched, values } = useFormContext()
   const hasError = touched[name] && errors[name]
-  const checked = values[name] || false
+  const checked = (values[name] as boolean | undefined) ?? false
 
   return (
     <FormField

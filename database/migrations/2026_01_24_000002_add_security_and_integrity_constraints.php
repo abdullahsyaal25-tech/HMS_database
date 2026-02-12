@@ -137,15 +137,21 @@ return new class extends Migration
         }
 
         Schema::table('bills', function (Blueprint $table) {
-            $table->dropIndex('idx_bills_patient_status');
+            if (Schema::hasIndex('bills', 'idx_bills_patient_status')) {
+                $table->dropIndex('idx_bills_patient_status');
+            }
         });
 
         Schema::table('appointments', function (Blueprint $table) {
-            $table->dropIndex('idx_appointments_status_date');
+            if (Schema::hasIndex('appointments', 'idx_appointments_status_date')) {
+                $table->dropIndex('idx_appointments_status_date');
+            }
         });
 
         Schema::table('user_permissions', function (Blueprint $table) {
-            $table->dropIndex('idx_user_perm_lookup');
+            if (Schema::hasIndex('user_permissions', 'idx_user_perm_lookup')) {
+                $table->dropIndex('idx_user_perm_lookup');
+            }
         });
 
         Schema::table('patients', function (Blueprint $table) {
@@ -170,14 +176,6 @@ return new class extends Migration
      */
     private function indexExists(string $table, string $indexName): bool
     {
-        $indexes = DB::select("
-            SELECT INDEX_NAME
-            FROM information_schema.STATISTICS
-            WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = ?
-            AND INDEX_NAME = ?
-        ", [$table, $indexName]);
-
-        return !empty($indexes);
+        return Schema::hasIndex($table, $indexName);
     }
 };

@@ -10,7 +10,7 @@ interface AppShellProps {
 export function AppShell({ children, variant = 'header' }: AppShellProps) {
     // Get sidebar state from props with default value
     const pageProps = usePage<SharedData>().props;
-    const isOpen = pageProps.sidebarOpen !== undefined ? pageProps.sidebarOpen : true;
+    const isOpen = typeof pageProps.sidebarOpen === 'boolean' ? pageProps.sidebarOpen : true;
 
     if (variant === 'header') {
         return (

@@ -66,29 +66,39 @@ return new class extends Migration
     public function down(): void
     {
         // Drop indexes for patients table
-        Schema::table('patients', function (Blueprint $table) {
-            $table->dropIndex('idx_patients_patient_id');
-            $table->dropIndex('idx_patients_user_created');
-        });
+        $this->safeDropIndex('patients', 'idx_patients_patient_id');
+        $this->safeDropIndex('patients', 'idx_patients_user_created');
 
         // Drop indexes for bills table
-        Schema::table('bills', function (Blueprint $table) {
-            $table->dropIndex('idx_bills_patient_status');
-            $table->dropIndex('idx_bills_bill_number');
-            $table->dropIndex('idx_bills_creator_created');
-        });
+        $this->safeDropIndex('bills', 'idx_bills_patient_status');
+        $this->safeDropIndex('bills', 'idx_bills_bill_number');
+        $this->safeDropIndex('bills', 'idx_bills_creator_created');
 
         // Drop indexes for appointments table
-        Schema::table('appointments', function (Blueprint $table) {
-            $table->dropIndex('idx_appts_patient_date');
-            $table->dropIndex('idx_appts_doctor_status');
-        });
+        $this->safeDropIndex('appointments', 'idx_appts_patient_date');
+        $this->safeDropIndex('appointments', 'idx_appts_doctor_status');
 
         // Drop indexes for audit_logs table
-        Schema::table('audit_logs', function (Blueprint $table) {
-            $table->dropIndex('idx_audit_user_action');
-            $table->dropIndex('idx_audit_logged_at');
-        });
+        $this->safeDropIndex('audit_logs', 'idx_audit_user_action');
+        $this->safeDropIndex('audit_logs', 'idx_audit_logged_at');
+    }
+
+    /**
+     * Safely drop an index if it exists and is not needed by foreign keys
+     */
+    private function safeDropIndex(string $table, string $indexName): void
+    {
+        if (!Schema::hasIndex($table, $indexName)) {
+            return;
+        }
+
+        try {
+            Schema::table($table, function (Blueprint $table) use ($indexName) {
+                $table->dropIndex($indexName);
+            });
+        } catch (\Exception $e) {
+            // Index may be needed by a foreign key constraint - ignore error
+        }
     }
 
     /**
@@ -96,14 +106,6 @@ return new class extends Migration
      */
     private function indexExists(string $table, string $indexName): bool
     {
-        $indexes = DB::select("
-            SELECT INDEX_NAME
-            FROM information_schema.STATISTICS
-            WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = ?
-            AND INDEX_NAME = ?
-        ", [$table, $indexName]);
-
-        return !empty($indexes);
+        return Schema::hasIndex($table, $indexName);
     }
 };

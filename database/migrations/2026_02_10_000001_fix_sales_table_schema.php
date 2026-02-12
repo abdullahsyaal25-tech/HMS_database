@@ -52,8 +52,10 @@ return new class extends Migration
             }
         });
 
-        // Update status enum to allow more values
-        DB::statement("ALTER TABLE sales MODIFY COLUMN status ENUM('pending', 'completed', 'cancelled', 'refunded') DEFAULT 'completed'");
+        // Update status enum to allow more values (MySQL only)
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE sales MODIFY COLUMN status ENUM('pending', 'completed', 'cancelled', 'refunded') DEFAULT 'completed'");
+        }
     }
 
     /**
@@ -66,7 +68,8 @@ return new class extends Migration
                 $table->renameColumn('sale_id', 'invoice_number');
             }
 
-            $table->dropForeign(['patient_id']);
+            // Drop foreign keys safely
+            $this->safeDropForeignKey('sales', 'patient_id');
             $table->unsignedBigInteger('patient_id')->nullable(false)->change();
             $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade');
 
@@ -75,7 +78,7 @@ return new class extends Migration
             }
 
             if (Schema::hasColumn('sales', 'prescription_id')) {
-                $table->dropForeign(['prescription_id']);
+                $this->safeDropForeignKey('sales', 'prescription_id');
                 $table->dropColumn('prescription_id');
             }
 
@@ -84,7 +87,7 @@ return new class extends Migration
             }
 
             if (Schema::hasColumn('sales', 'voided_by')) {
-                $table->dropForeign(['voided_by']);
+                $this->safeDropForeignKey('sales', 'voided_by');
                 $table->dropColumn('voided_by');
             }
 
@@ -97,6 +100,52 @@ return new class extends Migration
             }
         });
 
-        DB::statement("ALTER TABLE sales MODIFY COLUMN status ENUM('active', 'cancelled') DEFAULT 'active'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE sales MODIFY COLUMN status ENUM('active', 'cancelled') DEFAULT 'active'");
+        }
+    }
+
+    /**
+     * Safely drop a foreign key if it exists
+     */
+    private function safeDropForeignKey(string $table, string $column): void
+    {
+        try {
+            $foreignKeys = $this->getForeignKeys($table);
+            $foreignKeyName = $table . '_' . $column . '_foreign';
+            
+            if (in_array($foreignKeyName, $foreignKeys)) {
+                Schema::table($table, function (Blueprint $table) use ($column) {
+                    $table->dropForeign([$column]);
+                });
+            }
+        } catch (\Exception $e) {
+            // Foreign key doesn't exist or other error - ignore
+        }
+    }
+
+    /**
+     * Get list of foreign key names for a table
+     */
+    private function getForeignKeys(string $table): array
+    {
+        $driver = DB::getDriverName();
+        
+        if ($driver === 'mysql') {
+            $results = DB::select("
+                SELECT CONSTRAINT_NAME 
+                FROM information_schema.TABLE_CONSTRAINTS 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                AND TABLE_NAME = ? 
+                AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+            ", [$table]);
+        } elseif ($driver === 'sqlite') {
+            $results = DB::select("PRAGMA foreign_key_list($table)");
+            return array_map(fn($r) => 'fk_' . $r->table . '_' . $r->from, $results);
+        } else {
+            return [];
+        }
+        
+        return array_map(fn($r) => $r->CONSTRAINT_NAME, $results);
     }
 };

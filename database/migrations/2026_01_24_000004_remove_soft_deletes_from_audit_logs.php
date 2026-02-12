@@ -46,14 +46,6 @@ return new class extends Migration
      */
     private function indexExists(string $table, string $indexName): bool
     {
-        $indexes = DB::select("
-            SELECT INDEX_NAME
-            FROM information_schema.STATISTICS
-            WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = ?
-            AND INDEX_NAME = ?
-        ", [$table, $indexName]);
-
-        return !empty($indexes);
+        return Schema::hasIndex($table, $indexName);
     }
 };

@@ -46,6 +46,7 @@ export enum PaymentMethod {
   BANK_TRANSFER = 'bank_transfer',
   ONLINE = 'online',
   MOBILE_PAYMENT = 'mobile_payment',
+  INSURANCE = 'insurance',
 }
 
 /**
@@ -273,6 +274,9 @@ export interface Bill {
   payments?: Payment[];
   refunds?: BillRefund[];
   status_history?: BillStatusHistory[];
+  insurance_claims?: InsuranceClaim[];
+  primary_insurance?: PatientInsurance;
+  insurance_claim_amount?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -508,6 +512,69 @@ export interface PaymentMethodConfig {
 }
 
 /**
+ * Claim status enum for insurance claims
+ */
+export enum ClaimStatus {
+  PENDING = 'pending',
+  SUBMITTED = 'submitted',
+  IN_REVIEW = 'in_review',
+  APPROVED = 'approved',
+  PARTIAL_APPROVED = 'partial_approved',
+  DENIED = 'denied',
+  APPEALED = 'appealed',
+  SETTLED = 'settled',
+}
+
+/**
+ * Patient insurance interface
+ */
+export interface PatientInsurance {
+  id: number;
+  patient_id: number;
+  provider_name: string;
+  policy_number: string;
+  group_number?: string;
+  insurance_type: 'primary' | 'secondary';
+  effective_date?: string;
+  expiration_date?: string;
+  copay_amount?: number;
+  deductible_amount?: number;
+  is_active: boolean;
+}
+
+/**
+ * Insurance claim interface
+ */
+export interface InsuranceClaim {
+  id: number;
+  bill_id: number;
+  bill?: Bill;
+  insurance_id: number;
+  insurance?: PatientInsurance;
+  claim_number: string;
+  claim_amount: number;
+  approved_amount?: number;
+  patient_responsibility?: number;
+  status: ClaimStatus;
+  submitted_date?: string;
+  approved_date?: string;
+  denial_reason?: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Insurance claim form data
+ */
+export interface InsuranceClaimFormData {
+  bill_id: number;
+  insurance_id: number;
+  claim_amount: number;
+  notes?: string;
+}
+
+/**
  * Bill summary calculations
  */
 export interface BillCalculations {
@@ -519,6 +586,8 @@ export interface BillCalculations {
   totalAmount: number;
   amountPaid: number;
   balanceDue: number;
+  insuranceClaimAmount?: number;
+  patientResponsibility?: number;
 }
 
 /**

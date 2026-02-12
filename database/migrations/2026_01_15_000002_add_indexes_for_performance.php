@@ -14,90 +14,88 @@ return new class extends Migration
     {
         // Appointments table indexes
         Schema::table('appointments', function (Blueprint $table) {
-            if (!$this->indexExists('appointments', 'idx_appointments_patient_date')) {
+            if (!Schema::hasIndex('appointments', 'idx_appointments_patient_date')) {
                 $table->index(['patient_id', 'appointment_date'], 'idx_appointments_patient_date');
             }
-            if (!$this->indexExists('appointments', 'idx_appointments_doctor_date')) {
+            if (!Schema::hasIndex('appointments', 'idx_appointments_doctor_date')) {
                 $table->index(['doctor_id', 'appointment_date'], 'idx_appointments_doctor_date');
             }
-            if (!$this->indexExists('appointments', 'idx_appointments_dept_status')) {
+            if (!Schema::hasIndex('appointments', 'idx_appointments_dept_status')) {
                 $table->index(['department_id', 'status'], 'idx_appointments_dept_status');
             }
-            if (!$this->indexExists('appointments', 'idx_appointments_date')) {
+            if (!Schema::hasIndex('appointments', 'idx_appointments_date')) {
                 $table->index('appointment_date', 'idx_appointments_date');
             }
         });
 
         // Bills table indexes
         Schema::table('bills', function (Blueprint $table) {
-            if (!$this->indexExists('bills', 'idx_bills_patient_date')) {
+            if (!Schema::hasIndex('bills', 'idx_bills_patient_date')) {
                 $table->index(['patient_id', 'bill_date'], 'idx_bills_patient_date');
             }
-            if (!$this->indexExists('bills', 'idx_bills_status_created')) {
+            if (!Schema::hasIndex('bills', 'idx_bills_status_created')) {
                 $table->index(['payment_status', 'created_at'], 'idx_bills_status_created');
             }
-            if (!$this->indexExists('bills', 'idx_bills_date')) {
+            if (!Schema::hasIndex('bills', 'idx_bills_date')) {
                 $table->index('bill_date', 'idx_bills_date');
             }
         });
 
         // Doctors table indexes
         Schema::table('doctors', function (Blueprint $table) {
-            if (!$this->indexExists('doctors', 'idx_doctors_user')) {
+            if (!Schema::hasIndex('doctors', 'idx_doctors_user')) {
                 $table->index('user_id', 'idx_doctors_user');
             }
-            if (!$this->indexExists('doctors', 'idx_doctors_dept')) {
+            if (!Schema::hasIndex('doctors', 'idx_doctors_dept')) {
                 $table->index('department_id', 'idx_doctors_dept');
             }
-            if (!$this->indexExists('doctors', 'idx_doctors_status')) {
+            if (!Schema::hasIndex('doctors', 'idx_doctors_status')) {
                 $table->index('status', 'idx_doctors_status');
             }
         });
 
         // Patients table indexes
         Schema::table('patients', function (Blueprint $table) {
-            if (!$this->indexExists('patients', 'idx_patients_user')) {
+            if (!Schema::hasIndex('patients', 'idx_patients_user')) {
                 $table->index('user_id', 'idx_patients_user');
             }
-            if (!$this->indexExists('patients', 'idx_patients_name')) {
+            if (!Schema::hasIndex('patients', 'idx_patients_name')) {
                 $table->index('first_name', 'idx_patients_name');
             }
         });
 
         // Medicines table indexes
         Schema::table('medicines', function (Blueprint $table) {
-            if (!$this->indexExists('medicines', 'idx_medicines_category')) {
-                $table->index('category_id', 'idx_medicines_category'); // Assuming added later
+            if (!Schema::hasIndex('medicines', 'idx_medicines_category')) {
+                $table->index('category_id', 'idx_medicines_category');
             }
-            if (!$this->indexExists('medicines', 'idx_medicines_expiry')) {
+            if (!Schema::hasIndex('medicines', 'idx_medicines_expiry')) {
                 $table->index('expiry_date', 'idx_medicines_expiry');
             }
-            if (!$this->indexExists('medicines', 'idx_medicines_status')) {
+            if (!Schema::hasIndex('medicines', 'idx_medicines_status')) {
                 $table->index('status', 'idx_medicines_status');
             }
         });
 
         // Lab tests and results
         Schema::table('lab_test_results', function (Blueprint $table) {
-            if (!$this->indexExists('lab_test_results', 'idx_lab_results_patient_date')) {
+            if (!Schema::hasIndex('lab_test_results', 'idx_lab_results_patient_date')) {
                 $table->index(['patient_id', 'created_at'], 'idx_lab_results_patient_date');
             }
-            if (!$this->indexExists('lab_test_results', 'idx_lab_results_test')) {
+            if (!Schema::hasIndex('lab_test_results', 'idx_lab_results_test')) {
                 $table->index('test_id', 'idx_lab_results_test');
             }
         });
 
-        // Sales and purchase orders
+        // Sales indexes
         Schema::table('sales', function (Blueprint $table) {
-            if (!$this->indexExists('sales', 'idx_sales_patient')) {
+            if (!Schema::hasIndex('sales', 'idx_sales_patient')) {
                 $table->index('patient_id', 'idx_sales_patient');
             }
-            if (!$this->indexExists('sales', 'idx_sales_date')) {
+            if (!Schema::hasIndex('sales', 'idx_sales_date')) {
                 $table->index('created_at', 'idx_sales_date');
             }
         });
-
-        // Sales indexes already added above
     }
 
     /**
@@ -106,58 +104,50 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('appointments', function (Blueprint $table) {
-            $table->dropIndex('idx_appointments_patient_date');
-            $table->dropIndex('idx_appointments_doctor_date');
-            $table->dropIndex('idx_appointments_dept_status');
-            $table->dropIndex('idx_appointments_date');
+            // Skip dropping indexes with FK columns - they are required by FK constraints
+            // patient_id FK from constrained() in 2026_01_01_211733_create_appointments_table.php
+            // doctor_id FK from constrained() in 2026_01_01_211733_create_appointments_table.php
+            // department_id FK from constrained() in 2026_01_01_211733_create_appointments_table.php
+            if (Schema::hasIndex('appointments', 'idx_appointments_date')) {
+                $table->dropIndex('idx_appointments_date');
+            }
         });
 
-        Schema::table('bills', function (Blueprint $table) {
-            $table->dropIndex('idx_bills_patient_date');
-            $table->dropIndex('idx_bills_status_created');
-            $table->dropIndex('idx_bills_date');
-        });
+        // Skip dropping bills indexes - they may be needed by foreign keys
+        // from later migrations and will be handled there
 
         Schema::table('doctors', function (Blueprint $table) {
-            $table->dropIndex('idx_doctors_user');
-            $table->dropIndex('idx_doctors_dept');
-            $table->dropIndex('idx_doctors_status');
+            // Skip dropping idx_doctors_user - it's required by the FK constraint
+            // on user_id created in 2026_01_01_211650_create_doctors_table.php
+            // Skip dropping idx_doctors_dept - it's required by the FK constraint
+            // on department_id created in 2026_01_15_000001_add_foreign_key_constraint_to_doctors_table.php
+            if (Schema::hasIndex('doctors', 'idx_doctors_status')) {
+                $table->dropIndex('idx_doctors_status');
+            }
         });
 
         Schema::table('patients', function (Blueprint $table) {
-            $table->dropIndex('idx_patients_user');
-            $table->dropIndex('idx_patients_name');
+            // Skip dropping idx_patients_user - it's required by the FK constraint
+            // on user_id created in 2026_01_01_211629_create_patients_table.php
+            if (Schema::hasIndex('patients', 'idx_patients_name')) {
+                $table->dropIndex('idx_patients_name');
+            }
         });
 
         Schema::table('medicines', function (Blueprint $table) {
-            $table->dropIndex('idx_medicines_category');
-            $table->dropIndex('idx_medicines_expiry');
-            $table->dropIndex('idx_medicines_status');
+            // Skip dropping idx_medicines_category - it may be required by FK constraints
+            if (Schema::hasIndex('medicines', 'idx_medicines_expiry')) {
+                $table->dropIndex('idx_medicines_expiry');
+            }
+            if (Schema::hasIndex('medicines', 'idx_medicines_status')) {
+                $table->dropIndex('idx_medicines_status');
+            }
         });
 
         Schema::table('lab_test_results', function (Blueprint $table) {
-            $table->dropIndex('idx_lab_results_patient_date');
-            $table->dropIndex('idx_lab_results_test');
+            // Skip dropping idx_lab_results_patient_date - it may be required by FK constraints
+            // Skip dropping idx_lab_results_test - it may be required by FK constraints
         });
 
-        Schema::table('sales', function (Blueprint $table) {
-            $table->dropIndex('idx_sales_patient');
-            $table->dropIndex('idx_sales_date');
-        });
-
-        // Sales indexes already removed above
-    }
-
-    private function indexExists(string $table, string $indexName): bool
-    {
-        $indexes = DB::select("
-            SELECT INDEX_NAME
-            FROM information_schema.STATISTICS
-            WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = ?
-            AND INDEX_NAME = ?
-        ", [$table, $indexName]);
-
-        return !empty($indexes);
     }
 };
