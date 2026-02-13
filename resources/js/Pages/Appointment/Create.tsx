@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import Heading from '@/components/heading';
 import HospitalLayout from '@/layouts/HospitalLayout';
-import { ArrowLeft, Save, Calendar as CalendarIcon, User, Stethoscope, Percent, DollarSign, Users, Building2 } from 'lucide-react';
+import { ArrowLeft, Save, Calendar as CalendarIcon, User, Stethoscope, Percent, Users, Building2 } from 'lucide-react';
 
 interface Patient {
     id: number;
@@ -296,7 +296,7 @@ export default function AppointmentCreate({ patients, doctors, departments }: Ap
                         <Card className="shadow-lg border-t-4 border-t-amber-500">
                             <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
                                 <CardTitle className="flex items-center gap-2 text-xl">
-                                    <DollarSign className="h-6 w-6 text-amber-600" />
+                                    <span className="text-2xl font-bold text-amber-600">؋</span>
                                     Fee & Discount
                                 </CardTitle>
                                 <CardDescription className="text-base">Consultation fee and applicable discount</CardDescription>
@@ -307,7 +307,7 @@ export default function AppointmentCreate({ patients, doctors, departments }: Ap
                                     <div className="space-y-2">
                                         <Label htmlFor="fee" className="text-base font-semibold">Consultation Fee *</Label>
                                         <div className="relative">
-                                            <DollarSign className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                                            <span className="absolute left-3 top-3 text-lg font-bold text-muted-foreground">؋</span>
                                             <Input
                                                 id="fee"
                                                 name="fee"
@@ -358,7 +358,7 @@ export default function AppointmentCreate({ patients, doctors, departments }: Ap
                                     <div className="space-y-2">
                                         <Label className="text-base font-semibold">Final Amount *</Label>
                                         <div className="flex items-center h-12 px-4 py-3 border-2 border-amber-500 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 shadow-sm">
-                                            <DollarSign className="h-6 w-6 mr-2 text-amber-600" />
+                                            <span className="text-2xl font-bold mr-2 text-amber-600">؋</span>
                                             <span className="font-bold text-2xl text-amber-700">{calculateFinalFee()}</span>
                                         </div>
                                         <p className="text-xs text-muted-foreground">💰 Amount after discount</p>

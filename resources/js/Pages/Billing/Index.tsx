@@ -26,7 +26,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import Heading from '@/components/heading';
 import {
-    DollarSign,
     Calendar,
     User,
     PlusCircle,
@@ -39,17 +38,16 @@ import {
     Filter,
     X,
     TrendingUp,
-    TrendingDown,
     Clock,
     AlertCircle,
 } from 'lucide-react';
-import { useState, useMemo, useCallback } from 'react';
+import { useState,  useCallback } from 'react';
 import HospitalLayout from '@/layouts/HospitalLayout';
 import { BillStatusBadge } from '@/components/billing/BillStatusBadge';
 import { CurrencyDisplay } from '@/components/billing/CurrencyDisplay';
 import { BillStatus, PaymentStatus, type Bill, type BillFilters } from '@/types/billing';
 import { cn } from '@/lib/utils';
-import { format, parseISO, isAfter, isBefore, isWithinInterval } from 'date-fns';
+import { format, parseISO, isAfter} from 'date-fns';
 
 interface BillIndexProps {
     bills: {

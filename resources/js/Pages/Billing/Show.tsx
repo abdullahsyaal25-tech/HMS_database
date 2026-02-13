@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Heading from '@/components/heading';
-import { FileText, DollarSign, Calendar, User, ArrowLeft, Pencil } from 'lucide-react';
+import { FileText, Calendar, User, ArrowLeft, Pencil } from 'lucide-react';
 
 interface Patient {
     id: number;
@@ -142,7 +142,7 @@ export default function BillShow({ bill }: BillShowProps) {
                                     <div>
                                         <h3 className="text-sm font-medium text-muted-foreground">Total Amount</h3>
                                         <div className="flex items-center pt-1">
-                                            <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
+                                            <span className="mr-2 h-4 w-4 text-muted-foreground">؋</span>
                                             <span className="text-lg font-semibold">{formatCurrency(bill.total_amount)}</span>
                                         </div>
                                     </div>
@@ -150,7 +150,7 @@ export default function BillShow({ bill }: BillShowProps) {
                                     <div>
                                         <h3 className="text-sm font-medium text-muted-foreground">Net Amount</h3>
                                         <div className="flex items-center pt-1">
-                                            <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
+                                            <span className="mr-2 h-4 w-4 text-muted-foreground">؋</span>
                                             <span className="text-lg font-semibold">{formatCurrency(bill.net_amount)}</span>
                                         </div>
                                     </div>
@@ -159,17 +159,17 @@ export default function BillShow({ bill }: BillShowProps) {
                                 <div className="grid grid-cols-3 gap-4">
                                     <div>
                                         <h3 className="text-sm font-medium text-muted-foreground">Discount</h3>
-                                        <p>{formatCurrency(bill.discount)}</p>
+                                        <span className="mr-2 h-4 w-4 text-muted-foreground">؋</span>
                                     </div>
                                     
                                     <div>
                                         <h3 className="text-sm font-medium text-muted-foreground">Tax</h3>
-                                        <p>{formatCurrency(bill.tax)}</p>
+                                        <span className="mr-2 h-4 w-4 text-muted-foreground">؋</span>
                                     </div>
                                     
                                     <div>
                                         <h3 className="text-sm font-medium text-muted-foreground">Balance</h3>
-                                        <p>{formatCurrency(bill.net_amount)}</p>
+                                        <span className="mr-2 h-4 w-4 text-muted-foreground">؋</span>
                                     </div>
                                 </div>
                                 

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Heading from '@/components/heading';
-import { ArrowLeft, Save, DollarSign, Calendar as CalendarIcon } from 'lucide-react';
+import { ArrowLeft, Save, Calendar as CalendarIcon } from 'lucide-react';
 import { useEffect } from 'react';
 
 interface Patient {
@@ -144,7 +144,7 @@ export default function BillEdit({ bill, patients }: BillEditProps) {
                                 <div className="space-y-2">
                                     <Label htmlFor="total_amount">Total Amount *</Label>
                                     <div className="relative">
-                                        <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                     <span className="text-2xl font-bold text-amber-600">؋</span>
                                         <Input
                                             id="total_amount"
                                             name="total_amount"
@@ -164,7 +164,7 @@ export default function BillEdit({ bill, patients }: BillEditProps) {
                                 <div className="space-y-2">
                                     <Label htmlFor="discount">Discount</Label>
                                     <div className="relative">
-                                        <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <span className="text-2xl font-bold text-amber-600">؋</span>
                                         <Input
                                             id="discount"
                                             name="discount"
@@ -184,7 +184,7 @@ export default function BillEdit({ bill, patients }: BillEditProps) {
                                 <div className="space-y-2">
                                     <Label htmlFor="tax">Tax</Label>
                                     <div className="relative">
-                                        <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <span className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground">؋</span>
                                         <Input
                                             id="tax"
                                             name="tax"
@@ -204,7 +204,7 @@ export default function BillEdit({ bill, patients }: BillEditProps) {
                                 <div className="space-y-2">
                                     <Label htmlFor="net_amount">Net Amount</Label>
                                     <div className="relative">
-                                        <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <span className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground">؋</span>
                                         <Input
                                             id="net_amount"
                                             name="net_amount"

@@ -33,7 +33,6 @@ import {
     AlertCircle,
     CheckCircle2,
     Percent,
-    DollarSign,
     FileText,
     Search,
 } from 'lucide-react';
@@ -571,7 +570,7 @@ const Create = ({ patients, doctors, services }: CreateProps) => {
                                                             </td>
                                                             <td className="p-4">
                                                                 <div className="relative">
-                                                                    <DollarSign className="absolute left-2 top-2 h-4 w-4 text-gray-400" />
+                                                                    <span className="absolute left-2 top-2 text-lg font-bold text-gray-400">؋</span>
                                                                     <Input
                                                                         type="number"
                                                                         min="0"
@@ -678,7 +677,7 @@ const Create = ({ patients, doctors, services }: CreateProps) => {
                                                     </div>
                                                     <div className="flex gap-3">
                                                         <div className="relative flex-1">
-                                                            <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                                                         <span className="text-2xl font-bold text-amber-600">؋</span>
                                                             <Input
                                                                 type="number"
                                                                 min="0"

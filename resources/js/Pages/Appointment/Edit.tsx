@@ -264,7 +264,7 @@ export default function AppointmentEdit({ appointment, patients, doctors }: Appo
                         <Card className="shadow-lg border-t-4 border-t-amber-500">
                             <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
                                 <CardTitle className="flex items-center gap-2 text-xl">
-                                    <DollarSign className="h-6 w-6 text-amber-600" />
+                                    <span className="text-2xl font-bold text-amber-600">؋</span>
                                     Fee & Discount
                                 </CardTitle>
                                 <CardDescription className="text-base">Consultation fee and applicable discount</CardDescription>
@@ -272,9 +272,9 @@ export default function AppointmentEdit({ appointment, patients, doctors }: Appo
                             <CardContent className="space-y-6 pt-6">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div className="space-y-2">
-                                        <Label htmlFor="fee" className="text-base font-semibold">Consultation Fee *</Label>
+                                            <span className="absolute left-3 top-3 text-lg font-bold text-muted-foreground">؋</span>
                                         <div className="relative">
-                                            <DollarSign className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                                            <span className="text-2xl font-bold text-amber-600">؋</span>
                                             <Input
                                                 id="fee"
                                                 name="fee"
