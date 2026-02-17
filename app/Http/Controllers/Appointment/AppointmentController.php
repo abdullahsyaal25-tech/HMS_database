@@ -226,6 +226,12 @@ class AppointmentController extends Controller
             }
             
             // Include services data explicitly for print modal
+            Log::info('Services check before mapping', [
+                'services_count' => $appointment->services->count(),
+                'services_isEmpty' => $appointment->services->isEmpty(),
+                'services_raw' => $appointment->services->toArray(),
+            ]);
+            
             if ($appointment->services->isNotEmpty()) {
                 $appointmentArray['services'] = $appointment->services->map(function($service) {
                     return [
@@ -239,6 +245,9 @@ class AppointmentController extends Controller
                     ];
                 })->toArray();
             }
+            
+            // Include authorized user name for print modal
+            $appointmentArray['authorized_by'] = auth()->user()->name ?? 'System';
             
             Log::info('Appointment created for printing', [
                 'appointment_id' => $appointment->appointment_id,
@@ -258,19 +267,27 @@ class AppointmentController extends Controller
             $flashId = uniqid('flash_', true);
             $successMessage = 'Appointment created successfully!';
             
+            // Prepare flash data for department and doctor
+            $flashDepartment = $appointment->department ? $appointment->department->name : null;
+            $flashDoctor = $appointment->doctor ? 'Dr. ' . $appointment->doctor->full_name : null;
+            
             Log::info('Returning to create page with print appointment', [
                 'printAppointment' => $appointmentArray ? 'present' : 'missing',
                 'formData_keys' => array_keys($formData),
                 'flash_id' => $flashId,
                 'appointment_id' => $appointment->appointment_id,
+                'flash_department' => $flashDepartment,
+                'flash_doctor' => $flashDoctor,
             ]);
             
-            // Pass success message directly as prop (more reliable than flash for Inertia)
+            // Pass success message and flash data directly as props (more reliable than flash for Inertia)
             return Inertia::render('Appointment/Create', [
                 ...$formData,
                 'printAppointment' => $appointmentArray,
                 'flashId' => $flashId,
-                'successMessage' => $successMessage, // Direct prop instead of flash
+                'successMessage' => $successMessage,
+                'flashDepartment' => $flashDepartment,
+                'flashDoctor' => $flashDoctor,
             ])->with('success', $successMessage);
         } catch (\Exception $e) {
             Log::error('Failed to create appointment', [

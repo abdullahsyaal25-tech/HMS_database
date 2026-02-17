@@ -137,6 +137,12 @@ class AppointmentService
      */
     private function attachServices(Appointment $appointment, array $services): void
     {
+        Log::info('Attaching services to appointment', [
+            'appointment_id' => $appointment->id,
+            'services_count' => count($services),
+            'services_data' => $services,
+        ]);
+        
         $attachData = [];
         
         foreach ($services as $service) {
@@ -152,7 +158,18 @@ class AppointmentService
             ];
         }
         
+        Log::info('Services attach data prepared', [
+            'attach_data' => $attachData,
+        ]);
+        
         $appointment->services()->attach($attachData);
+        
+        // Verify services were attached
+        $attachedServices = $appointment->services()->get();
+        Log::info('Services after attach', [
+            'count' => $attachedServices->count(),
+            'services' => $attachedServices->toArray(),
+        ]);
     }
 
     /**
@@ -220,6 +237,9 @@ class AppointmentService
     {
         $appointmentArray = $appointment->toArray();
         
+        // Eager load services relationship
+        $appointment->load('services');
+        
         // Extract date and time from appointment_date
         $date = $appointment->appointment_date;
         $appointmentArray['appointment_date'] = $date->format('Y-m-d');
@@ -230,6 +250,23 @@ class AppointmentService
         
         // Include grand_total if services exist (for print modal determination)
         $appointmentArray['grand_total'] = $appointment->grand_total;
+        
+        // Include services in the response for print modal
+        if ($appointment->services && $appointment->services->isNotEmpty()) {
+            $appointmentArray['services'] = $appointment->services->map(function ($service) {
+                return [
+                    'id' => $service->id,
+                    'name' => $service->name,
+                    'pivot' => [
+                        'custom_cost' => $service->pivot->custom_cost,
+                        'discount_percentage' => $service->pivot->discount_percentage,
+                        'final_cost' => $service->pivot->final_cost,
+                    ],
+                ];
+            })->toArray();
+        } else {
+            $appointmentArray['services'] = [];
+        }
         
         // Transform patient data
         if ($appointment->patient) {

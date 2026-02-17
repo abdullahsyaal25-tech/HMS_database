@@ -22,6 +22,7 @@ interface DepartmentPrintProps {
         discount: number;
         grand_total?: number;
         created_at?: string;
+        authorized_by?: string;  // Add this field
         services?: Array<{
             id: number;
             name: string;
@@ -36,6 +37,33 @@ interface DepartmentPrintProps {
 
 export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrintProps) {
     const printRef = useRef<HTMLDivElement>(null);
+
+    // Precompute financial values in component scope so both the print handler
+    // and the JSX rendering can use the same consistent values.
+    const consultationFee = appointment ? parseFloat(appointment.fee?.toString() || '0') || 0 : 0;
+    const additionalDiscount = appointment ? parseFloat(appointment.discount?.toString() || '0') || 0 : 0;
+
+    const servicesSubtotal = appointment && appointment.services && appointment.services.length > 0
+        ? appointment.services.reduce((sum, s) => sum + (s.pivot?.custom_cost || 0), 0)
+        : 0;
+
+    const servicesDiscount = appointment && appointment.services && appointment.services.length > 0
+        ? appointment.services.reduce((sum, s) => {
+            const customCost = s.pivot?.custom_cost || 0;
+            const finalCost = (s.pivot?.final_cost ?? s.pivot?.custom_cost) || 0;
+            return sum + (customCost - finalCost);
+        }, 0)
+        : 0;
+
+    const servicesFinalTotal = appointment && appointment.services && appointment.services.length > 0
+        ? appointment.services.reduce((sum, s) => sum + ((s.pivot?.final_cost ?? s.pivot?.custom_cost) || 0), 0)
+        : 0;
+
+    const calculatedGrandTotal = appointment && appointment.services && appointment.services.length > 0
+        ? Math.max(0, servicesFinalTotal)  // Use final_cost directly as it already includes service discounts
+        : Math.max(0, consultationFee - additionalDiscount);  // Apply discount only for simple appointments
+
+    const grandTotal = appointment && typeof appointment.grand_total === 'number' ? appointment.grand_total : calculatedGrandTotal;
 
     const handlePrint = () => {
         if (!printRef.current || !appointment) return;
@@ -68,7 +96,7 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                 }
                 .logo { width: 60px; height: auto; margin-bottom: 5px; }
                 .hospital-name { font-size: 16px; font-weight: bold; margin: 3px 0; }
-                .receipt-title { font-size: 12px; color: #666; }
+                .receipt-title { font-size: 14px; color: #666; }
                 .token-section {
                     background: #f0f0f0;
                     padding: 12px;
@@ -114,7 +142,7 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
             </style>
         `;
 
-        const patientName = appointment.patient?.first_name || 'N/A';
+    const patientName = appointment.patient?.first_name || 'N/A';
         const fatherName = appointment.patient?.father_name || 'N/A';
         const gender = appointment.patient?.gender || 'N/A';
         const age = appointment.patient?.age ? `${appointment.patient.age} years` : 'N/A';
@@ -122,10 +150,7 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
         const appointmentId = appointment.appointment_id || 'N/A';
         const createdDate = appointment.created_at || new Date().toISOString();
         
-        const consultationFee = parseFloat(appointment.fee?.toString() || '0') || 0;
-        const discount = parseFloat(appointment.discount?.toString() || '0') || 0;
-        const calculatedGrandTotal = Math.max(0, consultationFee - discount);
-        const grandTotal = typeof appointment.grand_total === 'number' ? appointment.grand_total : calculatedGrandTotal;
+    // reuse precomputed values from component scope
         
         const formatDate = (dateString: string) => {
             if (!dateString) return 'N/A';
@@ -154,7 +179,7 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                         <img src="/logo.png" alt="Hospital Logo" class="logo" />
                         <div class="hospital-name">کامران معالیجوي روغتون</div>
                         <div class="hospital-name">Kamran Curative Hospital</div>
-                        <div class="receipt-title">Appointment Receipt</div>
+                        ${appointment?.authorized_by ? `<div class="receipt-title"> ${appointment.authorized_by}</div>` : ''}
                     </div>
                     <div class="token-section">
                         <div class="token-label">TOKEN NUMBER</div>
@@ -203,24 +228,40 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                                     <span>${formatCurrency(service.pivot.final_cost)}</span>
                                 </div>
                             `).join('')}
+                            <div class="financial-row">
+                                <span>Services Subtotal:</span>
+                                <span>${formatCurrency(servicesSubtotal)}</span>
+                            </div>
                             <div class="financial-row discount-row">
-                                <span>Total Discount:</span>
-                                <span>-${formatCurrency(discount)}</span>
+                                <span>Services Discount:</span>
+                                <span>-${formatCurrency(servicesDiscount > 0 ? servicesDiscount : (servicesSubtotal - servicesFinalTotal))}</span>
+                            </div>
+                            ${additionalDiscount > 0 ? `
+                            <div class="financial-row discount-row">
+                                <span>Additional Discount:</span>
+                                <span>-${formatCurrency(additionalDiscount)}</span>
+                            </div>
+                            ` : ''}
+                            <div class="total-row">
+                                <span>Amount Paid:</span>
+                                <span>${formatCurrency(grandTotal)}</span>
                             </div>
                         ` : `
                             <div class="financial-row">
                                 <span>Consultation Fee:</span>
                                 <span>${formatCurrency(consultationFee)}</span>
                             </div>
+                            ${additionalDiscount > 0 ? `
                             <div class="financial-row discount-row">
-                                <span>Total Discount:</span>
-                                <span>-${formatCurrency(discount)}</span>
+                                <span>Additional Discount:</span>
+                                <span>-${formatCurrency(additionalDiscount)}</span>
+                            </div>
+                            ` : ''}
+                            <div class="total-row">
+                                <span>Amount Paid:</span>
+                                <span>${formatCurrency(calculatedGrandTotal)}</span>
                             </div>
                         `}
-                        <div class="total-row">
-                            <span>Amount Paid:</span>
-                            <span>${formatCurrency(grandTotal)}</span>
-                        </div>
                     </div>
                     <div class="footer">
                         <p>Thank you for choosing our hospital</p>
@@ -256,21 +297,7 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
 
     const formatCurrency = (amount: number | undefined | null) => `؋${(typeof amount === 'number' ? amount : 0).toFixed(2)}`;
 
-    const consultationFee = parseFloat(appointment.fee?.toString() || '0') || 0;
-    const discount = parseFloat(appointment.discount?.toString() || '0') || 0;
-    
-    // Calculate grand total based on services if available, otherwise use fee
-    let calculatedGrandTotal = 0;
-    if (appointment.services && appointment.services.length > 0) {
-        // Sum up the final costs from services
-        const servicesTotal = appointment.services.reduce((sum, service) => sum + (service.pivot.final_cost || 0), 0);
-        // Apply discount to the total
-        calculatedGrandTotal = Math.max(0, servicesTotal - discount);
-    } else {
-        calculatedGrandTotal = Math.max(0, consultationFee - discount);
-    }
-    
-    const grandTotal = typeof appointment.grand_total === 'number' ? appointment.grand_total : calculatedGrandTotal;
+    // NOTE: consultFee/additionalDiscount/servicesSubtotal/etc are available from component scope
     const deptName = appointment.department?.name || 'N/A';
 
     return (
@@ -295,6 +322,9 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                         />
                         <h2 className="text-xl font-bold">Hospital Management System</h2>
                         <p className="text-sm text-gray-600">Appointment Receipt</p>
+                        {appointment.authorized_by && (
+                            <p className="text-xs text-gray-500 mt-1">Authorized by: {appointment.authorized_by}</p>
+                        )}
                     </div>
 
                     <div className="bg-gray-100 p-4 text-center rounded-lg mb-4">
@@ -349,9 +379,23 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                                         <span className="font-medium">{formatCurrency(service.pivot.final_cost)}</span>
                                     </div>
                                 ))}
+                                <div className="flex justify-between py-1">
+                                    <span className="text-gray-600">Services Subtotal:</span>
+                                    <span className="font-medium">{formatCurrency(servicesSubtotal)}</span>
+                                </div>
                                 <div className="flex justify-between py-1 text-green-600">
-                                    <span>Total Discount:</span>
-                                    <span className="font-medium">-{formatCurrency(discount)}</span>
+                                    <span>Services Discount:</span>
+                                    <span className="font-medium">-{formatCurrency(servicesDiscount > 0 ? servicesDiscount : Math.max(0, servicesSubtotal - servicesFinalTotal))}</span>
+                                </div>
+                                {additionalDiscount > 0 && (
+                                    <div className="flex justify-between py-1 text-green-600">
+                                        <span>Additional Discount:</span>
+                                        <span className="font-medium">-{formatCurrency(additionalDiscount)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between py-2 bg-gray-100 px-2 rounded mt-2">
+                                    <span className="font-bold text-lg">Amount Paid:</span>
+                                    <span className="font-bold text-lg text-gray-800">{formatCurrency(calculatedGrandTotal)}</span>
                                 </div>
                             </>
                         ) : (
@@ -360,16 +404,18 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                                     <span className="text-gray-600">Consultation Fee:</span>
                                     <span className="font-medium">{formatCurrency(consultationFee)}</span>
                                 </div>
-                                <div className="flex justify-between py-1 text-green-600">
-                                    <span>Total Discount:</span>
-                                    <span className="font-medium">-{formatCurrency(discount)}</span>
+                                {additionalDiscount > 0 && (
+                                    <div className="flex justify-between py-1 text-green-600">
+                                        <span>Additional Discount:</span>
+                                        <span className="font-medium">-{formatCurrency(additionalDiscount)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between py-2 bg-gray-100 px-2 rounded mt-2">
+                                    <span className="font-bold text-lg">Amount Paid:</span>
+                                    <span className="font-bold text-lg text-gray-800">{formatCurrency(calculatedGrandTotal)}</span>
                                 </div>
                             </>
                         )}
-                        <div className="flex justify-between py-2 bg-gray-100 px-2 rounded mt-2">
-                            <span className="font-bold text-lg">Amount Paid:</span>
-                            <span className="font-bold text-lg text-gray-800">{formatCurrency(grandTotal)}</span>
-                        </div>
                     </div>
 
 

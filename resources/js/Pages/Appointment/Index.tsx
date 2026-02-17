@@ -70,10 +70,19 @@ export default function AppointmentIndex({ appointments }: AppointmentIndexProps
         const flashProps = props as { flash?: { printAppointment?: unknown } };
         const flash = flashProps.flash;
         if (flash?.printAppointment && !printAppointment) {
-            setPrintAppointment(flash.printAppointment);
-            setShowPrintModal(true);
+            // Defer state updates to avoid synchronous setState in effect which
+            // can cause cascading renders (and triggers the linter rule).
+            const id = setTimeout(() => {
+                setPrintAppointment(flash.printAppointment);
+                setShowPrintModal(true);
+            }, 0);
+
+            return () => clearTimeout(id);
         }
-    }, [props, printAppointment]);
+    // We intentionally only want to run this effect when `props` changes.
+    // The `printAppointment` state is intentionally excluded to avoid cascading updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [props]);
 
     const filteredAppointments = appointments.data.filter(appointment =>
         appointment.appointment_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -114,6 +123,9 @@ export default function AppointmentIndex({ appointments }: AppointmentIndexProps
     const totalAppointments = appointments.meta?.total || 0;
     const scheduledCount = appointments.data.filter(a => a.status.toLowerCase() === 'scheduled').length;
     const completedCount = appointments.data.filter(a => a.status.toLowerCase() === 'completed').length;
+
+    // Debug: print pagination meta to console to help verify server-side pagination
+    console.log('[DEBUG] appointments.meta:', appointments.meta);
 
     return (
         <HospitalLayout>
@@ -299,7 +311,7 @@ export default function AppointmentIndex({ appointments }: AppointmentIndexProps
                         </div>
 
                         {/* Pagination */}
-                        {appointments.meta && appointments.meta.last_page > 1 && (
+                        {appointments.meta && (
                         <div className="flex flex-col sm:flex-row items-center justify-between p-6 border-t bg-muted/30 gap-4">
                             <div className="text-sm text-muted-foreground">
                                 Showing <strong className="text-foreground">{appointments.meta?.from || 0}</strong> to <strong className="text-foreground">{appointments.meta?.to || 0}</strong> of{' '}
@@ -307,15 +319,27 @@ export default function AppointmentIndex({ appointments }: AppointmentIndexProps
                             </div>
                             
                             <div className="flex items-center gap-1">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!(appointments.meta?.current_page) || appointments.meta?.current_page <= 1}
-                                    onClick={() => window.location.href = `/appointments?page=${(appointments.meta?.current_page || 1) - 1}`}
-                                    className="hover:bg-primary hover:text-white"
-                                >
-                                    ← Previous
-                                </Button>
+                                {/* Previous button - use Inertia Link for SPA navigation when available */}
+                                {!(appointments.meta?.current_page) || appointments.meta?.current_page <= 1 ? (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled
+                                        className="hover:bg-primary hover:text-white"
+                                    >
+                                        ← Previous
+                                    </Button>
+                                ) : (
+                                    <Link href={`/appointments?page=${(appointments.meta?.current_page || 1) - 1}`}>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="hover:bg-primary hover:text-white"
+                                        >
+                                            ← Previous
+                                        </Button>
+                                    </Link>
+                                )}
                                 
                                 {/* Page Numbers */}
                                 {Array.from({ length: Math.min(5, appointments.meta.last_page) }, (_, i) => {
@@ -331,27 +355,51 @@ export default function AppointmentIndex({ appointments }: AppointmentIndexProps
                                     }
                                     
                                     return (
-                                        <Button
-                                            key={pageNum}
-                                            variant={appointments.meta.current_page === pageNum ? "default" : "outline"}
-                                            size="sm"
-                                            onClick={() => window.location.href = `/appointments?page=${pageNum}`}
-                                            className={appointments.meta.current_page === pageNum ? "bg-primary" : "hover:bg-primary hover:text-white"}
-                                        >
-                                            {pageNum}
-                                        </Button>
+                                        <span key={pageNum}>
+                                            {appointments.meta.current_page === pageNum ? (
+                                                <Button
+                                                    variant="default"
+                                                    size="sm"
+                                                    className="bg-primary"
+                                                >
+                                                    {pageNum}
+                                                </Button>
+                                            ) : (
+                                                <Link href={`/appointments?page=${pageNum}`}>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="hover:bg-primary hover:text-white"
+                                                    >
+                                                        {pageNum}
+                                                    </Button>
+                                                </Link>
+                                            )}
+                                        </span>
                                     );
                                 })}
                                 
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!(appointments.meta?.current_page) || appointments.meta?.current_page >= (appointments.meta?.last_page || 1)}
-                                    onClick={() => window.location.href = `/appointments?page=${(appointments.meta?.current_page || 1) + 1}`}
-                                    className="hover:bg-primary hover:text-white"
-                                >
-                                    Next →
-                                </Button>
+                                {/* Next button - use Inertia Link when not on last page */}
+                                {!(appointments.meta?.current_page) || appointments.meta?.current_page >= (appointments.meta?.last_page || 1) ? (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled
+                                        className="hover:bg-primary hover:text-white"
+                                    >
+                                        Next →
+                                    </Button>
+                                ) : (
+                                    <Link href={`/appointments?page=${(appointments.meta?.current_page || 1) + 1}`}>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="hover:bg-primary hover:text-white"
+                                        >
+                                            Next →
+                                        </Button>
+                                    </Link>
+                                )}
                             </div>
                         </div>
                         )}

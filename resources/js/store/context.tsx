@@ -317,7 +317,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 }
             } catch (error) {
                 if (import.meta.env.DEV) {
-                    // eslint-disable-next-line no-console
+                     
                     logger.error('Failed to parse saved UI preferences', { error: error instanceof Error ? error.message : 'Unknown error' }, error instanceof Error ? error : undefined);
                 }
             }

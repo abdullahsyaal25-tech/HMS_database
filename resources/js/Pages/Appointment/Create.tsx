@@ -113,6 +113,8 @@ interface PageProps {
     printAppointment?: PrintAppointment;
     flashId?: string;
     successMessage?: string;
+    flashDepartment?: string | null;
+    flashDoctor?: string | null;
 }
 
 interface FormData {
@@ -159,11 +161,15 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
     useEffect(() => {
         const flashId = pageProps.flashId;
         const successMessage = pageProps.successMessage;
+        const flashDepartment = pageProps.flashDepartment;
+        const flashDoctor = pageProps.flashDoctor;
         
         console.log('[DEBUG] Page props updated:', pageProps);
         console.log('[DEBUG] Flash ID:', flashId);
         console.log('[DEBUG] Previous Flash ID:', prevFlashIdRef.current);
         console.log('[DEBUG] Success message:', successMessage);
+        console.log('[DEBUG] Flash Department:', flashDepartment);
+        console.log('[DEBUG] Flash Doctor:', flashDoctor);
         console.log('[DEBUG] Print appointment:', printAppointment);
         console.log('[DEBUG] Current timestamp:', new Date().toISOString());
         console.log('[DEBUG] Is new flash?', flashId !== prevFlashIdRef.current);
@@ -171,12 +177,53 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
         // Only show toast if this is a new flash (different flashId)
         if (flashId && flashId !== prevFlashIdRef.current && successMessage) {
             console.log('[DEBUG] Showing success toast with message:', successMessage);
-            showSuccess('Appointment Created', successMessage);
+            
+            // Build detailed success message with department and doctor info
+            let detailMessage = successMessage;
+            if (flashDoctor) {
+                detailMessage += ` Doctor: ${flashDoctor}`;
+            }
+            if (flashDepartment) {
+                detailMessage += ` Department: ${flashDepartment}`;
+            }
+            
+            showSuccess('Appointment Created', detailMessage);
         }
         
         // Update ref for next comparison
         prevFlashIdRef.current = flashId;
-    }, [pageProps.flashId, pageProps.successMessage, printAppointment, showSuccess]);
+    }, [pageProps.flashId, pageProps.successMessage, pageProps.flashDepartment, pageProps.flashDoctor, printAppointment, showSuccess]);
+    
+    // Handle print modal close - reset form after printing
+    const handlePrintModalClose = () => {
+        setShowPrintModal(false);
+        setPrintType(null);
+        
+        // Reset form to initial state after print modal is closed
+        const now = new Date();
+        const newDate = now.toISOString().split('T')[0];
+        const newTime = now.toTimeString().slice(0, 5);
+        
+        setData({
+            patient_id: '',
+            doctor_id: '',
+            department_id: '',
+            appointment_date: newDate + 'T' + newTime,
+            reason: '',
+            notes: '',
+            fee: '',
+            discount: '0',
+            discount_type: 'percentage',
+            discount_fixed: '0',
+            status: 'completed',
+            services: [] as SubmitService[],
+        });
+        
+        // Clear selected services
+        setSelectedServices([]);
+        
+        console.log('[DEBUG] Form reset after print modal closed');
+    };
     
     // Show print modal only after form submission succeeds
     // Use a ref to track services that were submitted to handle timing issues
@@ -187,6 +234,7 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
             console.log('[DEBUG] Showing print modal for:', printAppointment.appointment_id);
             console.log('[DEBUG] Print appointment services:', printAppointment.services);
             console.log('[DEBUG] Submitted services (from ref):', submittedServicesRef.current);
+            console.log('[DEBUG] Current selectedServices state:', selectedServices);
             
             // Logic to determine which print modal to show:
             // 1. If there are services (selectedServices.length > 0) → Department Print
@@ -196,12 +244,15 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
             // Check services from multiple sources to handle timing issues:
             // 1. Backend response (most reliable if available)
             // 2. Submitted services ref (captured at submission time)
+            // 3. Current selectedServices state (most current)
             const hasServicesFromBackend = (printAppointment.services && printAppointment.services.length > 0);
             const hasServicesFromSubmission = submittedServicesRef.current.length > 0;
-            const hasServices = hasServicesFromBackend || hasServicesFromSubmission;
+            const hasServicesFromState = selectedServices.length > 0 && selectedServices.some(s => s.department_service_id !== '');
+            const hasServices = hasServicesFromBackend || hasServicesFromSubmission || hasServicesFromState;
             
             console.log('[DEBUG] Has services (from backend):', hasServicesFromBackend);
             console.log('[DEBUG] Has services (from submission):', hasServicesFromSubmission);
+            console.log('[DEBUG] Has services (from state):', hasServicesFromState);
             console.log('[DEBUG] Has services (combined):', hasServices);
             console.log('[DEBUG] Print appointment doctor info:', printAppointment.doctor);
             
@@ -224,15 +275,21 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
             }
             
             console.log('[DEBUG] Determined print type:', determinedPrintType);
+            console.log('[DEBUG] About to set printType to:', determinedPrintType);
+            console.log('[DEBUG] Current showPrintModal state:', showPrintModal);
+            console.log('[DEBUG] Current printType state before change:', printType);
             
             setTimeout(() => {
+                console.log('[DEBUG] Inside timeout - setting printType to:', determinedPrintType);
                 setPrintType(determinedPrintType);
+                console.log('[DEBUG] Inside timeout - setting showPrintModal to true');
                 setShowPrintModal(true);
                 setHasSubmitted(false); // Reset after showing
                 submittedServicesRef.current = []; // Clear ref after use
+                console.log('[DEBUG] States updated, printType now:', determinedPrintType);
             }, 0);
         }
-    }, [printAppointment, hasSubmitted]);
+    }, [printAppointment, hasSubmitted, selectedServices]);
     
     const { data, setData, post, processing, errors } = useForm<FormData>({
         patient_id: '',
@@ -468,6 +525,32 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
                 icon: <Package className="h-4 w-4 text-amber-600" />
             }));
     };
+
+    // Prepare an appointment object for printing. Hooks must be at top-level of component.
+    const appointmentForPrint = useMemo(() => {
+        if (!printAppointment) return null;
+
+        const backendHasServices = Array.isArray(printAppointment.services) && printAppointment.services.length > 0;
+        if (backendHasServices) return printAppointment;
+
+        const sourceServices = (submittedServicesRef.current && submittedServicesRef.current.length > 0)
+            ? submittedServicesRef.current
+            : selectedServices;
+
+        if (!sourceServices || sourceServices.length === 0) return printAppointment;
+
+        const mappedServices = sourceServices.map(s => ({
+            id: s.department_service_id ? parseInt(s.department_service_id, 10) : 0,
+            name: s.name,
+            pivot: {
+                custom_cost: parseFloat(String(s.custom_cost)) || 0,
+                discount_percentage: parseFloat(String(s.discount_percentage)) || 0,
+                final_cost: typeof s.final_cost === 'number' ? s.final_cost : (parseFloat(String(s.custom_cost)) || 0),
+            }
+        }));
+
+        return { ...printAppointment, services: mappedServices };
+    }, [printAppointment, selectedServices]);
 
     return (
         <HospitalLayout>
@@ -993,19 +1076,24 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
             </div>
 
             {/* Show appropriate print modal based on whether services were selected */}
+            {(() => {
+                console.log('[RENDER] Modal check - printType:', printType, 'showPrintModal:', showPrintModal);
+                return null;
+            })()}
+
             {printType === 'department' && (
                 <DepartmentPrint
                     isOpen={showPrintModal}
-                    onClose={() => { setShowPrintModal(false); setPrintType(null); }}
-                    appointment={printAppointment ?? null}
+                    onClose={handlePrintModalClose}
+                    appointment={appointmentForPrint ?? null}
                 />
             )}
 
             {printType === 'doctor' && (
                 <AppointmentPrintModal
                     isOpen={showPrintModal}
-                    onClose={() => { setShowPrintModal(false); setPrintType(null); }}
-                    appointment={printAppointment ?? null}
+                    onClose={handlePrintModalClose}
+                    appointment={appointmentForPrint ?? null}
                 />
             )}
         </HospitalLayout>
