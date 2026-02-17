@@ -179,20 +179,30 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
     }, [pageProps.flashId, pageProps.successMessage, printAppointment, showSuccess]);
     
     // Show print modal only after form submission succeeds
+    // Use a ref to track services that were submitted to handle timing issues
+    const submittedServicesRef = useRef<SelectedService[]>([]);
+    
     useEffect(() => {
         if (printAppointment && hasSubmitted) {
             console.log('[DEBUG] Showing print modal for:', printAppointment.appointment_id);
             console.log('[DEBUG] Print appointment services:', printAppointment.services);
+            console.log('[DEBUG] Submitted services (from ref):', submittedServicesRef.current);
             
             // Logic to determine which print modal to show:
             // 1. If there are services (selectedServices.length > 0) → Department Print
             // 2. If there's a doctor selected (data.doctor_id is set) AND no services → Doctor Print
             // 3. If there's no doctor but there are services → Department Print
             
-            // Check services from backend response
-            const hasServices = (printAppointment.services && printAppointment.services.length > 0);
+            // Check services from multiple sources to handle timing issues:
+            // 1. Backend response (most reliable if available)
+            // 2. Submitted services ref (captured at submission time)
+            const hasServicesFromBackend = (printAppointment.services && printAppointment.services.length > 0);
+            const hasServicesFromSubmission = submittedServicesRef.current.length > 0;
+            const hasServices = hasServicesFromBackend || hasServicesFromSubmission;
             
-            console.log('[DEBUG] Has services (from backend):', hasServices);
+            console.log('[DEBUG] Has services (from backend):', hasServicesFromBackend);
+            console.log('[DEBUG] Has services (from submission):', hasServicesFromSubmission);
+            console.log('[DEBUG] Has services (combined):', hasServices);
             console.log('[DEBUG] Print appointment doctor info:', printAppointment.doctor);
             
             // Determine print type based on requirements
@@ -219,6 +229,7 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
                 setPrintType(determinedPrintType);
                 setShowPrintModal(true);
                 setHasSubmitted(false); // Reset after showing
+                submittedServicesRef.current = []; // Clear ref after use
             }, 0);
         }
     }, [printAppointment, hasSubmitted]);
@@ -264,6 +275,12 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
         })).filter(s => s.department_service_id !== ''); // Only include services with valid IDs
         
         console.log('[DEBUG] Prepared services data for submission:', servicesData);
+        
+        // Capture the selected services in a ref BEFORE submitting
+        // This ensures we have the services data available for print type determination
+        // even if the backend response hasn't arrived yet or has timing issues
+        submittedServicesRef.current = [...selectedServices];
+        console.log('[DEBUG] Captured services in ref:', submittedServicesRef.current);
         
         // If using services, set the fee from grand total
         if (servicesData.length > 0 && !data.fee) {

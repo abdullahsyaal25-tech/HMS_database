@@ -166,7 +166,7 @@ class PatientController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Patient $patient): Response
+    public function show(Patient $patient, Request $request): Response
     {
         // Use proper eager loading with counts
         $bills = Bill::where('patient_id', $patient->id)
@@ -227,12 +227,29 @@ class PatientController extends Controller
                 ->count(),
         ];
         
+        // Get pagination information for all patients
+        $currentPage = $request->get('page', 1);
+        $perPage = 100;
+        $patients = Patient::with('user')->orderBy('id')->paginate($perPage, ['*'], 'page', $currentPage);
+        
         return Inertia::render('Patient/Show', [
             'patient' => $patient,
             'billing' => [
                 'bills' => $bills,
                 'stats' => $billingStats,
                 'recent_transactions' => $recentTransactions,
+            ],
+            'patients_pagination' => [
+                'data' => $patients->items(),
+                'meta' => [
+                    'current_page' => $patients->currentPage(),
+                    'from' => $patients->firstItem(),
+                    'last_page' => $patients->lastPage(),
+                    'path' => $patients->path(),
+                    'per_page' => $patients->perPage(),
+                    'to' => $patients->lastItem(),
+                    'total' => $patients->total(),
+                ],
             ],
         ]);
     }

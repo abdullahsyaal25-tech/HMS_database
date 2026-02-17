@@ -1,17 +1,31 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Heading from '@/components/heading';
-import { Phone, MapPin, User, ArrowLeft, Pencil, FileText, Droplet, Users } from 'lucide-react';
+import { Phone, MapPin, User, ArrowLeft, Pencil, FileText, Droplet, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import HospitalLayout from '@/layouts/HospitalLayout';
 import { Patient } from '@/types/patient';
 
-interface PatientShowProps {
-    patient: Patient;
+interface PaginationMeta {
+    current_page: number;
+    from: number;
+    last_page: number;
+    path: string;
+    per_page: number;
+    to: number;
+    total: number;
 }
 
-export default function PatientShow({ patient }: PatientShowProps) {
+interface PatientShowProps {
+    patient: Patient;
+    patients_pagination?: {
+        data: Patient[];
+        meta?: PaginationMeta;
+    };
+}
+
+export default function PatientShow({ patient, patients_pagination }: PatientShowProps) {
     const formatDate = (dateString: string | null) => {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -29,6 +43,24 @@ export default function PatientShow({ patient }: PatientShowProps) {
                 return 'destructive';
             default:
                 return 'outline';
+        }
+    };
+    
+    const goToPage = (page: number) => {
+        router.get(`/patients/${patient.patient_id}?page=${page}`);
+    };
+    
+    const goToPreviousPage = () => {
+        const currentPage = patients_pagination?.meta?.current_page || 1;
+        if (currentPage > 1) {
+            goToPage(currentPage - 1);
+        }
+    };
+    
+    const goToNextPage = () => {
+        const currentPage = patients_pagination?.meta?.current_page || 1;
+        if (patients_pagination?.meta && currentPage < patients_pagination.meta.last_page) {
+            goToPage(currentPage + 1);
         }
     };
 
@@ -115,10 +147,10 @@ export default function PatientShow({ patient }: PatientShowProps) {
                                     </p>
                                 </div>
                                 
-                                <div>
+                                {/* <div>
                                     <h3 className="text-sm font-medium text-muted-foreground">Username</h3>
                                     <p>{patient.user?.username || 'N/A'}</p>
-                                </div>
+                                </div> */}
                             </div>
                             
                             <div className="space-y-4 pt-2">
@@ -170,15 +202,15 @@ export default function PatientShow({ patient }: PatientShowProps) {
                                 <div className="flex flex-col space-y-2 pt-2">
                                     <Link href={`/appointments?patient_id=${patient.id}`}>
                                         <Button variant="outline" size="sm" className="w-full justify-start">
-                                            View Appointments
+                                            View Receiption
                                         </Button>
                                     </Link>
                                     
-                                    <Link href={`/billing?patient_id=${patient.id}`}>
+                                    {/* <Link href={`/billing?patient_id=${patient.id}`}>
                                         <Button variant="outline" size="sm" className="w-full justify-start">
                                             View Billing
                                         </Button>
-                                    </Link>
+                                    </Link> */}
                                 </div>
                             </div>
                         </CardContent>
@@ -208,6 +240,78 @@ export default function PatientShow({ patient }: PatientShowProps) {
                     </CardContent>
                 </Card>
             </div>
+            
+            {/* Pagination Controls */}
+            {patients_pagination?.meta && patients_pagination.meta.last_page > 1 && (
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex flex-col sm:flex-row items-center justify-between">
+                            <div className="text-sm text-muted-foreground mb-4 sm:mb-0">
+                                Showing <strong>{patients_pagination.meta.from}</strong> to <strong>{patients_pagination.meta.to}</strong> of{' '}
+                                <strong>{patients_pagination.meta.total}</strong> patients
+                                {patients_pagination.meta.last_page > 1 && (
+                                    <span className="ml-2 text-xs">(Page {patients_pagination.meta.current_page} of {patients_pagination.meta.last_page})</span>
+                                )}
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={patients_pagination.meta.current_page <= 1}
+                                    onClick={goToPreviousPage}
+                                    className="flex items-center gap-1"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                    Previous
+                                </Button>
+                                
+                                {/* Page Numbers */}
+                                <div className="flex space-x-1">
+                                    {(() => {
+                                        if (!patients_pagination.meta) return null;
+                                        return Array.from({ length: Math.min(5, patients_pagination.meta.last_page) }, (_, i) => {
+                                            let pageNum;
+                                            if (patients_pagination.meta!.last_page <= 5) {
+                                                pageNum = i + 1;
+                                            } else if (patients_pagination.meta!.current_page <= 3) {
+                                                pageNum = i + 1;
+                                            } else if (patients_pagination.meta!.current_page >= patients_pagination.meta!.last_page - 2) {
+                                                pageNum = patients_pagination.meta!.last_page - 4 + i;
+                                            } else {
+                                                pageNum = patients_pagination.meta!.current_page - 2 + i;
+                                            }
+                                            
+                                            return (
+                                                <Button
+                                                    key={pageNum}
+                                                    variant={patients_pagination.meta!.current_page === pageNum ? "default" : "outline"}
+                                                    size="sm"
+                                                    onClick={() => goToPage(pageNum)}
+                                                    className="w-8 h-8 p-0"
+                                                >
+                                                    {pageNum}
+                                                </Button>
+                                            );
+                                        });
+                                    })()}
+                                </div>
+                                
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={patients_pagination.meta.current_page >= patients_pagination.meta.last_page}
+                                    onClick={goToNextPage}
+                                    className="flex items-center gap-1"
+                                >
+                                    Next
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </HospitalLayout>
     );
 }
