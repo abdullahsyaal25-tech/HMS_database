@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import HospitalLayout from '@/layouts/HospitalLayout';
 import { useState } from 'react';
-import { Department, DepartmentService } from '@/types/department';
+import { Department, DepartmentService, DoctorBasic } from '@/types/department';
 import { 
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from '@/components/ui/table';
@@ -28,9 +28,10 @@ import { Switch } from "@/components/ui/switch";
 
 interface DepartmentShowProps {
     department: Department;
+    doctors: DoctorBasic[];
 }
 
-export default function DepartmentShow({ department }: DepartmentShowProps) {
+export default function DepartmentShow({ department, doctors }: DepartmentShowProps) {
     const [isDeleting, setIsDeleting] = useState(false);
     const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
     const [editingService, setEditingService] = useState<DepartmentService | null>(null);
@@ -41,6 +42,8 @@ export default function DepartmentShow({ department }: DepartmentShowProps) {
         base_cost: 0,
         fee_percentage: 0,
         discount_percentage: 0,
+        doctor_percentage: 0,
+        doctor_id: null as number | null,
         is_active: true,
     });
 
@@ -58,6 +61,8 @@ export default function DepartmentShow({ department }: DepartmentShowProps) {
             base_cost: service.base_cost,
             fee_percentage: service.fee_percentage,
             discount_percentage: service.discount_percentage,
+            doctor_percentage: service.doctor_percentage ?? 0,
+            doctor_id: service.doctor_id ?? null,
             is_active: service.is_active,
         });
         setIsServiceModalOpen(true);
@@ -305,9 +310,11 @@ export default function DepartmentShow({ department }: DepartmentShowProps) {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Service Name</TableHead>
+                                        <TableHead>Assigned Doctor</TableHead>
                                         <TableHead>Base Cost</TableHead>
                                         <TableHead>Fee (%)</TableHead>
                                         <TableHead>Discount (%)</TableHead>
+                                        <TableHead>Doctor %</TableHead>
                                         <TableHead>Final Cost</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
@@ -327,9 +334,28 @@ export default function DepartmentShow({ department }: DepartmentShowProps) {
                                                         )}
                                                     </div>
                                                 </TableCell>
+                                                <TableCell>
+                                                    {service.doctor ? (
+                                                        <div className="flex items-center gap-1">
+                                                            <Stethoscope className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                                                            <span className="text-sm">Dr. {service.doctor.full_name}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-muted-foreground text-xs">—</span>
+                                                    )}
+                                                </TableCell>
                                                 <TableCell>${service.base_cost}</TableCell>
                                                 <TableCell>{service.fee_percentage}%</TableCell>
                                                 <TableCell>{service.discount_percentage}%</TableCell>
+                                                <TableCell>
+                                                    {service.doctor_percentage > 0 ? (
+                                                        <Badge variant="outline" className="text-purple-700 border-purple-300 bg-purple-50">
+                                                            {service.doctor_percentage}%
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-muted-foreground text-xs">—</span>
+                                                    )}
+                                                </TableCell>
                                                 <TableCell className="font-bold text-primary">
                                                     ${service.final_cost}
                                                 </TableCell>
@@ -361,7 +387,7 @@ export default function DepartmentShow({ department }: DepartmentShowProps) {
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                                            <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">
                                                 No services defined for this department.
                                             </TableCell>
                                         </TableRow>
@@ -449,13 +475,58 @@ export default function DepartmentShow({ department }: DepartmentShowProps) {
                                         />
                                     </div>
                                 </div>
-                                <div className="bg-muted p-3 rounded-md mt-2">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="doctor_id" className="flex items-center gap-1">
+                                        Assigned Doctor
+                                        <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+                                    </Label>
+                                    <select
+                                        id="doctor_id"
+                                        value={data.doctor_id ?? ''}
+                                        onChange={(e) => setData('doctor_id', e.target.value ? parseInt(e.target.value) : null)}
+                                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    >
+                                        <option value="">— No doctor assigned —</option>
+                                        {doctors.map((doctor) => (
+                                            <option key={doctor.id} value={doctor.id}>
+                                                Dr. {doctor.full_name}{doctor.specialization ? ` (${doctor.specialization})` : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.doctor_id && <p className="text-xs text-red-500">{errors.doctor_id}</p>}
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="doctor_percentage" className="flex items-center gap-1">
+                                        Doctor Percentage (%)
+                                        <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+                                    </Label>
+                                    <Input
+                                        id="doctor_percentage"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        max="100"
+                                        value={data.doctor_percentage}
+                                        onChange={(e) => setData('doctor_percentage', parseFloat(e.target.value) || 0)}
+                                        placeholder="e.g. 30"
+                                    />
+                                    {errors.doctor_percentage && <p className="text-xs text-red-500">{errors.doctor_percentage}</p>}
+                                </div>
+                                <div className="bg-muted p-3 rounded-md mt-2 space-y-2">
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm font-medium">Estimated Final Cost:</span>
                                         <span className="text-lg font-bold text-primary">
                                             ${(data.base_cost + (data.base_cost * (data.fee_percentage / 100)) - (data.base_cost * (data.discount_percentage / 100))).toFixed(2)}
                                         </span>
                                     </div>
+                                    {data.doctor_percentage > 0 && (
+                                        <div className="flex justify-between items-center border-t pt-2">
+                                            <span className="text-sm font-medium text-purple-700">Doctor Earnings ({data.doctor_percentage}%):</span>
+                                            <span className="text-base font-bold text-purple-700">
+                                                ${(data.base_cost * (data.doctor_percentage / 100)).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <DialogFooter>

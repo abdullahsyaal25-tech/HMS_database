@@ -303,6 +303,7 @@ Route::middleware(['web', 'auth'])->group(function () {
 
         // Department Services Standalone Routes (Master Data)
         Route::get('/services/list', [DepartmentServiceController::class, 'index'])->name('department-services.index');
+        Route::get('/services/doctor-percentage', [DepartmentServiceController::class, 'doctorPercentageReport'])->name('department-services.doctor-percentage');
 
         Route::get('/', [DepartmentController::class, 'index'])->name('departments.index');
         Route::get('/create', [DepartmentController::class, 'create'])->name('departments.create');

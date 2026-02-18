@@ -330,12 +330,22 @@ class DepartmentController extends Controller
      */
     public function show(string $id): Response
     {
-        $department = Department::with(['headDoctor', 'doctors', 'appointments', 'services'])->findOrFail($id);
+        $department = Department::with(['headDoctor', 'doctors', 'appointments', 'services.doctor'])->findOrFail($id);
 
-        $department->services->each->append('final_cost');
+        $department->services->each->append(['final_cost', 'doctor_amount']);
+
+        $doctors = Doctor::select('id', 'doctor_id', 'full_name', 'specialization')
+            ->orderBy('full_name')
+            ->get()
+            ->map(fn($doctor) => [
+                'id' => $doctor->id,
+                'full_name' => $doctor->full_name,
+                'specialization' => $doctor->specialization,
+            ]);
 
         return Inertia::render('Department/Show', [
-            'department' => $department
+            'department' => $department,
+            'doctors' => $doctors,
         ]);
     }
 

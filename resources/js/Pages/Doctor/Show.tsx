@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Heading from '@/components/heading';
-import { Phone, MapPin, User, ArrowLeft, Pencil, FileText, Currency, Calendar, Building2, Stethoscope, Trash2 } from 'lucide-react';
+import { Phone, MapPin, User, ArrowLeft, Pencil, FileText, Currency, Calendar, Building2, Stethoscope, Trash2, Percent } from 'lucide-react';
 import HospitalLayout from '@/layouts/HospitalLayout';
 import { useState } from 'react';
 
@@ -296,6 +296,13 @@ export default function DoctorShow({ doctor }: DoctorShowProps) {
                                     <Button variant="outline" size="sm" className="w-full justify-start">
                                         <Currency className="mr-2 h-4 w-4" />
                                         View Billing
+                                    </Button>
+                                </Link>
+
+                                <Link href={`/departments/services/doctor-percentage?doctor=${doctor.id}`} className="block">
+                                    <Button variant="outline" size="sm" className="w-full justify-start text-purple-700 hover:text-purple-800 hover:bg-purple-50 border-purple-200">
+                                        <Percent className="mr-2 h-4 w-4" />
+                                        Doctor % Services
                                     </Button>
                                 </Link>
                             </CardContent>

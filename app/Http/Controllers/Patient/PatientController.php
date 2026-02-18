@@ -87,9 +87,35 @@ class PatientController extends Controller
      */
     public function index(Request $request): Response
     {
-        $patients = Patient::with('user')->paginate(100);
+        $patients = Patient::with('user')->paginate(50);
+
+        $patientsData = [
+            'data' => $patients->items(),
+            'links' => [
+                'first' => $patients->url(1),
+                'last' => $patients->url($patients->lastPage()),
+                'prev' => $patients->previousPageUrl(),
+                'next' => $patients->nextPageUrl(),
+            ],
+            'meta' => [
+                'current_page' => $patients->currentPage(),
+                'from' => $patients->firstItem(),
+                'last_page' => $patients->lastPage(),
+                'path' => $patients->path(),
+                'per_page' => $patients->perPage(),
+                'to' => $patients->lastItem(),
+                'total' => $patients->total(),
+                'male_count' => Patient::where('gender', 'male')->count(),
+                'female_count' => Patient::where('gender', 'female')->count(),
+                'today_count' => Patient::whereDate('created_at', today())->count(),
+                'monthly_count' => Patient::whereMonth('created_at', now()->month)
+                    ->whereYear('created_at', now()->year)->count(),
+                'yearly_count' => Patient::whereYear('created_at', now()->year)->count(),
+            ],
+        ];
+
         return Inertia::render('Patient/Index', [
-            'patients' => $patients
+            'patients' => $patientsData
         ]);
     }
 

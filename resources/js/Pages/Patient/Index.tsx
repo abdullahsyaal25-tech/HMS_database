@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import {
     Table,
@@ -10,36 +10,30 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import Heading from '@/components/heading';
-import { PlusCircle, Search, Phone, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Phone, PlusCircle, Search, User, Users, HeartPulse, CalendarDays, CalendarRange, CalendarCheck } from 'lucide-react';
 import { useState } from 'react';
 import HospitalLayout from '@/layouts/HospitalLayout';
 import { Patient } from '@/types/patient';
 
-interface PaginationMeta {
-    current_page: number;
-    from: number;
-    last_page: number;
-    path: string;
-    per_page: number;
-    to: number;
-    total: number;
-}
-
 interface PatientIndexProps {
     patients: {
         data: Patient[];
-        links?: Record<string, unknown>;
-        meta?: PaginationMeta;
-        // Laravel paginator also returns these at top level
-        current_page?: number;
-        from?: number;
-        last_page?: number;
-        path?: string;
-        per_page?: number;
-        to?: number;
-        total?: number;
+        links: Record<string, unknown>;
+        meta: {
+            current_page: number;
+            from: number;
+            last_page: number;
+            path: string;
+            per_page: number;
+            to: number;
+            total: number;
+            male_count: number;
+            female_count: number;
+            today_count: number;
+            monthly_count: number;
+            yearly_count: number;
+        };
     };
     flash?: {
         success?: string;
@@ -47,234 +41,303 @@ interface PatientIndexProps {
     };
 }
 
-export default function PatientIndex({ patients, flash }: PatientIndexProps) {
+export default function PatientIndex({ patients }: PatientIndexProps) {
     const [searchTerm, setSearchTerm] = useState('');
-
-    // Get meta from either nested meta object or top-level properties
-    const meta: PaginationMeta = {
-        current_page: patients.meta?.current_page ?? patients.current_page ?? 1,
-        from: patients.meta?.from ?? patients.from ?? 1,
-        last_page: patients.meta?.last_page ?? patients.last_page ?? 1,
-        path: patients.meta?.path ?? patients.path ?? '/patients',
-        per_page: patients.meta?.per_page ?? patients.per_page ?? 100,
-        to: patients.meta?.to ?? patients.to ?? patients.data.length,
-        total: patients.meta?.total ?? patients.total ?? patients.data.length,
-    };
 
     const filteredPatients = patients.data.filter(patient =>
         patient.patient_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (patient.first_name && patient.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (patient.user && patient.user.name.toLowerCase().includes(searchTerm.toLowerCase()))
+        (patient.father_name && patient.father_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (patient.phone && patient.phone.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    const getGenderBadgeVariant = (gender: string) => {
-        switch (gender.toLowerCase()) {
+    const getGenderBadgeClass = (gender: string) => {
+        switch (gender?.toLowerCase()) {
             case 'male':
-                return 'secondary';
+                return 'bg-blue-500/10 border-blue-500/20 text-blue-600';
             case 'female':
-                return 'destructive';
+                return 'bg-pink-500/10 border-pink-500/20 text-pink-600';
             default:
-                return 'outline';
+                return 'bg-muted text-muted-foreground';
         }
     };
 
-    const goToPage = (page: number) => {
-        router.get(`/patients?page=${page}`);
-    };
+    const maleCount = patients.meta?.male_count ?? 0;
+    const femaleCount = patients.meta?.female_count ?? 0;
+    const todayCount = patients.meta?.today_count ?? 0;
+    const monthlyCount = patients.meta?.monthly_count ?? 0;
+    const yearlyCount = patients.meta?.yearly_count ?? 0;
 
     return (
         <HospitalLayout>
             <div className="space-y-6">
                 <Head title="Patients" />
-                
-                {/* Success/Error Alerts */}
-                {flash?.success && (
-                    <Alert className="bg-green-50 border-green-200">
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        <AlertDescription className="text-green-800">
-                            {flash.success}
-                        </AlertDescription>
-                    </Alert>
-                )}
-                
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <Heading title="Patient Management" />
-                    
+
+                {/* Header Section */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-2">
+                    <div>
+                        <Heading title="Patient Management" />
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Manage and monitor all patients in the system
+                        </p>
+                    </div>
+
                     <Link href="/patients/create">
-                        <Button className="bg-blue-600 hover:bg-blue-700">
+                        <Button className="gradient-primary shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Add New Patient
                         </Button>
                     </Link>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Patients List</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="mb-4 flex flex-col sm:flex-row gap-4">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                {/* Stats Cards - Row 1 */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card className="border-l-4 border-l-primary hover:shadow-lg transition-shadow">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Total Patients</p>
+                                    <p className="text-2xl font-bold text-primary">{patients.meta?.total || 0}</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <Users className="h-6 w-6 text-primary" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Male Patients</p>
+                                    <p className="text-2xl font-bold text-blue-600">{maleCount}</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                    <User className="h-6 w-6 text-blue-600" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-pink-500 hover:shadow-lg transition-shadow">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Female Patients</p>
+                                    <p className="text-2xl font-bold text-pink-600">{femaleCount}</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-pink-500/10 flex items-center justify-center">
+                                    <HeartPulse className="h-6 w-6 text-pink-600" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Stats Cards - Row 2 */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Today's Patients</p>
+                                    <p className="text-2xl font-bold text-orange-600">{todayCount}</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-orange-500/10 flex items-center justify-center">
+                                    <CalendarDays className="h-6 w-6 text-orange-600" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-teal-500 hover:shadow-lg transition-shadow">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">This Month</p>
+                                    <p className="text-2xl font-bold text-teal-600">{monthlyCount}</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-teal-500/10 flex items-center justify-center">
+                                    <CalendarRange className="h-6 w-6 text-teal-600" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-violet-500 hover:shadow-lg transition-shadow">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">This Year</p>
+                                    <p className="text-2xl font-bold text-violet-600">{yearlyCount}</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-violet-500/10 flex items-center justify-center">
+                                    <CalendarCheck className="h-6 w-6 text-violet-600" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Main Table Card */}
+                <Card className="shadow-lg border-border/50 animate-slide-in-up">
+                    <CardHeader className="border-b bg-muted/30">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <CardTitle className="text-lg font-semibold">Patients Directory</CardTitle>
+                            <div className="relative w-full sm:w-80">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <input
                                     type="text"
-                                    placeholder="Search patients..."
-                                    className="pl-8 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Search by name, ID, or phone..."
+                                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
                         </div>
-
-                        <div className="rounded-md border">
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader className="sticky top-0 bg-background z-10">
-                                        <TableRow>
-                                            <TableHead className="w-25">Patient ID</TableHead>
-                                            <TableHead>Name</TableHead>
-                                            <TableHead>Father's Name</TableHead>
-                                            <TableHead>Gender</TableHead>
-                                            <TableHead>Age</TableHead>
-                                            <TableHead>Blood Group</TableHead>
-                                            <TableHead>Contact</TableHead>
-                                            <TableHead className="text-right">Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                </Table>
-                            </div>
-                            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-                                <Table>
-                                    <TableBody>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                                    <TableRow className="hover:bg-transparent">
+                                        <TableHead className="font-semibold w-[110px]">Patient ID</TableHead>
+                                        <TableHead className="font-semibold">Name</TableHead>
+                                        <TableHead className="font-semibold">Father's Name</TableHead>
+                                        <TableHead className="font-semibold">Gender</TableHead>
+                                        <TableHead className="font-semibold">Age</TableHead>
+                                        <TableHead className="font-semibold">Blood Group</TableHead>
+                                        <TableHead className="font-semibold">Contact</TableHead>
+                                        <TableHead className="text-right font-semibold">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                            </Table>
+                        </div>
+                        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                            <Table>
+                                <TableBody>
                                     {filteredPatients.length > 0 ? (
-                                        filteredPatients.map((patient) => {
-                                            return (
-                                            <TableRow key={patient.id}>
+                                        filteredPatients.map((patient) => (
+                                            <TableRow key={patient.id} className="hover:bg-muted/50 transition-colors">
                                                 <TableCell className="font-medium">
-                                                    {patient.patient_id}
+                                                    <Badge variant="outline" className="font-mono text-xs">
+                                                        {patient.patient_id}
+                                                    </Badge>
                                                 </TableCell>
-                                                <TableCell>
-                                                    {patient.first_name || 'N/A'}
+                                                <TableCell className="font-medium">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
+                                                            {patient.first_name?.charAt(0) ?? '?'}
+                                                        </div>
+                                                        {patient.first_name || <span className="text-gray-400 italic">N/A</span>}
+                                                    </div>
                                                 </TableCell>
-                                                <TableCell>
-                                                    {patient.father_name || 'N/A'}
+                                                <TableCell className="text-muted-foreground">
+                                                    {patient.father_name || <span className="text-gray-400 italic">N/A</span>}
                                                 </TableCell>
                                                 <TableCell>
                                                     {patient.gender ? (
-                                                        <Badge variant={getGenderBadgeVariant(patient.gender as string)}>
+                                                        <Badge variant="outline" className={`capitalize ${getGenderBadgeClass(patient.gender as string)}`}>
                                                             {(patient.gender as string).charAt(0).toUpperCase() + (patient.gender as string).slice(1)}
                                                         </Badge>
                                                     ) : (
-                                                        <Badge variant="outline">N/A</Badge>
+                                                        <span className="text-gray-400 italic">N/A</span>
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {patient.age || 'N/A'}
+                                                    {patient.age ? (
+                                                        <Badge variant="secondary" className="font-normal">
+                                                            {patient.age} yrs
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-gray-400 italic">N/A</span>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell>
                                                     {patient.blood_group ? (
-                                                        <Badge variant="outline">{patient.blood_group}</Badge>
-                                                    ) : 'N/A'}
+                                                        <Badge variant="outline" className="font-mono bg-red-500/5 border-red-500/20 text-red-600">
+                                                            {patient.blood_group}
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-gray-400 italic">N/A</span>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div className="flex items-center">
-                                                        <Phone className="mr-2 h-4 w-4 text-muted-foreground" />
-                                                        {patient.phone || 'N/A'}
+                                                    <div className="flex items-center gap-2">
+                                                        <Phone className="h-4 w-4 text-muted-foreground" />
+                                                        <span className="text-sm">{patient.phone || 'N/A'}</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    <div className="flex justify-end space-x-2">
+                                                    <div className="flex justify-end gap-2">
                                                         <Link href={`/patients/${patient.patient_id}/edit`}>
-                                                            <Button variant="outline" size="sm">
+                                                            <Button variant="outline" size="sm" className="hover:bg-primary hover:text-primary-foreground transition-colors">
                                                                 Edit
                                                             </Button>
                                                         </Link>
                                                         <Link href={`/patients/${patient.patient_id}`}>
-                                                            <Button variant="outline" size="sm">
+                                                            <Button variant="outline" size="sm" className="hover:bg-secondary hover:text-secondary-foreground transition-colors">
                                                                 View
                                                             </Button>
                                                         </Link>
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
-                                        );
-                                        })
+                                        ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={8} className="h-24 text-center">
-                                                No patients found
+                                            <TableCell colSpan={8} className="h-32 text-center">
+                                                <div className="flex flex-col items-center justify-center text-muted-foreground">
+                                                    <Users className="h-12 w-12 mb-2 opacity-20" />
+                                                    <p className="font-medium">No patients found</p>
+                                                    <p className="text-sm">Try adjusting your search</p>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>
                             </Table>
                         </div>
-                        </div>
 
                         {/* Pagination */}
-                        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 pt-4 border-t gap-4">
-                            <div className="text-sm text-muted-foreground">
-                                Showing <strong>{meta.from}</strong> to <strong>{meta.to}</strong> of{' '}
-                                <strong>{meta.total}</strong> patients
-                                {meta.last_page > 1 && (
-                                    <span className="ml-2 text-xs">(Page {meta.current_page} of {meta.last_page})</span>
-                                )}
-                            </div>
-                            
-                            {meta.last_page > 1 && (
-                            <div className="flex items-center space-x-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={meta.current_page <= 1}
-                                    onClick={() => goToPage(meta.current_page - 1)}
-                                    className="flex items-center gap-1"
-                                >
-                                    <ChevronLeft className="h-4 w-4" />
-                                    Previous
-                                </Button>
-                                
-                                {/* Page Numbers */}
-                                <div className="flex space-x-1">
-                                    {Array.from({ length: Math.min(5, meta.last_page) }, (_, i) => {
-                                        let pageNum;
-                                        if (meta.last_page <= 5) {
-                                            pageNum = i + 1;
-                                        } else if (meta.current_page <= 3) {
-                                            pageNum = i + 1;
-                                        } else if (meta.current_page >= meta.last_page - 2) {
-                                            pageNum = meta.last_page - 4 + i;
-                                        } else {
-                                            pageNum = meta.current_page - 2 + i;
-                                        }
-                                        
-                                        return (
-                                            <Button
-                                                key={pageNum}
-                                                variant={meta.current_page === pageNum ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => goToPage(pageNum)}
-                                                className="w-8 h-8 p-0"
-                                            >
-                                                {pageNum}
-                                            </Button>
-                                        );
-                                    })}
+                        {patients.meta && patients.meta.total > 0 && (
+                            <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4 px-6 pb-6">
+                                <div className="text-sm text-muted-foreground">
+                                    Showing <strong className="text-foreground">{patients.meta?.from || 0}</strong> to{' '}
+                                    <strong className="text-foreground">{patients.meta?.to || 0}</strong> of{' '}
+                                    <strong className="text-foreground">{patients.meta?.total || 0}</strong> patients
                                 </div>
-                                
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={meta.current_page >= meta.last_page}
-                                    onClick={() => goToPage(meta.current_page + 1)}
-                                    className="flex items-center gap-1"
-                                >
-                                    Next
-                                    <ChevronRight className="h-4 w-4" />
-                                </Button>
+
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={!patients.meta?.current_page || patients.meta?.current_page <= 1}
+                                        onClick={() => window.location.href = `/patients?page=${(patients.meta?.current_page || 1) - 1}`}
+                                        className="hover:bg-primary hover:text-primary-foreground transition-colors"
+                                    >
+                                        Previous
+                                    </Button>
+
+                                    <div className="flex items-center gap-1 px-3 py-1 rounded-md bg-muted text-sm">
+                                        <span className="font-medium">{patients.meta?.current_page}</span>
+                                        <span className="text-muted-foreground">/</span>
+                                        <span className="text-muted-foreground">{patients.meta?.last_page}</span>
+                                    </div>
+
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={!patients.meta?.current_page || patients.meta?.current_page >= (patients.meta?.last_page || 1)}
+                                        onClick={() => window.location.href = `/patients?page=${(patients.meta?.current_page || 1) + 1}`}
+                                        className="hover:bg-primary hover:text-primary-foreground transition-colors"
+                                    >
+                                        Next
+                                    </Button>
+                                </div>
                             </div>
-                            )}
-                        </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

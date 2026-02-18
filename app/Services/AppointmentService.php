@@ -8,6 +8,7 @@ use App\Models\Doctor;
 use App\Models\Department;
 use App\Models\DepartmentService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AppointmentService
 {

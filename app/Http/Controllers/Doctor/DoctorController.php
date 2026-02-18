@@ -304,30 +304,34 @@ class DoctorController extends Controller
     {
         $this->authorizeDoctorAccess();
         
-        // Get today's appointments
+        // Get today's appointments (without services — service-based appointments are on the Doctor % page)
         $todayAppointments = Appointment::with('patient')
             ->where('doctor_id', $doctor->id)
+            ->doesntHave('services')
             ->whereDate('appointment_date', today())
             ->orderBy('appointment_date', 'asc')
             ->get();
 
-        // Get this month's appointments
+        // Get this month's appointments (without services)
         $monthlyAppointments = Appointment::with('patient')
             ->where('doctor_id', $doctor->id)
+            ->doesntHave('services')
             ->whereMonth('appointment_date', now()->month)
             ->whereYear('appointment_date', now()->year)
             ->orderBy('appointment_date', 'desc')
             ->get();
 
-        // Get this year's appointments
+        // Get this year's appointments (without services)
         $yearlyAppointments = Appointment::with('patient')
             ->where('doctor_id', $doctor->id)
+            ->doesntHave('services')
             ->whereYear('appointment_date', now()->year)
             ->orderBy('appointment_date', 'desc')
             ->get();
         
-        // Calculate total fees and discounts from completed appointments
+        // Calculate total fees and discounts from completed appointments (without services)
         $completedAppointments = Appointment::where('doctor_id', $doctor->id)
+            ->doesntHave('services')
             ->where('status', 'completed')
             ->get();
 

@@ -11,7 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Heading from '@/components/heading';
-import { Package, Search, PlusCircle, Building2, Edit, Trash2 } from 'lucide-react';
+import { Package, Search, PlusCircle, Building2, Edit, Trash2, Stethoscope, Percent } from 'lucide-react';
 import { useState } from 'react';
 import HospitalLayout from '@/layouts/HospitalLayout';
 
@@ -27,10 +27,12 @@ interface DepartmentService {
     base_cost: string;
     fee_percentage: string;
     discount_percentage: string;
+    doctor_percentage: string;
     is_active: boolean;
     department_id: number;
     department: Department;
     final_cost: number;
+    doctor_amount: number;
 }
 
 interface DepartmentServiceIndexProps {
@@ -117,12 +119,20 @@ export default function DepartmentServiceIndex({ services, departments, filters 
                         </p>
                     </div>
                     
-                    <Link href="/departments">
-                        <Button className="gradient-primary shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Add New Service
-                        </Button>
-                    </Link>
+                    <div className="flex gap-2">
+                        <Link href="/departments/services/doctor-percentage">
+                            <Button variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50">
+                                <Stethoscope className="mr-2 h-4 w-4" />
+                                Doctor % Report
+                            </Button>
+                        </Link>
+                        <Link href="/departments">
+                            <Button className="gradient-primary shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Add New Service
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Stats Cards */}
@@ -229,6 +239,7 @@ export default function DepartmentServiceIndex({ services, departments, filters 
                                         <TableHead className="font-semibold">Base Cost</TableHead>
                                         <TableHead className="font-semibold">Fee %</TableHead>
                                         <TableHead className="font-semibold">Discount %</TableHead>
+                                        <TableHead className="font-semibold">Doctor %</TableHead>
                                         <TableHead className="font-semibold">Final Cost</TableHead>
                                         <TableHead className="font-semibold">Status</TableHead>
                                         <TableHead className="text-right font-semibold">Actions</TableHead>
@@ -277,6 +288,16 @@ export default function DepartmentServiceIndex({ services, departments, filters 
                                                     {service.discount_percentage}%
                                                 </TableCell>
                                                 <TableCell>
+                                                    {parseFloat(service.doctor_percentage) > 0 ? (
+                                                        <Badge variant="outline" className="text-purple-700 border-purple-300 bg-purple-50">
+                                                            <Percent className="h-3 w-3 mr-1" />
+                                                            {parseFloat(service.doctor_percentage).toFixed(2)}%
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-muted-foreground text-xs">—</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
                                                     <span className="font-bold text-green-600">
                                                         {formatCurrency(service.final_cost)}
                                                     </span>
@@ -302,7 +323,7 @@ export default function DepartmentServiceIndex({ services, departments, filters 
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                                            <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                                                 <div className="flex flex-col items-center justify-center gap-2">
                                                     <Package className="h-8 w-8 text-muted-foreground/50" />
                                                     <p>No services found</p>
