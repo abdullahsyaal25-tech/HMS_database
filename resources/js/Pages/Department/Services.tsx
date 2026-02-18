@@ -93,6 +93,16 @@ interface Navigation {
     prev_params: Record<string, number>;
 }
 
+interface Pagination {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+    has_more_pages: boolean;
+}
+
 interface ServicesDashboardProps {
     services: ServiceData[];
     filters: {
@@ -116,7 +126,8 @@ export default function ServicesDashboard({
     navigation,
     is_super_admin,
     period_label,
-}: ServicesDashboardProps) {
+    pagination,
+}: ServicesDashboardProps & { pagination: Pagination }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [departmentFilter, setDepartmentFilter] = useState<string>('all');
     const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -625,13 +636,177 @@ export default function ServicesDashboard({
                     </CardContent>
                 </Card>
 
+                {/* Pagination Controls */}
+                {pagination && pagination.total > 0 && (
+                    <Card className="mt-6 shadow-sm">
+                        <CardContent className="p-4">
+                            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                                {/* Results Info */}
+                                <div className="text-sm text-muted-foreground">
+                                    Showing <span className="font-medium">{pagination.from || 0}</span> to{' '}
+                                    <span className="font-medium">{pagination.to || 0}</span> of{' '}
+                                    <span className="font-medium">{pagination.total}</span> appointments
+                                </div>
+
+                                {/* Pagination Buttons */}
+                                <div className="flex items-center gap-2">
+                                    {/* Previous Page Button */}
+                                    {pagination.current_page > 1 ? (
+                                        <Link 
+                                            href={buildUrl({ 
+                                                ...filters, 
+                                                view: currentView, 
+                                                page: pagination.current_page - 1 
+                                            })}
+                                        >
+                                            <Button variant="outline" size="sm" className="hover:bg-primary hover:text-white transition-all">
+                                                <ChevronLeft className="h-4 w-4 mr-1" />
+                                                Previous
+                                            </Button>
+                                        </Link>
+                                    ) : (
+                                        <Button variant="outline" size="sm" disabled className="opacity-50">
+                                            <ChevronLeft className="h-4 w-4 mr-1" />
+                                            Previous
+                                        </Button>
+                                    )}
+
+                                    {/* Page Numbers */}
+                                    <div className="flex items-center gap-1">
+                                        {/* First Page */}
+                                        {pagination.current_page > 2 && (
+                                            <Link 
+                                                href={buildUrl({ 
+                                                    ...filters, 
+                                                    view: currentView, 
+                                                    page: 1 
+                                                })}
+                                            >
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    className="h-8 w-8 p-0"
+                                                >
+                                                    1
+                                                </Button>
+                                            </Link>
+                                        )}
+
+                                        {/* Ellipsis before current */}
+                                        {pagination.current_page > 3 && (
+                                            <span className="px-2 text-muted-foreground">...</span>
+                                        )}
+
+                                        {/* Page before current */}
+                                        {pagination.current_page > 1 && (
+                                            <Link 
+                                                href={buildUrl({ 
+                                                    ...filters, 
+                                                    view: currentView, 
+                                                    page: pagination.current_page - 1 
+                                                })}
+                                            >
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    className="h-8 w-8 p-0"
+                                                >
+                                                    {pagination.current_page - 1}
+                                                </Button>
+                                            </Link>
+                                        )}
+
+                                        {/* Current Page */}
+                                        <Button 
+                                            variant="default" 
+                                            size="sm" 
+                                            className="h-8 w-8 p-0"
+                                        >
+                                            {pagination.current_page}
+                                        </Button>
+
+                                        {/* Page after current */}
+                                        {pagination.current_page < pagination.last_page && (
+                                            <Link 
+                                                href={buildUrl({ 
+                                                    ...filters, 
+                                                    view: currentView, 
+                                                    page: pagination.current_page + 1 
+                                                })}
+                                            >
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    className="h-8 w-8 p-0"
+                                                >
+                                                    {pagination.current_page + 1}
+                                                </Button>
+                                            </Link>
+                                        )}
+
+                                        {/* Ellipsis after current */}
+                                        {pagination.current_page < pagination.last_page - 2 && (
+                                            <span className="px-2 text-muted-foreground">...</span>
+                                        )}
+
+                                        {/* Last Page */}
+                                        {pagination.current_page < pagination.last_page - 1 && (
+                                            <Link 
+                                                href={buildUrl({ 
+                                                    ...filters, 
+                                                    view: currentView, 
+                                                    page: pagination.last_page 
+                                                })}
+                                            >
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    className="h-8 w-8 p-0"
+                                                >
+                                                    {pagination.last_page}
+                                                </Button>
+                                            </Link>
+                                        )}
+                                    </div>
+
+                                    {/* Next Page Button */}
+                                    {pagination.has_more_pages ? (
+                                        <Link 
+                                            href={buildUrl({ 
+                                                ...filters, 
+                                                view: currentView, 
+                                                page: pagination.current_page + 1 
+                                            })}
+                                        >
+                                            <Button variant="outline" size="sm" className="hover:bg-primary hover:text-white transition-all">
+                                                Next
+                                                <ChevronRight className="h-4 w-4 ml-1" />
+                                            </Button>
+                                        </Link>
+                                    ) : (
+                                        <Button variant="outline" size="sm" disabled className="opacity-50">
+                                            Next
+                                            <ChevronRight className="h-4 w-4 ml-1" />
+                                        </Button>
+                                    )}
+                                </div>
+
+                                {/* Page Info */}
+                                <div className="text-sm text-muted-foreground">
+                                    Page <span className="font-medium">{pagination.current_page}</span> of{' '}
+                                    <span className="font-medium">{pagination.last_page}</span>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* Footer Info */}
-                <div className="mt-6 text-center text-sm text-muted-foreground">
+                <div className="mt-4 text-center text-sm text-muted-foreground">
                     <p>
-                        Showing {filteredServices.length} of {services.length} appointments
                         {is_super_admin 
-                            ? ` for ${period_label}` 
-                            : ' for today (sub-admin access limited)'}
+                            ? `Viewing appointments for ${period_label}` 
+                            : 'Viewing today\'s appointments (sub-admin access limited)'}
                     </p>
                 </div>
             </div>

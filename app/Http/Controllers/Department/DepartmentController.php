@@ -43,6 +43,8 @@ class DepartmentController extends Controller
         $year = (int) $request->input('year', now()->year);
         $month = (int) $request->input('month', now()->month);
         $day = (int) $request->input('day', now()->day);
+        $perPage = (int) $request->input('per_page', 15);
+        $page = (int) $request->input('page', 1);
 
         // Build date range based on view type
         $dateRange = $this->getDateRange($view, $year, $month, $day);
@@ -53,21 +55,27 @@ class DepartmentController extends Controller
             $dateRange = $this->getDateRange('today', now()->year, now()->month, now()->day);
         }
 
-        // Get appointments with their services
+        // Get appointments with their services - paginated
         $query = Appointment::with(['patient', 'doctor', 'department', 'services'])
             ->whereBetween('appointment_date', [$dateRange['start'], $dateRange['end']])
             ->orderBy('appointment_date', 'desc');
 
-        $appointments = $query->get();
+        // Get paginated results
+        $paginatedAppointments = $query->paginate($perPage, ['*'], 'page', $page);
 
-        // Calculate totals and transform data
-        $servicesData = $this->transformAppointmentsWithServices($appointments);
+        // Get all appointments for summary calculations (unpaginated)
+        $allAppointments = Appointment::with(['patient', 'doctor', 'department', 'services'])
+            ->whereBetween('appointment_date', [$dateRange['start'], $dateRange['end']])
+            ->get();
 
-        // Calculate totals by status
-        $statusTotals = $this->calculateStatusTotals($appointments);
+        // Calculate totals and transform data for current page
+        $servicesData = $this->transformAppointmentsWithServices($paginatedAppointments->items());
 
-        // Calculate total revenue
-        $totalRevenue = $appointments->sum(function ($appointment) {
+        // Calculate totals by status (from all appointments)
+        $statusTotals = $this->calculateStatusTotals($allAppointments);
+
+        // Calculate total revenue (from all appointments)
+        $totalRevenue = $allAppointments->sum(function ($appointment) {
             return (float) $appointment->grand_total;
         });
 
@@ -102,7 +110,7 @@ class DepartmentController extends Controller
             'summary' => [
                 'total_revenue' => $totalRevenue,
                 'yearly_revenue' => (float) $yearlyRevenue,
-                'total_appointments' => $appointments->count(),
+                'total_appointments' => $allAppointments->count(),
                 'completed_count' => $statusTotals['completed'] ?? 0,
                 'cancelled_count' => $statusTotals['cancelled'] ?? 0,
                 'scheduled_count' => $statusTotals['scheduled'] ?? 0,
@@ -113,6 +121,15 @@ class DepartmentController extends Controller
             'navigation' => $navigation,
             'is_super_admin' => $isSuperAdmin,
             'period_label' => $this->getPeriodLabel($view, $year, $month, $day),
+            'pagination' => [
+                'current_page' => $paginatedAppointments->currentPage(),
+                'last_page' => $paginatedAppointments->lastPage(),
+                'per_page' => $paginatedAppointments->perPage(),
+                'total' => $paginatedAppointments->total(),
+                'from' => $paginatedAppointments->firstItem(),
+                'to' => $paginatedAppointments->lastItem(),
+                'has_more_pages' => $paginatedAppointments->hasMorePages(),
+            ],
         ]);
     }
 
