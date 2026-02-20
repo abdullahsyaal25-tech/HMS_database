@@ -338,6 +338,7 @@ class PurchaseController extends Controller
         
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
+            'company_name' => 'nullable|string|max:255',
             'contact_person' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:50',
@@ -350,6 +351,7 @@ class PurchaseController extends Controller
         
         $supplier = Supplier::create([
             'name' => $request->name,
+            'company_name' => $request->company_name,
             'contact_person' => $request->contact_person,
             'email' => $request->email,
             'phone' => $request->phone,

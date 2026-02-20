@@ -97,7 +97,13 @@ const FilterBar = React.forwardRef<HTMLDivElement, FilterBarProps>(
         ref
     ) => {
         const [isExpanded, setIsExpanded] = React.useState(!defaultCollapsed);
-        const [searchQuery, setSearchQuery] = React.useState('');
+        // Sync search query with external filter state
+        const [searchQuery, setSearchQuery] = React.useState((value?.query as string) || '');
+        
+        // Update search query when external value changes
+        React.useEffect(() => {
+            setSearchQuery((value?.query as string) || '');
+        }, [value?.query]);
 
         const activeFiltersCount = Object.values(value).filter(
             (v) => v !== undefined && v !== '' && v !== 'all'

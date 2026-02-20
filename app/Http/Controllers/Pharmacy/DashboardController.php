@@ -89,12 +89,21 @@ class DashboardController extends Controller
         $totalRevenue = Sale::whereIn('status', $validStatuses)
             ->sum('grand_total');
         
-        // Calculate Today's Profit - 30% profit margin on revenue
-        // This is a simplified calculation: Profit = Revenue * 0.30 (30% margin)
-        $todayProfit = $todayRevenue * 0.30;
+        // Calculate Today's Profit using actual cost prices from sales_items
+        // Profit = (unit_price - cost_price) * quantity
+        $todayProfit = DB::table('sales_items')
+            ->join('sales', 'sales_items.sale_id', '=', 'sales.id')
+            ->whereDate('sales.created_at', $today)
+            ->whereIn('sales.status', $validStatuses)
+            ->selectRaw('SUM(sales_items.quantity * (sales_items.unit_price - COALESCE(sales_items.cost_price, 0))) as profit')
+            ->value('profit') ?? 0;
         
-        // Calculate Total Profit - 30% profit margin on revenue
-        $totalProfit = $totalRevenue * 0.30;
+        // Calculate Total Profit using actual cost prices from sales_items
+        $totalProfit = DB::table('sales_items')
+            ->join('sales', 'sales_items.sale_id', '=', 'sales.id')
+            ->whereIn('sales.status', $validStatuses)
+            ->selectRaw('SUM(sales_items.quantity * (sales_items.unit_price - COALESCE(sales_items.cost_price, 0))) as profit')
+            ->value('profit') ?? 0;
         
         // Low stock count (stock_quantity <= 10)
         $lowStockCount = Medicine::where('stock_quantity', '>', 0)

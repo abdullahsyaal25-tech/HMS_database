@@ -15,6 +15,7 @@ class SalesItem extends Model
         'medicine_id',
         'quantity',
         'unit_price',
+        'cost_price',
         'total_price',
         'discount',
     ];
@@ -22,6 +23,7 @@ class SalesItem extends Model
     protected $casts = [
         'quantity' => 'integer',
         'unit_price' => 'decimal:2',
+        'cost_price' => 'decimal:2',
         'total_price' => 'decimal:2',
         'discount' => 'decimal:2',
     ];

@@ -90,6 +90,7 @@ export default function CreatePurchase({ medicines, suppliers, purchaseNumber }:
     // New supplier form
     const [newSupplier, setNewSupplier] = useState({
         name: '',
+        company_name: '',
         contact_person: '',
         email: '',
         phone: '',
@@ -204,6 +205,7 @@ export default function CreatePurchase({ medicines, suppliers, purchaseNumber }:
                 setShowSupplierDialog(false);
                 setNewSupplier({
                     name: '',
+                    company_name: '',
                     contact_person: '',
                     email: '',
                     phone: '',
@@ -550,6 +552,16 @@ export default function CreatePurchase({ medicines, suppliers, purchaseNumber }:
                                     {errors.supplier_name}
                                 </p>
                             )}
+                        </div>
+                        <div>
+                            <Label>Company Name</Label>
+                            <Input
+                                value={newSupplier.company_name}
+                                onChange={(e) =>
+                                    setNewSupplier({ ...newSupplier, company_name: e.target.value })
+                                }
+                                placeholder="Enter company name"
+                            />
                         </div>
                         <div>
                             <Label>Contact Person</Label>

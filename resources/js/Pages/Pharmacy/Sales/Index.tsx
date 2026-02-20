@@ -54,10 +54,10 @@ interface Patient {
     id: number;
     patient_id: string;
     first_name: string;
-    last_name: string;
+    father_name: string;
 }
 
-interface SaleWithItems extends Sale {
+interface SaleWithItems extends Omit<Sale, 'patient'> {
     patient: Patient | null;
     user: {
         id: number;
@@ -110,8 +110,8 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
         query: filters.query || '',
         status: filters.status || '',
         payment_method: filters.payment_method || '',
-        date_from: filters.date_from || '',
-        date_to: filters.date_to || '',
+        date_range_from: filters.date_from || '',
+        date_range_to: filters.date_to || '',
     });
     const [voidDialogOpen, setVoidDialogOpen] = useState(false);
     const [voidReason, setVoidReason] = useState('');
@@ -153,11 +153,30 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
         
         // Prepare query params
         const params: Record<string, string> = {};
-        if (newFilters.query) params.query = newFilters.query as string;
-        if (newFilters.status && newFilters.status !== 'all') params.status = newFilters.status as string;
-        if (newFilters.payment_method && newFilters.payment_method !== 'all') params.payment_method = newFilters.payment_method as string;
-        if (newFilters.date_from) params.date_from = newFilters.date_from as string;
-        if (newFilters.date_to) params.date_to = newFilters.date_to as string;
+        const filters = newFilters as Record<string, string | undefined>;
+        if (filters.query) params.query = filters.query;
+        if (filters.status && filters.status !== 'all') params.status = filters.status;
+        if (filters.payment_method && filters.payment_method !== 'all') params.payment_method = filters.payment_method;
+        // Map date_range_from/to to date_from/to for backend
+        if (filters.date_range_from) params.date_from = filters.date_range_from;
+        if (filters.date_range_to) params.date_to = filters.date_range_to;
+
+        router.get('/pharmacy/sales', params, {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
+    const handleSearch = (query: string) => {
+        const newFilters: Record<string, string | undefined> = { ...localFilters, query };
+        setLocalFilters(newFilters as FilterState);
+        
+        const params: Record<string, string> = {};
+        if (query) params.query = query;
+        if (newFilters.status && newFilters.status !== 'all') params.status = newFilters.status;
+        if (newFilters.payment_method && newFilters.payment_method !== 'all') params.payment_method = newFilters.payment_method;
+        if (newFilters.date_range_from) params.date_from = newFilters.date_range_from;
+        if (newFilters.date_range_to) params.date_to = newFilters.date_range_to;
 
         router.get('/pharmacy/sales', params, {
             preserveState: true,
@@ -166,7 +185,13 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
     };
 
     const handleReset = () => {
-        setLocalFilters({});
+        setLocalFilters({
+            query: '',
+            status: '',
+            payment_method: '',
+            date_range_from: '',
+            date_range_to: '',
+        });
         router.get('/pharmacy/sales', {}, {
             preserveState: true,
             preserveScroll: true,
@@ -225,8 +250,8 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
         if (localFilters.query) params.append('query', localFilters.query as string);
         if (localFilters.status) params.append('status', localFilters.status as string);
         if (localFilters.payment_method) params.append('payment_method', localFilters.payment_method as string);
-        if (localFilters.date_from) params.append('date_from', localFilters.date_from as string);
-        if (localFilters.date_to) params.append('date_to', localFilters.date_to as string);
+        if (localFilters.date_range_from) params.append('date_from', localFilters.date_range_from as string);
+        if (localFilters.date_range_to) params.append('date_to', localFilters.date_range_to as string);
         
         window.location.href = `/pharmacy/sales/export?${params.toString()}`;
     };
@@ -346,6 +371,7 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
                     value={localFilters}
                     onChange={handleFilterChange}
                     onReset={handleReset}
+                    onSearch={handleSearch}
                     searchPlaceholder="Search by invoice #, patient name..."
                     showFilterChips={true}
                 />
@@ -393,7 +419,7 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
                                                         <div className="flex items-center">
                                                             <User className="mr-2 h-4 w-4 text-muted-foreground" />
                                                             <div>
-                                                                <p className="font-medium">{sale.patient.first_name} {sale.patient.last_name}</p>
+                                                                <p className="font-medium">{sale.patient.first_name} {sale.patient.father_name}</p>
                                                                 <p className="text-xs text-muted-foreground">{sale.patient.patient_id}</p>
                                                             </div>
                                                         </div>

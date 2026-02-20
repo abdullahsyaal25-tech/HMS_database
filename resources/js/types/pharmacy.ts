@@ -26,7 +26,7 @@ export interface Sale {
     patient?: {
         id: number;
         first_name: string;
-        last_name: string;
+        father_name: string;
         patient_id: string;
     } | null;
     user?: {
@@ -124,7 +124,7 @@ export interface Patient {
     id: number;
     patient_id: string;
     first_name: string;
-    last_name: string;
+    father_name: string;
     phone?: string;
     email?: string;
     date_of_birth?: string;

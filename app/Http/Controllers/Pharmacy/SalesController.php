@@ -57,12 +57,12 @@ class SalesController extends Controller
         
         // Apply search filter
         if ($request->filled('query')) {
-            $searchTerm = $request->query;
+            $searchTerm = $request->input('query');
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('sale_id', 'like', '%' . $searchTerm . '%')
                   ->orWhereHas('patient', function ($pq) use ($searchTerm) {
                       $pq->where('first_name', 'like', '%' . $searchTerm . '%')
-                         ->orWhere('last_name', 'like', '%' . $searchTerm . '%')
+                         ->orWhere('father_name', 'like', '%' . $searchTerm . '%')
                          ->orWhere('patient_id', 'like', '%' . $searchTerm . '%');
                   });
             });

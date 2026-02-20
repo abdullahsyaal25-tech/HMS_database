@@ -65,12 +65,13 @@ class SalesService
             foreach ($data['items'] as $item) {
                 $medicine = Medicine::findOrFail($item['medicine_id']);
 
-                // Create sales item
+                // Create sales item with cost_price for profit calculation
                 SalesItem::create([
                     'sale_id' => $sale->id,
                     'medicine_id' => $item['medicine_id'],
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
+                    'cost_price' => $medicine->cost_price ?? 0, // Store cost price at time of sale
                     'total_price' => $item['quantity'] * $item['unit_price'],
                     'discount' => $item['discount'] ?? 0,
                 ]);
