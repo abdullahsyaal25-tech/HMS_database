@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\Payment;
+use App\Models\Sale;
+use App\Observers\PaymentObserver;
+use App\Observers\SaleObserver;
 use App\Services\SmartCacheService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Vite;
@@ -54,6 +58,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register model observers
+        Payment::observe(PaymentObserver::class);
+        Sale::observe(SaleObserver::class);
+
         Vite::prefetch(concurrency: 3);
 
         // Warm up critical caches on application boot

@@ -28,6 +28,7 @@ import {
     AlertTriangle,
     Shield,
     Lock,
+    CreditCard,
 } from 'lucide-react';
 import { usePage } from '@inertiajs/react';
 import { type NavItem } from '@/types';
@@ -126,6 +127,12 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                 title: 'Departments',
                 href: '/departments',
                 icon: Building,
+            },
+            {
+                title: 'Wallet',
+                href: '/wallet',
+                icon: CreditCard,
+                permission: 'wallet.view',
             },
             // {
             //     title: 'Billing',

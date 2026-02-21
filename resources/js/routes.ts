@@ -22,5 +22,10 @@ export const billing = {
   show: (id: number) => ziggyRoute('billing.show', { bill: id }),
 };
 
+// Wallet routes
+export const wallet = {
+  index: () => ziggyRoute('wallet.index'),
+};
+
 // Export the route function as default for general use
 export default ziggyRoute;

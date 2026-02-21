@@ -246,16 +246,6 @@ class LabTestResultController extends Controller
                 'performed_by' => $user->id,
             ]);
 
-            // If test is completed or verified, add lab test fee to patient's bill
-            if (in_array($request->status, ['completed', 'verified'])) {
-                $this->createBillItemForLabTest($labTestResult);
-            }
-            
-            Log::info('LabTestResultController store - created successfully', [
-                'result_id' => $labTestResult->id,
-                'result_id_string' => $resultId,
-            ]);
-
             DB::commit();
             
             return redirect()->route('laboratory.lab-test-results.index')
@@ -356,11 +346,6 @@ class LabTestResultController extends Controller
                 'abnormal_flags' => $request->abnormal_flags,
             ]);
 
-            // If status changed to completed or verified, add lab test fee to patient's bill
-            if (!in_array($oldStatus, ['completed', 'verified']) && in_array($request->status, ['completed', 'verified'])) {
-                $this->createBillItemForLabTest($labTestResult);
-            }
-
             DB::commit();
         
             return redirect()->route('laboratory.lab-test-results.index')->with('success', 'Lab test result updated successfully.');
@@ -456,107 +441,5 @@ class LabTestResultController extends Controller
         
         return redirect()->route('laboratory.lab-test-results.index')
             ->with('success', 'Lab test result deleted successfully.');
-    }
-
-    /**
-     * Create a bill item for the lab test fee.
-     *
-     * @param LabTestResult $labTestResult
-     * @return void
-     */
-    private function createBillItemForLabTest(LabTestResult $labTestResult): void
-    {
-        try {
-            // Load the lab test result with test and patient relationships
-            $labTestResult->load('test');
-
-            // Get the lab test cost
-            $labTest = $labTestResult->test;
-            if (!$labTest || $labTest->cost <= 0) {
-                Log::warning('Lab test has no cost defined', [
-                    'result_id' => $labTestResult->id,
-                    'test_id' => $labTestResult->test_id,
-                ]);
-                return;
-            }
-
-            // Find or create an open bill for the patient
-            $bill = Bill::where('patient_id', $labTestResult->patient_id)
-                ->whereNull('voided_at')
-                ->whereIn('payment_status', ['pending', 'partial'])
-                ->latest()
-                ->first();
-
-            // If no open bill exists, create a new one
-            if (!$bill) {
-                $bill = Bill::create([
-                    'patient_id' => $labTestResult->patient_id,
-                    'created_by' => auth()->id(),
-                    'bill_date' => now(),
-                    'due_date' => now()->addDays(30),
-                    'payment_status' => 'pending',
-                    'status' => 'active',
-                ]);
-
-                $this->auditLogService->logActivity(
-                    'Bill Created',
-                    'Billing',
-                    "Created new bill #{$bill->bill_number} for patient from lab test completion",
-                    'info'
-                );
-            }
-
-            // Check if this lab test is already billed
-            $existingItem = \App\Models\BillItem::where('bill_id', $bill->id)
-                ->where('source_type', LabTestResult::class)
-                ->where('source_id', $labTestResult->id)
-                ->first();
-
-            if ($existingItem) {
-                Log::info('Lab test fee already added to bill', [
-                    'result_id' => $labTestResult->id,
-                    'bill_id' => $bill->id,
-                ]);
-                return;
-            }
-
-            // Create bill item for lab test
-            \App\Models\BillItem::create([
-                'bill_id' => $bill->id,
-                'item_type' => 'lab_test',
-                'source_type' => LabTestResult::class,
-                'source_id' => $labTestResult->id,
-                'category' => 'laboratory',
-                'item_description' => "Lab Test: {$labTest->name} ({$labTest->test_code})",
-                'quantity' => 1,
-                'unit_price' => $labTest->cost,
-                'discount_amount' => 0,
-                'discount_percentage' => 0,
-                'total_price' => $labTest->cost,
-            ]);
-
-            // Recalculate bill totals
-            $bill->recalculateTotals();
-
-            $this->auditLogService->logActivity(
-                'Lab Test Billed',
-                'Laboratory',
-                "Lab test result #{$labTestResult->result_id} marked as completed. Fee added to bill #{$bill->bill_number}",
-                'info'
-            );
-        } catch (\Exception $e) {
-            // Log the error but don't fail the lab test result creation/update
-            Log::error('Failed to create bill item for lab test', [
-                'result_id' => $labTestResult->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            $this->auditLogService->logActivity(
-                'Lab Test Billing Failed',
-                'Billing',
-                "Failed to add lab test fee for result #{$labTestResult->result_id}: {$e->getMessage()}",
-                'error'
-            );
-        }
     }
 }

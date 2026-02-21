@@ -11,7 +11,6 @@ class Payment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'bill_id',
         'payment_method',
         'amount',
         'payment_date',
@@ -23,7 +22,6 @@ class Payment extends Model
         'check_number',
         'amount_tendered',
         'change_due',
-        'insurance_claim_id',
         'received_by',
         'notes',
         'status',
@@ -65,24 +63,9 @@ class Payment extends Model
     /**
      * Relationships
      */
-    public function bill()
-    {
-        return $this->belongsTo(Bill::class);
-    }
-
     public function receivedBy()
     {
         return $this->belongsTo(User::class, 'received_by');
-    }
-
-    public function insuranceClaim()
-    {
-        return $this->belongsTo(InsuranceClaim::class, 'insurance_claim_id');
-    }
-
-    public function refunds()
-    {
-        return $this->hasMany(BillRefund::class, 'payment_id');
     }
 
     /**
@@ -128,16 +111,6 @@ class Payment extends Model
         return $query->where('payment_method', 'card');
     }
 
-    public function scopeInsurance($query)
-    {
-        return $query->where('payment_method', 'insurance');
-    }
-
-    public function scopeByBill($query, int $billId)
-    {
-        return $query->where('bill_id', $billId);
-    }
-
     public function scopeByReceivedBy($query, int $userId)
     {
         return $query->where('received_by', $userId);
@@ -166,11 +139,6 @@ class Payment extends Model
         return $this->payment_method === 'card';
     }
 
-    public function getIsInsurancePaymentAttribute(): bool
-    {
-        return $this->payment_method === 'insurance';
-    }
-
     public function getFormattedAmountAttribute(): string
     {
         return number_format($this->amount, 2);
@@ -181,39 +149,11 @@ class Payment extends Model
         $labels = [
             'cash' => 'Cash',
             'card' => 'Credit/Debit Card',
-            'insurance' => 'Insurance',
             'bank_transfer' => 'Bank Transfer',
             'mobile_money' => 'Mobile Money',
             'check' => 'Check',
         ];
 
         return $labels[$this->payment_method] ?? ucfirst($this->payment_method);
-    }
-
-    /**
-     * Mark payment as refunded
-     */
-    public function markAsRefunded(): void
-    {
-        $this->update(['status' => 'refunded']);
-    }
-
-    /**
-     * Get total refunds for this payment
-     */
-    public function getTotalRefundedAttribute(): float
-    {
-        return $this->refunds()
-                    ->whereIn('status', ['approved', 'processed'])
-                    ->sum('refund_amount');
-    }
-
-    /**
-     * Check if payment can be refunded
-     */
-    public function getCanBeRefundedAttribute(): bool
-    {
-        return $this->status === 'completed' && 
-               $this->amount > $this->total_refunded;
     }
 }

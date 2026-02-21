@@ -36,6 +36,7 @@ class RolePermissionMappingSeeder extends Seeder
                 'view-laboratory', 'create-lab-tests', 'edit-lab-tests',
                 'view-reports', 'view-settings', 'view-activity-logs',
                 'view-departments', 'create-departments', 'edit-departments',
+                'wallet.view',
             ],
             
             'hospital-admin' => [
@@ -50,6 +51,7 @@ class RolePermissionMappingSeeder extends Seeder
                 'view-billing-reports',
                 'view-reports', 'view-activity-logs',
                 'view-departments', 'create-departments', 'edit-departments',
+                'wallet.view',
             ],
             
             'reception-admin' => [

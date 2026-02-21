@@ -19,6 +19,7 @@ use App\Http\Controllers\API\v1\PurchaseController as ApiPurchaseController;
 use App\Http\Controllers\API\v1\MedicineCategoryController as ApiMedicineCategoryController;
 use App\Http\Controllers\API\v1\ReportController as ApiReportController;
 use App\Http\Controllers\API\v1\DashboardController as ApiDashboardController;
+use App\Http\Controllers\WalletController;
 
 /*
 |--------------------------------------------------------------------------
@@ -147,6 +148,11 @@ Route::prefix('v1')->group(function () {
             // Dashboard
             Route::get('dashboard/stats', [ApiDashboardController::class, 'stats']);
             Route::get('dashboard/activities', [ApiDashboardController::class, 'recentActivities']);
+        });
+
+        // Wallet routes
+        Route::prefix('wallet')->group(function () {
+            Route::get('/realtime', [WalletController::class, 'realtime']);
         });
     });
 });

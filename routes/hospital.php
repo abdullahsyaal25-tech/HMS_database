@@ -24,6 +24,7 @@ use App\Http\Controllers\Medical\MedicalRecordController;
 use App\Http\Controllers\Medical\ClinicalAssessmentController;
 use App\Http\Controllers\Admin\RBACController;
 use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', 'auth'])->group(function () {
@@ -162,6 +163,11 @@ Route::middleware(['web', 'auth'])->group(function () {
             ->name('reports.billing.refunds');
         Route::get('/provider-performance', [BillingReportController::class, 'providerPerformanceReport'])
             ->name('reports.billing.provider-performance');
+    });
+
+    // Wallet and Revenue Tracking
+    Route::middleware('check.permission:wallet.view')->prefix('wallet')->group(function () {
+        Route::get('/', [WalletController::class, 'index'])->name('wallet.index');
     });
 
     // Pharmacy Routes

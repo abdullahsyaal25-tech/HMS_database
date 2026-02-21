@@ -539,6 +539,26 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
 
+            // Wallet & Revenue Tracking Permissions (WLT)
+            [
+                'name' => 'wallet.view',
+                'description' => 'View wallet and revenue tracking',
+                'module' => 'Wallet',
+                'category' => 'Finance',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'wallet.manage',
+                'description' => 'Manage wallet transactions',
+                'module' => 'Wallet',
+                'category' => 'Finance',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+
             // Pharmacy Permissions (PHM)
             [
                 'name' => 'pharmacy.view',
