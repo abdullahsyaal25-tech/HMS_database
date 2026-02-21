@@ -7,10 +7,13 @@ use App\Models\Wallet;
 use App\Models\Transaction;
 use App\Models\Payment;
 use App\Models\Sale;
+use App\Models\Appointment;
+use App\Models\LabTestRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class WalletController extends Controller
 {
@@ -76,25 +79,32 @@ class WalletController extends Controller
 
     /**
      * Get appointment revenue for a date range.
+     * Calculates from completed appointments using their fee field minus discounts.
      */
     private function getAppointmentRevenue(Carbon $start, Carbon $end)
     {
-        // Since bills are removed, using Payment model directly
-        // This assumes payments are categorized by source or we track all payments
-        return Payment::where('status', 'completed')
-            ->whereBetween('payment_date', [$start, $end])
-            ->sum('amount');
+        // Get completed appointments and calculate their grand total (fee - discount)
+        $appointments = Appointment::whereIn('status', ['completed', 'confirmed'])
+            ->whereBetween('appointment_date', [$start, $end])
+            ->get();
+        
+        return $appointments->sum(function ($appointment) {
+            return $appointment->grand_total;
+        });
     }
 
     /**
      * Get department service revenue for a date range.
+     * Calculates from appointment_services (department services used in appointments).
      */
     private function getDepartmentRevenue(Carbon $start, Carbon $end)
     {
-        // Since bills are removed, using Payment model directly
-        return Payment::where('status', 'completed')
-            ->whereBetween('payment_date', [$start, $end])
-            ->sum('amount');
+        // Sum the final_cost from appointment_services for completed appointments
+        return DB::table('appointment_services')
+            ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+            ->whereIn('appointments.status', ['completed', 'confirmed'])
+            ->whereBetween('appointment_services.created_at', [$start, $end])
+            ->sum('appointment_services.final_cost');
     }
 
     /**
@@ -102,8 +112,7 @@ class WalletController extends Controller
      */
     private function getPharmacyRevenue(Carbon $start, Carbon $end)
     {
-        // Some sales are marked completed but payment_status may remain 'pending'.
-        // Count completed sales as revenue.
+        // Count completed sales as revenue
         return Sale::where('status', 'completed')
             ->whereBetween('created_at', [$start, $end])
             ->sum('grand_total');
@@ -111,12 +120,20 @@ class WalletController extends Controller
 
     /**
      * Get laboratory revenue for a date range.
+     * Calculates from LabTestResults (completed or performed) joined with LabTest to get costs.
      */
     private function getLaboratoryRevenue(Carbon $start, Carbon $end)
     {
-        // Laboratory revenue - assuming it's tracked through payments or lab test results
-        // For now, returning 0 until proper tracking is implemented
-        return 0;
+        // Get lab test results that are completed OR have been performed (have performed_at date)
+        // This includes results that are technically "pending" but have actually been done
+        return DB::table('lab_test_results')
+            ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
+            ->where(function ($query) {
+                $query->where('lab_test_results.status', 'completed')
+                      ->orWhereNotNull('lab_test_results.performed_at');
+            })
+            ->whereBetween('lab_test_results.performed_at', [$start, $end])
+            ->sum('lab_tests.cost');
     }
 
     /**
