@@ -7,7 +7,6 @@ use App\Models\LabTestResult;
 use App\Models\LabTest;
 use App\Models\LabTestRequest;
 use App\Models\Patient;
-use App\Models\Bill;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;

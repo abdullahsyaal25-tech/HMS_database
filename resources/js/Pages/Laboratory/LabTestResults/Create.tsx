@@ -165,7 +165,10 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
   const patientSpecificTests = useMemo(() => {
     if (!selectedPatient) return labTests;
     
-    const patientTests = patientTestRequests[selectedPatient.id] || [];
+    // Ensure patientTestRequests[selectedPatient.id] is an array
+    const patientTests = Array.isArray(patientTestRequests[selectedPatient.id]) 
+      ? patientTestRequests[selectedPatient.id] 
+      : [];
     const patientTestNames = patientTests.map(t => t.test_name);
     
     return labTests.filter(test => patientTestNames.includes(test.name));
