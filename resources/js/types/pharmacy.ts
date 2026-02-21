@@ -12,7 +12,6 @@ export interface Sale {
     sale_id: string;
     patient_id: number | null;
     prescription_id: number | null;
-    user_id: number;
     total_amount: number;
     discount: number;
     tax: number;
@@ -29,12 +28,19 @@ export interface Sale {
         father_name: string;
         patient_id: string;
     } | null;
+    soldBy?: {
+        id: number;
+        name: string;
+    } | null;
+    items?: SalesItem[];
+    prescription?: Prescription | null;
+    // Additional computed/loaded properties
+    user_id?: number;
     user?: {
         id: number;
         name: string;
-    };
-    items?: SalesItem[];
-    prescription?: Prescription | null;
+    } | null;
+    items_count?: number;
 }
 
 export interface SalesItem {

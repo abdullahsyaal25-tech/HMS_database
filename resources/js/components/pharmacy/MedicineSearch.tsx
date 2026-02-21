@@ -37,6 +37,10 @@ export interface MedicineSearchProps {
     className?: string;
 }
 
+export interface MedicineSearchRef {
+    focus: () => void;
+}
+
 const dosageFormIcons: Record<string, LucideIcon> = {
     tablet: Pill,
     capsule: Pill,
@@ -50,7 +54,7 @@ const dosageFormIcons: Record<string, LucideIcon> = {
     default: Pill,
 };
 
-const MedicineSearch = React.forwardRef<HTMLDivElement, MedicineSearchProps>(
+const MedicineSearch = React.forwardRef<MedicineSearchRef, MedicineSearchProps>(
     (
         {
             className,
@@ -71,7 +75,16 @@ const MedicineSearch = React.forwardRef<HTMLDivElement, MedicineSearchProps>(
     ) => {
         const [open, setOpen] = React.useState(false);
         const [searchQuery, setSearchQuery] = React.useState('');
+        const [selectedIndex, setSelectedIndex] = React.useState(-1);
         const inputRef = React.useRef<HTMLInputElement>(null);
+        const containerRef = React.useRef<HTMLDivElement>(null);
+
+        // Expose focus method to parent components
+        React.useImperativeHandle(ref, () => ({
+            focus: () => {
+                inputRef.current?.focus();
+            },
+        }));
 
         // Filter medicines based on search query and stock availability
         const filteredMedicines = React.useMemo(() => {
@@ -118,6 +131,41 @@ const MedicineSearch = React.forwardRef<HTMLDivElement, MedicineSearchProps>(
             inputRef.current?.focus();
         };
 
+        // Handle keyboard navigation
+        const handleKeyDown = (e: React.KeyboardEvent) => {
+            if (!open || filteredMedicines.length === 0) return;
+
+            switch (e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    setSelectedIndex((prev) =>
+                        prev < filteredMedicines.length - 1 ? prev + 1 : 0
+                    );
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    setSelectedIndex((prev) =>
+                        prev > 0 ? prev - 1 : filteredMedicines.length - 1
+                    );
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    if (selectedIndex >= 0 && selectedIndex < filteredMedicines.length) {
+                        handleSelect(filteredMedicines[selectedIndex]);
+                    }
+                    break;
+                case 'Escape':
+                    setOpen(false);
+                    inputRef.current?.focus();
+                    break;
+            }
+        };
+
+        // Reset selected index when search query changes
+        React.useEffect(() => {
+            setSelectedIndex(-1);
+        }, [searchQuery]);
+
         // Get icon for dosage form
         const getDosageIcon = (dosageForm?: string | null) => {
             return dosageFormIcons[dosageForm?.toLowerCase() || 'default'] || dosageFormIcons.default;
@@ -132,7 +180,7 @@ const MedicineSearch = React.forwardRef<HTMLDivElement, MedicineSearchProps>(
         };
 
         return (
-            <div ref={ref} className={cn('relative w-full', className)} {...props}>
+            <div ref={containerRef} className={cn('relative w-full', className)} {...props}>
                 <Popover open={open} onOpenChange={setOpen}>
                     <PopoverTrigger asChild>
                         <div className="relative">
@@ -173,6 +221,7 @@ const MedicineSearch = React.forwardRef<HTMLDivElement, MedicineSearchProps>(
                                     placeholder="Type to search..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyDown={handleKeyDown}
                                 />
                             </div>
                             <div className="max-h-[300px] overflow-y-auto">
@@ -189,7 +238,7 @@ const MedicineSearch = React.forwardRef<HTMLDivElement, MedicineSearchProps>(
                                         <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
                                             {filteredMedicines.length} medicines found
                                         </div>
-                                        {filteredMedicines.map((medicine) => {
+                                        {filteredMedicines.map((medicine, index) => {
                                             const Icon = getDosageIcon(medicine.dosage_form);
                                             const stockStatus = getStockStatus(medicine);
 
@@ -197,7 +246,12 @@ const MedicineSearch = React.forwardRef<HTMLDivElement, MedicineSearchProps>(
                                                 <div
                                                     key={medicine.id}
                                                     onClick={() => handleSelect(medicine)}
-                                                    className="flex items-center justify-between py-3 px-2 cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-sm"
+                                                    className={cn(
+                                                        "flex items-center justify-between py-3 px-2 cursor-pointer rounded-sm",
+                                                        index === selectedIndex
+                                                            ? "bg-accent text-accent-foreground"
+                                                            : "hover:bg-accent hover:text-accent-foreground"
+                                                    )}
                                                 >
                                                     <div className="flex items-center gap-3 flex-1 min-w-0">
                                                         <div className="flex items-center justify-center size-8 rounded-md bg-muted">

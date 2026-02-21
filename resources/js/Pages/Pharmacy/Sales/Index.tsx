@@ -57,12 +57,8 @@ interface Patient {
     father_name: string;
 }
 
-interface SaleWithItems extends Omit<Sale, 'patient'> {
+interface SaleWithItems extends Sale {
     patient: Patient | null;
-    user: {
-        id: number;
-        name: string;
-    };
     items_count: number;
 }
 
@@ -104,6 +100,16 @@ interface SaleIndexProps {
         today_revenue: number;
     };
 }
+
+// Helper to get the seller name from different possible response formats
+const getSellerName = (sale: SaleWithItems): string => {
+    // Try soldBy first (camelCase from some responses)
+    if (sale.soldBy?.name) return sale.soldBy.name;
+    // Try user property
+    if (sale.user?.name) return sale.user.name;
+    // Fallback
+    return 'N/A';
+};
 
 export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps) {
     const [localFilters, setLocalFilters] = useState<FilterState>({
@@ -398,11 +404,12 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
                                         <TableHead>Total</TableHead>
                                         <TableHead>Payment</TableHead>
                                         <TableHead>Status</TableHead>
+                                        <TableHead>Sold By</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {sales.data.length > 0 ? (
+                                    {sales.data && sales.data.length > 0 ? (
                                         sales.data.map((sale) => (
                                             <TableRow key={sale.id}>
                                                 <TableCell className="font-medium">
@@ -452,6 +459,12 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
                                                         {sale.status.charAt(0).toUpperCase() + sale.status.slice(1)}
                                                     </Badge>
                                                 </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center">
+                                                        <User className="mr-2 h-4 w-4 text-muted-foreground" />
+                                                        {getSellerName(sale)}
+                                                    </div>
+                                                </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end gap-2">
                                                         <Link href={`/pharmacy/sales/${sale.id}`}>
@@ -480,7 +493,7 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={8} className="h-24 text-center">
+                                            <TableCell colSpan={9} className="h-24 text-center">
                                                 <div className="flex flex-col items-center justify-center text-muted-foreground">
                                                     <Search className="h-8 w-8 mb-2 opacity-50" />
                                                     <p>No sales found</p>
@@ -497,11 +510,11 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
                             </Table>
                         </div>
 
-                        {/* Pagination */}
-                        {(sales.meta?.last_page || 0) > 1 && (
+                        {/* Pagination - Always show controls for navigation */}
+                        {sales.meta && sales.links && (
                             <div className="flex items-center justify-between mt-6">
                                 <p className="text-sm text-muted-foreground">
-                                    Showing {sales.meta?.from || 0} to {sales.meta?.to || 0} of {sales.meta?.total || 0} results
+                                    Showing {sales.meta.from || 0} to {sales.meta.to || 0} of {sales.meta.total || 0} results
                                 </p>
                                 <div className="flex items-center gap-2">
                                     <Link
@@ -516,8 +529,8 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
                                     </Link>
                                     <div className="flex items-center gap-1">
                                         {sales.meta.links
-                                            .filter(link => !link.label.includes('Previous') && !link.label.includes('Next'))
-                                            .map((link, index) => (
+                                            .filter((link: { label: string }) => !link.label.includes('Previous') && !link.label.includes('Next'))
+                                            .map((link: { url: string | null; label: string; active: boolean }, index: number) => (
                                                 <Link
                                                     key={index}
                                                     href={link.url || '#'}

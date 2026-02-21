@@ -79,13 +79,13 @@ class SalesController extends Controller
             $query->where('payment_method', $request->payment_method);
         }
         
-        // Apply date range filter
-        if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
-        }
-        if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
-        }
+        // Apply date range filter - default to today's date if not provided
+        $today = now()->toDateString();
+        $dateFrom = $request->filled('date_from') ? $request->date_from : $today;
+        $dateTo = $request->filled('date_to') ? $request->date_to : $today;
+        
+        $query->whereDate('created_at', '>=', $dateFrom);
+        $query->whereDate('created_at', '<=', $dateTo);
         
         $sales = $query->latest()->paginate(15)->withQueryString();
         

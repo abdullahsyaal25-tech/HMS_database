@@ -110,11 +110,11 @@ const pharmacyNavItems: (NavItem & { permission?: string })[] = [
                 href: '/pharmacy/sales/create',
                 icon: Plus,
             },
-            {
-                title: 'Dispense',
-                href: '/pharmacy/sales/dispense',
-                icon: ShoppingCart,
-            },
+            // {
+            //     title: 'Dispense',
+            //     href: '/pharmacy/sales/dispense',
+            //     icon: ShoppingCart,
+            // },
         ],
     },
     {
