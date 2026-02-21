@@ -8,7 +8,6 @@ use App\Models\LabTest;
 use App\Models\LabTestRequest;
 use App\Models\Patient;
 use App\Models\Bill;
-use App\Services\Billing\BillItemService;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,14 +20,11 @@ use Illuminate\Http\RedirectResponse;
 
 class LabTestResultController extends Controller
 {
-    protected BillItemService $billItemService;
     protected AuditLogService $auditLogService;
 
     public function __construct(
-        BillItemService $billItemService,
         AuditLogService $auditLogService
     ) {
-        $this->billItemService = $billItemService;
         $this->auditLogService = $auditLogService;
     }
 

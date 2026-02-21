@@ -4,10 +4,8 @@ namespace App\Http\Controllers\Appointment;
 
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
-use App\Models\Bill;
 use App\Models\DepartmentService;
 use App\Services\AppointmentService;
-use App\Services\Billing\BillItemService;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -19,16 +17,13 @@ use Inertia\Response;
 class AppointmentController extends Controller
 {
     protected AppointmentService $appointmentService;
-    protected BillItemService $billItemService;
     protected AuditLogService $auditLogService;
 
     public function __construct(
         AppointmentService $appointmentService,
-        BillItemService $billItemService,
         AuditLogService $auditLogService
     ) {
         $this->appointmentService = $appointmentService;
-        $this->billItemService = $billItemService;
         $this->auditLogService = $auditLogService;
     }
 
@@ -409,11 +404,6 @@ class AppointmentController extends Controller
                 'discount' => $sanitized['discount'],
             ]);
 
-            // If appointment is marked as completed, create bill item for consultation fee
-            if ($validated['status'] === 'completed' && $appointment->fee > 0) {
-                $this->createBillItemForAppointment($appointment);
-            }
-
             DB::commit();
 
             return redirect()->route('appointments.index')->with('success', 'Appointment updated successfully.');
@@ -447,67 +437,4 @@ class AppointmentController extends Controller
         }
     }
 
-    /**
-     * Create a bill item for the appointment consultation fee.
-     *
-     * @param Appointment $appointment
-     * @return void
-     */
-    private function createBillItemForAppointment(Appointment $appointment): void
-    {
-        try {
-            // Load the appointment with doctor relationship
-            $appointment->load('doctor');
-
-            // Find or create an open bill for the patient
-            $bill = Bill::where('patient_id', $appointment->patient_id)
-                ->whereNull('voided_at')
-                ->whereIn('payment_status', ['pending', 'partial'])
-                ->latest()
-                ->first();
-
-            // If no open bill exists, create a new one
-            if (!$bill) {
-                $bill = Bill::create([
-                    'patient_id' => $appointment->patient_id,
-                    'doctor_id' => $appointment->doctor_id,
-                    'created_by' => auth()->id(),
-                    'bill_date' => now(),
-                    'due_date' => now()->addDays(30),
-                    'payment_status' => 'pending',
-                    'status' => 'active',
-                ]);
-
-                $this->auditLogService->logActivity(
-                    'Bill Created',
-                    'Billing',
-                    "Created new bill #{$bill->bill_number} for patient from appointment completion",
-                    'info'
-                );
-            }
-
-            // Add the appointment fee to the bill
-            $this->billItemService->addFromAppointment($bill, $appointment);
-
-            $this->auditLogService->logActivity(
-                'Appointment Completed',
-                'Appointment',
-                "Appointment #{$appointment->appointment_id} marked as completed. Consultation fee added to bill #{$bill->bill_number}",
-                'info'
-            );
-        } catch (\Exception $e) {
-            // Log the error but don't fail the appointment update
-            Log::error('Failed to create bill item for appointment', [
-                'appointment_id' => $appointment->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            $this->auditLogService->logActivity(
-                'Bill Item Creation Failed',
-                'Billing',
-                "Failed to add appointment fee for appointment #{$appointment->appointment_id}: {$e->getMessage()}",
-                'error'
-            );
-        }
-    }
 }
