@@ -9,12 +9,9 @@ use App\Models\SalesItem;
 use App\Models\Medicine;
 use App\Models\MedicineCategory;
 use App\Models\Patient;
-use App\Models\Bill;
-use App\Models\BillItem;
 use App\Services\SalesService;
 use App\Services\InventoryService;
 use App\Services\AuditLogService;
-use App\Services\Billing\BillCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -27,18 +24,15 @@ class SalesController extends Controller
     protected $salesService;
     protected $inventoryService;
     protected $auditLogService;
-    protected $calculationService;
 
     public function __construct(
         SalesService $salesService,
         InventoryService $inventoryService,
-        AuditLogService $auditLogService,
-        BillCalculationService $calculationService
+        AuditLogService $auditLogService
     ) {
         $this->salesService = $salesService;
         $this->inventoryService = $inventoryService;
         $this->auditLogService = $auditLogService;
-        $this->calculationService = $calculationService;
     }
 
     /**
@@ -225,11 +219,6 @@ class SalesController extends Controller
                 'info'
             );
 
-            // If sale is for a patient and completed, add to patient's bill
-            if ($sale->patient_id && $sale->status === 'completed') {
-                $this->addPharmacySaleToBill($sale);
-            }
-            
             DB::commit();
             
             Log::info('Sale transaction committed', ['sale_id' => $sale->id]);
@@ -485,106 +474,4 @@ class SalesController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    /**
-     * Add pharmacy sale items to patient's bill.
-     *
-     * @param Sale $sale
-     * @return void
-     */
-    private function addPharmacySaleToBill(Sale $sale): void
-    {
-        try {
-            // Load sale items with medicine relationship
-            $sale->load('items.medicine');
-
-            if ($sale->items->isEmpty()) {
-                Log::warning('Sale has no items to add to bill', [
-                    'sale_id' => $sale->id,
-                ]);
-                return;
-            }
-
-            // Find or create an open bill for the patient
-            $bill = Bill::where('patient_id', $sale->patient_id)
-                ->whereNull('voided_at')
-                ->whereIn('payment_status', ['pending', 'partial'])
-                ->latest()
-                ->first();
-
-            // If no open bill exists, create a new one
-            if (!$bill) {
-                $bill = Bill::create([
-                    'patient_id' => $sale->patient_id,
-                    'created_by' => auth()->id(),
-                    'bill_date' => now(),
-                    'due_date' => now()->addDays(30),
-                    'payment_status' => 'pending',
-                    'status' => 'active',
-                ]);
-
-                $this->auditLogService->logActivity(
-                    'Bill Created',
-                    'Billing',
-                    "Created new bill #{$bill->bill_number} for patient from pharmacy sale",
-                    'info'
-                );
-            }
-
-            // Check if sale items are already added to this bill
-            $existingItems = BillItem::where('bill_id', $bill->id)
-                ->where('source_type', Sale::class)
-                ->where('source_id', $sale->id)
-                ->count();
-
-            if ($existingItems > 0) {
-                Log::info('Pharmacy sale items already added to bill', [
-                    'sale_id' => $sale->id,
-                    'bill_id' => $bill->id,
-                ]);
-                return;
-            }
-
-            // Add each sale item to the bill
-            foreach ($sale->items as $item) {
-                $medicineName = $item->medicine ? $item->medicine->name : 'Unknown Medicine';
-
-                BillItem::create([
-                    'bill_id' => $bill->id,
-                    'item_type' => 'pharmacy',
-                    'source_type' => Sale::class,
-                    'source_id' => $sale->id,
-                    'category' => 'pharmacy',
-                    'item_description' => "Pharmacy: {$medicineName} (Qty: {$item->quantity})",
-                    'quantity' => $item->quantity,
-                    'unit_price' => $item->unit_price,
-                    'discount_amount' => $item->discount ?? 0,
-                    'discount_percentage' => 0,
-                    'total_price' => $item->total_price,
-                ]);
-            }
-
-            // Recalculate bill totals
-            $this->calculationService->calculateTotals($bill);
-
-            $this->auditLogService->logActivity(
-                'Pharmacy Sale Added to Bill',
-                'Billing',
-                "Added {$sale->items->count()} pharmacy items from sale #{$sale->sale_id} to bill #{$bill->bill_number}. Total: {$sale->grand_total}",
-                'info'
-            );
-        } catch (\Exception $e) {
-            // Log the error but don't fail the sale
-            Log::error('Failed to add pharmacy sale to bill', [
-                'sale_id' => $sale->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            $this->auditLogService->logActivity(
-                'Pharmacy Sale Billing Failed',
-                'Billing',
-                "Failed to add pharmacy sale #{$sale->sale_id} to bill: {$e->getMessage()}",
-                'error'
-            );
-        }
-    }
 }

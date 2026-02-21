@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdatePatientRequest;
 use App\Models\Patient;
 use App\Models\User;
-use App\Models\Bill;
-use App\Services\Billing\BillCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -18,8 +16,6 @@ use Illuminate\Http\RedirectResponse;
 
 class PatientController extends Controller
 {
-    protected $calculationService;
-
     /**
      * Blood group validation
      */
@@ -45,11 +41,6 @@ class PatientController extends Controller
                 : null,
             'blood_group' => $this->validateBloodGroup($data['blood_group'] ?? null),
         ];
-    }
-
-    public function __construct(BillCalculationService $calculationService)
-    {
-        $this->calculationService = $calculationService;
     }
 
     /**
@@ -194,64 +185,72 @@ class PatientController extends Controller
      */
     public function show(Patient $patient, Request $request): Response
     {
-        // Use proper eager loading with counts
-        $bills = Bill::where('patient_id', $patient->id)
-            ->with(['items', 'payments', 'primaryInsurance.insuranceProvider'])
-            ->withCount(['payments as completed_payments_sum' => function($query) {
-                $query->where('status', 'completed');
-            }])
-            ->latest()
-            ->get();
+        // Initialize billing data as empty (billing module not implemented)
+        $billingData = [
+            'bills' => [],
+            'stats' => [
+                'total_bills' => 0,
+                'total_amount' => 0,
+                'total_paid' => 0,
+                'outstanding_balance' => 0,
+                'overdue_bills' => 0,
+            ],
+            'recent_transactions' => [],
+        ];
         
-        // Process transactions efficiently using flatMap
-        $recentTransactions = $bills->flatMap(function ($bill) {
-            $transactions = [];
-            
-            // Add bill as transaction
-            $transactions[] = [
-                'type' => 'bill',
-                'title' => "Bill #{$bill->bill_number}",
-                'amount' => $bill->total_amount,
-                'date' => $bill->bill_date,
-                'status' => $bill->payment_status,
-            ];
-            
-            // Add payments (limited to 3 per bill)
-            foreach ($bill->payments->take(3) as $payment) {
-                $transactions[] = [
-                    'type' => 'payment',
-                    'title' => "Payment for Bill #{$bill->bill_number}",
-                    'amount' => $payment->amount,
-                    'date' => $payment->payment_date,
-                    'status' => $payment->status,
+        // Try to load billing data if Bill model exists
+        try {
+            if (class_exists(\App\Models\Bill::class)) {
+                $bills = \App\Models\Bill::where('patient_id', $patient->id)
+                    ->with(['items', 'payments', 'primaryInsurance.insuranceProvider'])
+                    ->withCount(['payments as completed_payments_sum' => function($query) {
+                        $query->where('status', 'completed');
+                    }])
+                    ->latest()
+                    ->get();
+                
+                $recentTransactions = $bills->flatMap(function ($bill) {
+                    $transactions = [];
+                    $transactions[] = [
+                        'type' => 'bill',
+                        'title' => "Bill #{$bill->bill_number}",
+                        'amount' => $bill->total_amount,
+                        'date' => $bill->bill_date,
+                        'status' => $bill->payment_status,
+                    ];
+                    foreach ($bill->payments->take(3) as $payment) {
+                        $transactions[] = [
+                            'type' => 'payment',
+                            'title' => "Payment for Bill #{$bill->bill_number}",
+                            'amount' => $payment->amount,
+                            'date' => $payment->payment_date,
+                            'status' => $payment->status,
+                        ];
+                    }
+                    return $transactions;
+                })->sortByDesc('date')->take(10)->values();
+                
+                $outstandingBalance = \App\Models\Bill::where('patient_id', $patient->id)
+                    ->whereNull('voided_at')
+                    ->whereIn('payment_status', ['pending', 'partial'])
+                    ->sum('balance_due');
+                
+                $billingData = [
+                    'bills' => $bills,
+                    'stats' => [
+                        'total_bills' => \App\Models\Bill::where('patient_id', $patient->id)->count(),
+                        'total_amount' => \App\Models\Bill::where('patient_id', $patient->id)->whereNull('voided_at')->sum('total_amount'),
+                        'total_paid' => \App\Models\Bill::where('patient_id', $patient->id)->whereNull('voided_at')->sum('amount_paid'),
+                        'outstanding_balance' => $outstandingBalance,
+                        'overdue_bills' => \App\Models\Bill::where('patient_id', $patient->id)->whereNull('voided_at')->where('due_date', '<', now())->whereIn('payment_status', ['pending', 'partial'])->count(),
+                    ],
+                    'recent_transactions' => $recentTransactions,
                 ];
             }
-            
-            return $transactions;
-        })->sortByDesc('date')->take(10)->values();
-        
-        // Calculate outstanding balance using subquery for efficiency
-        $outstandingBalance = Bill::where('patient_id', $patient->id)
-            ->whereNull('voided_at')
-            ->whereIn('payment_status', ['pending', 'partial'])
-            ->sum('balance_due');
-        
-        // Calculate billing statistics efficiently
-        $billingStats = [
-            'total_bills' => Bill::where('patient_id', $patient->id)->count(),
-            'total_amount' => Bill::where('patient_id', $patient->id)
-                ->whereNull('voided_at')
-                ->sum('total_amount'),
-            'total_paid' => Bill::where('patient_id', $patient->id)
-                ->whereNull('voided_at')
-                ->sum('amount_paid'),
-            'outstanding_balance' => $outstandingBalance,
-            'overdue_bills' => Bill::where('patient_id', $patient->id)
-                ->whereNull('voided_at')
-                ->where('due_date', '<', now())
-                ->whereIn('payment_status', ['pending', 'partial'])
-                ->count(),
-        ];
+        } catch (\Exception $e) {
+            // Billing module not available
+            \Illuminate\Support\Facades\Log::warning('Billing module not available: ' . $e->getMessage());
+        }
         
         // Get pagination information for all patients
         $currentPage = $request->get('page', 1);
@@ -260,11 +259,7 @@ class PatientController extends Controller
         
         return Inertia::render('Patient/Show', [
             'patient' => $patient,
-            'billing' => [
-                'bills' => $bills,
-                'stats' => $billingStats,
-                'recent_transactions' => $recentTransactions,
-            ],
+            'billing' => $billingData,
             'patients_pagination' => [
                 'data' => $patients->items(),
                 'meta' => [

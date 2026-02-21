@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Patient;
 use App\Models\Doctor;
 use App\Models\Appointment;
-use App\Models\Bill;
 use App\Models\LabTestResult;
 use App\Models\Sale;
 use App\Models\AuditLog;
@@ -158,7 +157,17 @@ class ReportController extends Controller
 
         [$startDate, $endDate] = $this->getDateRange($request);
 
-        $bills = Bill::with([
+        // Check if Bill model exists
+        if (!class_exists(\App\Models\Bill::class)) {
+            return Inertia::render('Reports/Billing/Show', [
+                'bills' => [],
+                'startDate' => $startDate->toDateString(),
+                'endDate' => $endDate->toDateString(),
+                'error' => 'Billing module not available',
+            ]);
+        }
+
+        $bills = \App\Models\Bill::with([
             'patient:id,patient_id,first_name,father_name',
             'items:id,bill_id,description,quantity,unit_price,total'
         ])
@@ -184,7 +193,12 @@ class ReportController extends Controller
 
         [$startDate, $endDate] = $this->getDateRange($request);
 
-        $bills = Bill::with([
+        // Check if Bill model exists
+        if (!class_exists(\App\Models\Bill::class)) {
+            abort(404, 'Billing module not available');
+        }
+
+        $bills = \App\Models\Bill::with([
             'patient:id,patient_id,first_name,father_name',
             'items:id,bill_id,description,quantity,unit_price,total'
         ])
