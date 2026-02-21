@@ -154,7 +154,7 @@ export function SafeHtml({ html, className, tagName = 'div' }: SafeHtmlProps): R
 
 // Validate and sanitize form data
 export function sanitizeFormData<T extends Record<string, unknown>>(data: T): T {
-  const sanitized = { ...data }
+  const sanitized = { ...data } as Record<string, unknown>
   
   Object.keys(sanitized).forEach(key => {
     const value = sanitized[key]
@@ -170,11 +170,11 @@ export function sanitizeFormData<T extends Record<string, unknown>>(data: T): T 
         cleanValue = escapeHtml(cleanValue)
       }
       
-      sanitized[key] = cleanValue as any
+      sanitized[key] = cleanValue
     }
   })
   
-  return sanitized
+  return sanitized as T
 }
 
 // Rate limiting for user inputs to prevent abuse

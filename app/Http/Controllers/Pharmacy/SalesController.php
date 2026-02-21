@@ -7,6 +7,7 @@ use App\Http\Requests\StoreSaleRequest;
 use App\Models\Sale;
 use App\Models\SalesItem;
 use App\Models\Medicine;
+use App\Models\MedicineCategory;
 use App\Models\Patient;
 use App\Models\Bill;
 use App\Models\BillItem;

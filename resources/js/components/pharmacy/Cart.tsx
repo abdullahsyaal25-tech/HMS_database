@@ -20,8 +20,6 @@ import type { CartItem } from '@/types/pharmacy';
 import {
     ShoppingCart,
     Trash2,
-    Minus,
-    Plus,
     Package,
     AlertCircle,
     Receipt,
@@ -273,88 +271,92 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
 
     return (
         <div className={cn(
-            'flex items-start gap-3 p-3 rounded-lg border',
+            'flex flex-col p-4 rounded-lg border',
             isOverStock ? 'bg-amber-50 border-amber-200' : 'bg-card'
         )}>
-            <div className="flex items-center justify-center size-10 rounded-md bg-muted shrink-0">
-                <Package className="size-5 text-muted-foreground" />
-            </div>
-
-            <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
+            {/* Header: Name and Remove Button */}
+            <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center size-10 rounded-md bg-muted shrink-0">
+                        <Package className="size-5 text-muted-foreground" />
+                    </div>
                     <div>
-                        <p className="font-medium truncate">{item.name}</p>
+                        <p className="font-medium">{item.name}</p>
                         <p className="text-xs text-muted-foreground">
                             {item.dosage_form} {item.strength}
                         </p>
                     </div>
-                    {!readOnly && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="size-6 p-0 text-muted-foreground hover:text-destructive shrink-0"
-                            onClick={() => onRemove(item.medicine_id)}
-                        >
-                            <X className="size-4" />
-                        </Button>
-                    )}
                 </div>
-
-                <div className="flex items-center justify-between mt-2">
-                    {!readOnly ? (
-                        <div className="flex items-center gap-1">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="size-7 p-0"
-                                onClick={() => onUpdateQuantity(item.medicine_id, item.quantity - 1)}
-                                disabled={item.quantity <= 1}
-                            >
-                                <Minus className="size-3" />
-                            </Button>
-                            <Input
-                                type="number"
-                                min={1}
-                                max={item.stock_quantity}
-                                value={item.quantity}
-                                onChange={(e) => {
-                                    const val = parseInt(e.target.value) || 1;
-                                    onUpdateQuantity(item.medicine_id, Math.max(1, val));
-                                }}
-                                className="w-14 h-7 text-center px-1"
-                            />
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="size-7 p-0"
-                                onClick={() => onUpdateQuantity(item.medicine_id, item.quantity + 1)}
-                                disabled={item.quantity >= item.stock_quantity}
-                            >
-                                <Plus className="size-3" />
-                            </Button>
-                        </div>
-                    ) : (
-                        <span className="text-sm text-muted-foreground">
-                            Qty: {item.quantity}
-                        </span>
-                    )}
-
-                    <div className="text-right">
-                        <PriceDisplay amount={itemTotal} size="sm" />
-                        {item.discount && item.discount > 0 && (
-                            <p className="text-xs text-emerald-600">
-                                {item.discount}% off
-                            </p>
-                        )}
-                    </div>
-                </div>
-
-                {isOverStock && (
-                    <p className="text-xs text-amber-600 mt-1">
-                        Only {item.stock_quantity} available in stock
-                    </p>
+                {!readOnly && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="size-8 p-0 text-muted-foreground hover:text-destructive shrink-0"
+                        onClick={() => onRemove(item.medicine_id)}
+                        aria-label={`Remove ${item.name} from cart`}
+                    >
+                        <X className="size-4" />
+                    </Button>
                 )}
             </div>
+
+            {/* Body: Price, Quantity, Total in a row */}
+            <div className="flex items-center justify-between gap-4">
+                {/* Unit Price */}
+                <div className="text-sm">
+                    <span className="text-muted-foreground">Price: </span>
+                    <span className="font-medium">{formatCurrency(item.unit_price)}</span>
+                </div>
+
+                {/* Quantity - Directly editable input without plus/minus buttons */}
+                {!readOnly ? (
+                    <div className="flex items-center gap-2">
+                        <label htmlFor={`quantity-${item.medicine_id}`} className="text-sm text-muted-foreground">
+                            Qty:
+                        </label>
+                        <Input
+                            id={`quantity-${item.medicine_id}`}
+                            type="number"
+                            min={1}
+                            max={item.stock_quantity}
+                            value={item.quantity}
+                            onChange={(e) => {
+                                const val = parseInt(e.target.value) || 1;
+                                onUpdateQuantity(item.medicine_id, Math.max(1, Math.min(val, item.stock_quantity)));
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.currentTarget.blur();
+                                }
+                            }}
+                            className="w-16 h-8 text-center"
+                            aria-label={`Quantity for ${item.name}`}
+                        />
+                    </div>
+                ) : (
+                    <span className="text-sm text-muted-foreground">
+                        Qty: {item.quantity}
+                    </span>
+                )}
+
+                {/* Item Total */}
+                <div className="text-right">
+                    <span className="text-sm text-muted-foreground">Total: </span>
+                    <PriceDisplay amount={itemTotal} size="sm" />
+                    {item.discount && item.discount > 0 && (
+                        <p className="text-xs text-emerald-600">
+                            {item.discount}% off
+                        </p>
+                    )}
+                </div>
+            </div>
+
+            {/* Stock Warning */}
+            {isOverStock && (
+                <p className="text-xs text-amber-600 mt-2">
+                    Only {item.stock_quantity} available in stock
+                </p>
+            )}
         </div>
     );
 };

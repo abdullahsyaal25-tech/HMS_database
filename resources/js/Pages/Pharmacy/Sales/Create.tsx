@@ -14,6 +14,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+
 import { MedicineSearch, Cart, PriceDisplay, TotalPrice } from '@/components/pharmacy';
 import Heading from '@/components/heading';
 import {
@@ -30,18 +31,11 @@ import {
     AlertCircle,
     Search,
     X,
+    Keyboard,
 } from 'lucide-react';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import PharmacyLayout from '@/layouts/PharmacyLayout';
-import type { Medicine, CartItem } from '@/types/pharmacy';
-
-interface Patient {
-    id: number;
-    patient_id: string;
-    first_name: string;
-    father_name: string;
-    phone?: string;
-}
+import type { Medicine, CartItem, Patient } from '@/types/pharmacy';
 
 interface SaleCreateProps {
     medicines: Medicine[];
@@ -55,7 +49,9 @@ interface QuickPatientForm {
     phone: string;
 }
 
-export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCreateProps) {
+export default function SaleCreate({ medicines, patients: patientsProp, taxRate = 0 }: SaleCreateProps) {
+    // Ensure patients is properly typed
+    const patients = patientsProp as Patient[];
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
     const [patientSearchQuery, setPatientSearchQuery] = useState('');
@@ -71,6 +67,9 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
     const [saleComplete, setSaleComplete] = useState(false);
     const [completedSaleId, setCompletedSaleId] = useState<number | null>(null);
 
+    // Keyboard navigation state
+    const [focusedElement, setFocusedElement] = useState<string | null>(null);
+
     const { data, setData, post, processing } = useForm({
         patient_id: '',
         payment_method: 'cash' as 'cash' | 'card' | 'insurance' | 'credit',
@@ -81,11 +80,14 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
         items: [] as CartItem[],
     });
 
+    // Refs for keyboard navigation
+    const patientSearchRef = useRef<HTMLInputElement>(null);
+
     // Filter patients based on search
-    const filteredPatients = useMemo(() => {
+    const filteredPatients = useMemo((): Patient[] => {
         if (!patientSearchQuery.trim()) return patients.slice(0, 5);
         const query = patientSearchQuery.toLowerCase();
-        return patients.filter(p => 
+        return patients.filter((p: Patient) => 
             p.first_name.toLowerCase().includes(query) ||
             p.father_name.toLowerCase().includes(query) ||
             p.patient_id.toLowerCase().includes(query)
@@ -162,11 +164,52 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
         setSelectedPatient(patient);
         setData('patient_id', patient.id.toString());
         setPatientSearchQuery('');
+        setFocusedElement('medicine-search');
+    };
+
+    // Render patient search results
+    const renderPatientResults = () => {
+        if (!patientSearchQuery) return null;
+        
+        const patients = filteredPatients;
+        if (patients.length === 0) {
+            return (
+                <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                    No patients found. Click "+ Add Patient" to create a new one.
+                </div>
+            );
+        }
+        
+        return patients.map((patient: Patient, index: number) => (
+            <button
+                key={patient.id}
+                onClick={() => handleSelectPatient(patient)}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                        handleSelectPatient(patient);
+                    }
+                }}
+                className={`w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3 ${index === 0 && focusedElement === 'patient-results' ? 'bg-muted' : ''}`}
+                tabIndex={0}
+                role="option"
+                aria-selected={selectedPatient?.id === patient.id}>
+                <User className="h-4 w-4 text-muted-foreground" />
+                <div>
+                    <p className="font-medium text-sm">
+                        {patient.first_name} {patient.father_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        {patient.patient_id}
+                    </p>
+                </div>
+            </button>
+        ));
     };
 
     const handleClearPatient = () => {
         setSelectedPatient(null);
         setData('patient_id', '');
+        setFocusedElement('patient-search');
     };
 
     const handleQuickAddPatient = async () => {
@@ -200,11 +243,14 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
                     first_name: result.data.first_name,
                     father_name: result.data.father_name,
                     phone: result.data.phone,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
                 };
                 setSelectedPatient(newPatient);
                 setData('patient_id', newPatient.id.toString());
                 setShowQuickAddPatient(false);
                 setQuickPatient({ first_name: '', last_name: '', phone: '' });
+                setFocusedElement('medicine-search');
             } else {
                 throw new Error(result.message || 'Failed to create patient');
             }
@@ -234,7 +280,6 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
             onSuccess: () => {
                 setShowCheckoutDialog(false);
                 // Sale completed successfully - controller redirects to receipt page
-                // No need to set saleComplete state as page will redirect
             },
         });
     };
@@ -268,6 +313,9 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
             currency: 'AFN',
         }).format(amount);
     };
+
+    // Focus ring style
+    const focusRing = "ring-2 ring-ring ring-offset-2 ring-offset-background";
 
     // Success state after sale completion
     if (saleComplete) {
@@ -319,150 +367,117 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
                         </p>
                     </div>
                     
-                    <Link href="/pharmacy/sales">
-                        <Button variant="outline">
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back to Sales
-                        </Button>
-                    </Link>
+                    <div className="flex items-center gap-2">
+                        {/* Keyboard shortcuts hint */}
+                        <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground mr-2">
+                            <Keyboard className="h-3 w-3" />
+                            <span>Keyboard navigation enabled</span>
+                        </div>
+                        <Link href="/pharmacy/sales">
+                            <Button variant="outline">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Sales
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
 
-                {/* Main POS Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left Side - Medicine Search & Cart */}
-                    <div className="lg:col-span-2 space-y-6">
-                        {/* Medicine Search */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Search className="h-5 w-5" />
-                                    Search Medicines
-                                </CardTitle>
-                                <CardDescription>
-                                    Search and add medicines to the cart
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <MedicineSearch
-                                    medicines={medicines}
-                                    onSelect={handleAddToCart}
-                                    placeholder="Search by name, code, or category..."
-                                    showStock={true}
-                                    showPrice={true}
-                                />
-                            </CardContent>
-                        </Card>
-
-                        {/* Cart */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <ShoppingCart className="h-5 w-5" />
-                                    Cart
-                                    {cartItems.length > 0 && (
-                                        <Badge variant="secondary">
-                                            {cartItems.reduce((sum, item) => sum + item.quantity, 0)} items
-                                        </Badge>
-                                    )}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Cart
-                                    items={cartItems}
-                                    onUpdateQuantity={handleUpdateQuantity}
-                                    onRemoveItem={handleRemoveItem}
-                                    onClearCart={handleClearCart}
-                                    discount={discount}
-                                    tax={tax}
-                                    maxHeight="400px"
-                                    emptyMessage="Your cart is empty. Search for medicines above to add items."
-                                />
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Right Side - Customer & Checkout */}
-                    <div className="space-y-6">
-                        {/* Customer Selection */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <User className="h-5 w-5" />
-                                    Customer
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {selectedPatient ? (
-                                    <div className="p-4 rounded-lg bg-muted/50 border">
-                                        <div className="flex items-start justify-between">
+                {/* Main Form Layout - Single Column */}
+                <div className="space-y-6">
+                    
+                    {/* SECTION 1: CUSTOMER - Most Prominent */}
+                    <Card className="border-2 border-primary/20 shadow-lg">
+                        <CardHeader className="bg-primary/5 pb-4">
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                                <User className="h-5 w-5 text-primary" />
+                                Customer / Patient
+                                <Badge variant="outline" className="ml-2 text-xs">Step 1 of 3</Badge>
+                            </CardTitle>
+                            <CardDescription>
+                                Select an existing patient or add a new one
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-4">
+                            {selectedPatient ? (
+                                <div className="p-4 rounded-lg bg-muted/50 border-2 border-primary/20">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                                <User className="h-5 w-5 text-primary" />
+                                            </div>
                                             <div>
-                                                <p className="font-medium">
+                                                <p className="font-semibold text-lg">
                                                     {selectedPatient.first_name} {selectedPatient.father_name}
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">
-                                                    {selectedPatient.patient_id}
+                                                    ID: {selectedPatient.patient_id}
                                                 </p>
                                                 {selectedPatient.phone && (
                                                     <p className="text-sm text-muted-foreground">
-                                                        {selectedPatient.phone}
+                                                        📞 {selectedPatient.phone}
                                                     </p>
                                                 )}
                                             </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={handleClearPatient}
-                                                aria-label="Clear selected patient"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </Button>
                                         </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={handleClearPatient}
+                                            aria-label="Clear selected patient"
+                                            className={focusedElement === 'clear-patient' ? focusRing : ''}
+                                            tabIndex={0}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
                                     </div>
-                                ) : (
-                                    <>
-                                        <div className="relative">
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {/* Patient Search with Plus Button */}
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
                                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                             <Input
-                                                placeholder="Search existing patient..."
+                                                ref={patientSearchRef}
+                                                placeholder="Search patient by name or ID..."
                                                 value={patientSearchQuery}
                                                 onChange={(e) => setPatientSearchQuery(e.target.value)}
-                                                className="pl-9"
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' && filteredPatients.length > 0) {
+                                                        handleSelectPatient(filteredPatients[0]);
+                                                    } else if (e.key === 'Escape') {
+                                                        setPatientSearchQuery('');
+                                                    }
+                                                }}
+                                                className={`pl-9 pr-10 h-12 text-base ${focusedElement === 'patient-search' ? focusRing : ''}`}
+                                                tabIndex={0}
+                                                aria-label="Search for patient"
                                             />
+                                            {patientSearchQuery && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                                                    onClick={() => setPatientSearchQuery('')}
+                                                    tabIndex={-1}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            )}
                                         </div>
                                         
-                                        {patientSearchQuery && (
-                                            <div className="border rounded-md divide-y">
-                                                {filteredPatients.length > 0 ? (
-                                                    filteredPatients.map(patient => (
-                                                        <button
-                                                            key={patient.id}
-                                                            onClick={() => handleSelectPatient(patient)}
-                                                            className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3"
-                                                        >
-                                                            <User className="h-4 w-4 text-muted-foreground" />
-                                                            <div>
-                                                                <p className="font-medium text-sm">
-                                                                    {patient.first_name} {patient.father_name}
-                                                                </p>
-                                                                <p className="text-xs text-muted-foreground">
-                                                                    {patient.patient_id}
-                                                                </p>
-                                                            </div>
-                                                        </button>
-                                                    ))
-                                                ) : (
-                                                    <div className="px-4 py-3 text-sm text-muted-foreground text-center">
-                                                        No patients found
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
+                                        {/* Quick Add Patient Button */}
                                         <Dialog open={showQuickAddPatient} onOpenChange={setShowQuickAddPatient}>
                                             <DialogTrigger asChild>
-                                                <Button variant="outline" className="w-full">
-                                                    <Plus className="mr-2 h-4 w-4" />
-                                                    Quick Add Patient
+                                                <Button 
+                                                    variant="default"
+                                                    size="lg"
+                                                    className="h-12 px-4"
+                                                    tabIndex={0}
+                                                    aria-label="Add new patient"
+                                                >
+                                                    <Plus className="h-5 w-5" />
+                                                    <span className="ml-1 hidden sm:inline">Add Patient</span>
                                                 </Button>
                                             </DialogTrigger>
                                             <DialogContent>
@@ -475,28 +490,47 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
                                                 <div className="space-y-4 pt-4">
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="space-y-2">
-                                                            <Label>First Name</Label>
+                                                            <Label htmlFor="firstName">First Name *</Label>
                                                             <Input
+                                                                id="firstName"
                                                                 value={quickPatient.first_name}
                                                                 onChange={(e) => setQuickPatient(prev => ({ ...prev, first_name: e.target.value }))}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter' && quickPatient.first_name) {
+                                                                        handleQuickAddPatient();
+                                                                    }
+                                                                }}
                                                                 placeholder="John"
+                                                                autoFocus
                                                             />
                                                         </div>
                                                         <div className="space-y-2">
-                                                            <Label>Father's Name</Label>
+                                                            <Label htmlFor="fatherName">Father's Name</Label>
                                                             <Input
+                                                                id="fatherName"
                                                                 value={quickPatient.last_name}
                                                                 onChange={(e) => setQuickPatient(prev => ({ ...prev, last_name: e.target.value }))}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter' && quickPatient.first_name) {
+                                                                        handleQuickAddPatient();
+                                                                    }
+                                                                }}
                                                                 placeholder="Smith"
                                                             />
                                                         </div>
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <Label>Phone</Label>
+                                                        <Label htmlFor="phone">Phone</Label>
                                                         <Input
+                                                            id="phone"
                                                             value={quickPatient.phone}
                                                             onChange={(e) => setQuickPatient(prev => ({ ...prev, phone: e.target.value }))}
-                                                            placeholder="+1 234 567 8900"
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter' && quickPatient.first_name) {
+                                                                    handleQuickAddPatient();
+                                                                }
+                                                            }}
+                                                            placeholder="+93 700 123 456"
                                                         />
                                                     </div>
                                                     <Button 
@@ -509,115 +543,199 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
                                                 </div>
                                             </DialogContent>
                                         </Dialog>
-                                    </>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        {/* Discount */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Percent className="h-5 w-5" />
-                                    Discount
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {discountExceedsSubtotal && (
-                                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
-                                        <p className="text-sm text-amber-800 flex items-center gap-2">
-                                            <AlertCircle className="h-4 w-4" />
-                                            Discount cannot exceed subtotal ({formatCurrency(subtotal)})
-                                        </p>
                                     </div>
-                                )}
-                                <Tabs value={discountType} onValueChange={(v) => setDiscountType(v as 'percentage' | 'fixed')}>
-                                    <TabsList className="grid w-full grid-cols-2">
-                                        <TabsTrigger value="percentage">Percentage</TabsTrigger>
-                                        <TabsTrigger value="fixed">Fixed Amount</TabsTrigger>
-                                    </TabsList>
-                                    <TabsContent value="percentage" className="mt-4">
-                                        <div className="relative">
-                                            <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input
-                                                type="number"
-                                                min="0"
-                                                max="100"
-                                                value={discountValue}
-                                                onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
-                                                className="pl-9"
-                                                placeholder="0"
-                                            />
+                                    
+                                    {/* Patient Search Results */}
+                                    {patientSearchQuery && (
+                                        <div className="border rounded-md divide-y" role="listbox">
+                                            {renderPatientResults()}
                                         </div>
-                                    </TabsContent>
-                                    <TabsContent value="fixed" className="mt-4">
-                                        <div className="relative">
-                                            <Currency className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input
-                                                type="number"
-                                                min="0"
-                                                step="0.01"
-                                                value={discountValue}
-                                                onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
-                                                className="pl-9"
-                                                placeholder="0.00"
-                                            />
-                                        </div>
-                                    </TabsContent>
-                                </Tabs>
-                            </CardContent>
-                        </Card>
+                                    )}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
 
-                        {/* Order Summary */}
-                        <Card className="border-primary/20">
-                            <CardHeader className="bg-primary/5">
-                                <CardTitle className="flex items-center gap-2">
-                                    <Calculator className="h-5 w-5" />
-                                    Order Summary
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4 pt-4">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Subtotal</span>
-                                    <PriceDisplay amount={subtotal} size="sm" />
-                                </div>
-                                {discount > 0 && (
+                    {/* SECTION 2: MEDICINES */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                                <Search className="h-5 w-5" />
+                                Search Medicines
+                                <Badge variant="outline" className="ml-2 text-xs">Step 2 of 3</Badge>
+                            </CardTitle>
+                            <CardDescription>
+                                Search medicines by name or code to add to cart
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {/* Medicine Search */}
+                            <MedicineSearch
+                                medicines={medicines}
+                                onSelect={handleAddToCart}
+                                placeholder="Search by name, code, or category..."
+                                showStock={true}
+                                showPrice={true}
+                            />
+                        </CardContent>
+                    </Card>
+
+                    {/* SECTION 3: CART & CHECKOUT */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Cart */}
+                        <div className="lg:col-span-2">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <ShoppingCart className="h-5 w-5" />
+                                        Cart
+                                        {cartItems.length > 0 && (
+                                            <Badge variant="secondary">
+                                                {cartItems.reduce((sum, item) => sum + item.quantity, 0)} items
+                                            </Badge>
+                                        )}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <Cart
+                                        items={cartItems}
+                                        onUpdateQuantity={handleUpdateQuantity}
+                                        onRemoveItem={handleRemoveItem}
+                                        onClearCart={handleClearCart}
+                                        discount={discount}
+                                        tax={tax}
+                                        maxHeight="400px"
+                                        emptyMessage="Your cart is empty. Search for medicines above to add items."
+                                    />
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Right Side - Discount & Summary */}
+                        <div className="space-y-6">
+                            {/* Discount */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Percent className="h-5 w-5" />
+                                        Discount
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {discountExceedsSubtotal && (
+                                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                                            <p className="text-sm text-amber-800 flex items-center gap-2">
+                                                <AlertCircle className="h-4 w-4" />
+                                                Discount cannot exceed subtotal ({formatCurrency(subtotal)})
+                                            </p>
+                                        </div>
+                                    )}
+                                    <Tabs value={discountType} onValueChange={(v) => setDiscountType(v as 'percentage' | 'fixed')}>
+                                        <TabsList className="grid w-full grid-cols-2">
+                                            <TabsTrigger value="percentage">Percentage</TabsTrigger>
+                                            <TabsTrigger value="fixed">Fixed Amount</TabsTrigger>
+                                        </TabsList>
+                                        <TabsContent value="percentage" className="mt-4">
+                                            <div className="relative">
+                                                <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    max="100"
+                                                    value={discountValue}
+                                                    onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            handleCheckout();
+                                                        }
+                                                    }}
+                                                    className={`pl-9 ${focusedElement === 'discount-value' ? focusRing : ''}`}
+                                                    tabIndex={0}
+                                                    placeholder="0"
+                                                />
+                                            </div>
+                                        </TabsContent>
+                                        <TabsContent value="fixed" className="mt-4">
+                                            <div className="relative">
+                                                <Currency className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={discountValue}
+                                                    onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            handleCheckout();
+                                                        }
+                                                    }}
+                                                    className={`pl-9 ${focusedElement === 'discount-value' ? focusRing : ''}`}
+                                                    tabIndex={0}
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                        </TabsContent>
+                                    </Tabs>
+                                </CardContent>
+                            </Card>
+
+                            {/* Order Summary */}
+                            <Card className="border-primary/20">
+                                <CardHeader className="bg-primary/5">
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Calculator className="h-5 w-5" />
+                                        Order Summary
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4 pt-4">
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">Discount</span>
-                                        <span className="text-emerald-600">-{formatCurrency(discount)}</span>
+                                        <span className="text-muted-foreground">Subtotal</span>
+                                        <PriceDisplay amount={subtotal} size="sm" />
                                     </div>
-                                )}
-                                {tax > 0 && (
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">Tax ({taxRate}%)</span>
-                                        <PriceDisplay amount={tax} size="sm" />
+                                    {discount > 0 && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Discount</span>
+                                            <span className="text-emerald-600">-{formatCurrency(discount)}</span>
+                                        </div>
+                                    )}
+                                    {tax > 0 && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Tax ({taxRate}%)</span>
+                                            <PriceDisplay amount={tax} size="sm" />
+                                        </div>
+                                    )}
+                                    <Separator />
+                                    <div className="flex justify-between items-center">
+                                        <span className="font-semibold">Total</span>
+                                        <TotalPrice amount={total} size="lg" />
                                     </div>
-                                )}
-                                <Separator />
-                                <div className="flex justify-between items-center">
-                                    <span className="font-semibold">Total</span>
-                                    <TotalPrice amount={total} size="lg" />
-                                </div>
-                            </CardContent>
-                            <CardFooter className="flex flex-col gap-3">
-                                {cartItems.length > 0 ? (
-                                    <Button 
-                                        onClick={handleCheckout}
-                                        className="w-full"
-                                        size="lg"
-                                        disabled={discountExceedsSubtotal || total < 0}
-                                    >
-                                        <Receipt className="mr-2 h-4 w-4" />
-                                        Checkout
-                                    </Button>
-                                ) : (
-                                    <Button disabled className="w-full" size="lg">
-                                        <AlertCircle className="mr-2 h-4 w-4" />
-                                        Add items to checkout
-                                    </Button>
-                                )}
-                            </CardFooter>
-                        </Card>
+                                </CardContent>
+                                <CardFooter className="flex flex-col gap-3">
+                                    {cartItems.length > 0 ? (
+                                        <Button 
+                                            onClick={handleCheckout}
+                                            className="w-full"
+                                            size="lg"
+                                            disabled={discountExceedsSubtotal || total < 0}
+                                            tabIndex={0}
+                                        >
+                                            <Receipt className="mr-2 h-4 w-4" />
+                                            Proceed to Checkout
+                                        </Button>
+                                    ) : (
+                                        <Button disabled className="w-full" size="lg">
+                                            <AlertCircle className="mr-2 h-4 w-4" />
+                                            Add items to checkout
+                                        </Button>
+                                    )}
+                                    
+                                    {/* Keyboard hint */}
+                                    <p className="text-xs text-muted-foreground text-center">
+                                        Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">Enter</kbd> to checkout
+                                    </p>
+                                </CardFooter>
+                            </Card>
+                        </div>
                     </div>
                 </div>
 
@@ -677,6 +795,7 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
                                 variant="outline"
                                 onClick={() => setShowCheckoutDialog(false)}
                                 className="flex-1"
+                                tabIndex={0}
                             >
                                 Cancel
                             </Button>
@@ -684,6 +803,7 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
                                 onClick={handleCompleteSale}
                                 disabled={processing}
                                 className="flex-1"
+                                tabIndex={0}
                             >
                                 {processing ? 'Processing...' : 'Complete Sale'}
                             </Button>
@@ -694,3 +814,4 @@ export default function SaleCreate({ medicines, patients, taxRate = 0 }: SaleCre
         </PharmacyLayout>
     );
 }
+
