@@ -750,7 +750,7 @@ export default function ServicesDashboard({
                                         )}
 
                                         {/* Last Page */}
-                                        {pagination.current_page < pagination.last_page - 1 && (
+                                        {pagination.current_page < pagination.last_page && (
                                             <Link 
                                                 href={buildUrl({ 
                                                     ...filters, 

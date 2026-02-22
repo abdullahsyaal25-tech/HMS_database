@@ -23,17 +23,17 @@ import type { LabTest } from '@/types/lab-test';
 interface LabTestIndexProps {
   labTests: {
     data: LabTest[];
-    links: {
+    links?: {
       first: string;
       last: string;
       prev: string | null;
       next: string | null;
     };
-    meta: {
+    meta?: {
       current_page: number;
       from: number;
       last_page: number;
-      links: {
+      links?: {
         url: string | null;
         label: string;
         active: boolean;
@@ -100,13 +100,23 @@ export default function LabTestIndex({ labTests, query = '', status = '', catego
     },
   ], []);
 
+  // Get meta with fallback values
+  const meta = labTests.meta || {
+    current_page: 1,
+    from: 0,
+    to: 0,
+    last_page: 1,
+    total: 0,
+    per_page: 10
+  };
+
   // Statistics
   const stats = useMemo(() => {
-    const total = labTests.meta?.total || 0;
+    const total = meta.total || 0;
     const active = labTests.data?.filter(t => t.status === 'active').length || 0;
     const inactive = labTests.data?.filter(t => t.status === 'inactive').length || 0;
     return { total, active, inactive };
-  }, [labTests]);
+  }, [labTests, meta]);
 
   const handleFilterChange = (newFilters: FilterState) => {
     setFilters(newFilters);
@@ -253,7 +263,7 @@ export default function LabTestIndex({ labTests, query = '', status = '', catego
         {/* View Mode Toggle */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing {labTests.data?.length || 0} of {labTests.meta?.total || 0} tests
+            Showing {labTests.data?.length || 0} of {meta.total || 0} tests
           </p>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">View:</span>
@@ -278,167 +288,156 @@ export default function LabTestIndex({ labTests, query = '', status = '', catego
           </div>
         </div>
 
-        {/* Tests Grid/List */}
-        {viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {labTests.data.map((test) => (
-              <LabTestCard
-                key={test.id}
-                test={transformToCardTest(test)}
-                type="test"
-                onView={() => router.visit(`/laboratory/lab-tests/${test.id}`)}
-                onEdit={() => router.visit(`/laboratory/lab-tests/${test.id}/edit`)}
-                onDuplicate={() => {
-                  // Handle duplicate action
-                  router.post(`/laboratory/lab-tests/${test.id}/duplicate`);
-                }}
-                onDeactivate={() => {
-                  // Handle deactivate/activate action
-                  const newStatus = test.status === 'active' ? 'inactive' : 'active';
-                  // Use router.visit with POST method and _method spoofing for PATCH
-                  router.visit(`/laboratory/lab-tests/${test.id}/status`, {
-                    method: 'post',
-                    data: {
-                      status: newStatus,
-                      _method: 'PATCH',
-                    },
-                    preserveScroll: true,
-                  });
-                }}
-              />
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="p-0">
-              <div className="divide-y">
-                {labTests.data.map((test) => {
-                  const categoryKey = (typeof filters.category === 'string' ? filters.category : 'hematology') as keyof typeof categoryIcons;
-                  const CategoryIcon = categoryIcons[categoryKey] || FlaskConical;
-                  return (
-                    <div
-                      key={test.id}
-                      className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={cn(
-                          'h-10 w-10 rounded-lg flex items-center justify-center',
-                          categoryColors[categoryKey] || categoryColors.hematology
-                        )}>
-                          <CategoryIcon className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium">{test.name}</h3>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span>{test.test_id}</span>
-                            <span>•</span>
-                            <span>{formatCurrency(test.cost)}</span>
-                            <span>•</span>
-                            <span>{formatTime(test.turnaround_time)}</span>
+        {/* Main Content Card with Pagination */}
+        <Card className="shadow-lg border-border/50">
+          <CardContent className="p-0">
+            {/* Empty State */}
+            {(labTests.data?.length || 0) === 0 ? (
+              <div className="py-12 flex flex-col items-center justify-center text-center">
+                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <FlaskConical className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium mb-2">No lab tests found</h3>
+                <p className="text-muted-foreground max-w-sm mb-4">
+                  {filters.query || filters.status || filters.category
+                    ? 'Try adjusting your filters to see more results.'
+                    : 'Get started by adding your first lab test.'}
+                </p>
+                {(filters.query || filters.status || filters.category) && (
+                  <Button variant="outline" onClick={handleReset}>
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Tests Grid/List */}
+                {viewMode === 'grid' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+                    {labTests.data.map((test) => (
+                      <LabTestCard
+                        key={test.id}
+                        test={transformToCardTest(test)}
+                        type="test"
+                        onView={() => router.visit(`/laboratory/lab-tests/${test.id}`)}
+                        onEdit={() => router.visit(`/laboratory/lab-tests/${test.id}/edit`)}
+                        onDuplicate={() => {
+                          router.post(`/laboratory/lab-tests/${test.id}/duplicate`);
+                        }}
+                        onDeactivate={() => {
+                          const newStatus = test.status === 'active' ? 'inactive' : 'active';
+                          router.visit(`/laboratory/lab-tests/${test.id}/status`, {
+                            method: 'post',
+                            data: {
+                              status: newStatus,
+                              _method: 'PATCH',
+                            },
+                            preserveScroll: true,
+                          });
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {labTests.data.map((test) => {
+                      const categoryKey = (typeof filters.category === 'string' ? filters.category : 'hematology') as keyof typeof categoryIcons;
+                      const CategoryIcon = categoryIcons[categoryKey] || FlaskConical;
+                      return (
+                        <div
+                          key={test.id}
+                          className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={cn(
+                              'h-10 w-10 rounded-lg flex items-center justify-center',
+                              categoryColors[categoryKey] || categoryColors.hematology
+                            )}>
+                              <CategoryIcon className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium">{test.name}</h3>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span>{test.test_id}</span>
+                                <span>•</span>
+                                <span>{formatCurrency(test.cost)}</span>
+                                <span>•</span>
+                                <span>{formatTime(test.turnaround_time)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={test.status === 'active' ? 'default' : 'secondary'}>
+                              {test.status}
+                            </Badge>
+                            <Link href={`/laboratory/lab-tests/${test.id}`}>
+                              <Button variant="ghost" size="sm">
+                                View
+                              </Button>
+                            </Link>
+                            <Link href={`/laboratory/lab-tests/${test.id}/edit`}>
+                              <Button variant="ghost" size="sm">
+                                Edit
+                              </Button>
+                            </Link>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={test.status === 'active' ? 'default' : 'secondary'}>
-                          {test.status}
-                        </Badge>
-                        <Link href={`/laboratory/lab-tests/${test.id}`}>
-                          <Button variant="ghost" size="sm">
-                            View
-                          </Button>
-                        </Link>
-                        <Link href={`/laboratory/lab-tests/${test.id}/edit`}>
-                          <Button variant="ghost" size="sm">
-                            Edit
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                      );
+                    })}
+                  </div>
+                )}
 
-        {/* Empty State */}
-        {(labTests.data?.length || 0) === 0 && (
-          <Card className="py-12">
-            <CardContent className="flex flex-col items-center justify-center text-center">
-              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                <FlaskConical className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-medium mb-2">No lab tests found</h3>
-              <p className="text-muted-foreground max-w-sm mb-4">
-                {filters.query || filters.status || filters.category
-                  ? 'Try adjusting your filters to see more results.'
-                  : 'Get started by adding your first lab test.'}
-              </p>
-              {(filters.query || filters.status || filters.category) && (
-                <Button variant="outline" onClick={handleReset}>
-                  Clear Filters
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        )}
-        {/* Pagination - Always show when there are records */}
-        {(labTests.meta?.total || 0) > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between p-6 border-t bg-muted/30 gap-4">
-            <div className="text-sm text-muted-foreground">
-              Showing <strong className="text-foreground">{labTests.meta?.from || 0}</strong> to <strong className="text-foreground">{labTests.meta?.to || 0}</strong> of{' '}
-              <strong className="text-foreground">{labTests.meta?.total || 0}</strong> tests
-            </div>
-            
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!(labTests.meta?.current_page) || labTests.meta?.current_page <= 1}
-                onClick={() => window.location.href = `/laboratory/lab-tests?page=${(labTests.meta?.current_page || 1) - 1}`}
-                className="hover:bg-primary hover:text-white"
-              >
-                ← Previous
-              </Button>
-              
-              {/* Page Numbers */}
-              {Array.from({ length: Math.min(5, labTests.meta.last_page || 1) }, (_, i) => {
-                let pageNum: number;
-                if ((labTests.meta.last_page || 1) <= 5) {
-                  pageNum = i + 1;
-                } else if (labTests.meta.current_page <= 3) {
-                  pageNum = i + 1;
-                } else if (labTests.meta.current_page >= (labTests.meta.last_page || 1) - 2) {
-                  pageNum = (labTests.meta.last_page || 1) - 4 + i;
-                } else {
-                  pageNum = labTests.meta.current_page - 2 + i;
-                }
-                
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={labTests.meta.current_page === pageNum ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => window.location.href = `/laboratory/lab-tests?page=${pageNum}`}
-                    className={labTests.meta.current_page === pageNum ? "bg-primary" : "hover:bg-primary hover:text-white"}
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
-              
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!(labTests.meta?.current_page) || labTests.meta?.current_page >= (labTests.meta?.last_page || 1)}
-                onClick={() => window.location.href = `/laboratory/lab-tests?page=${(labTests.meta?.current_page || 1) + 1}`}
-                className="hover:bg-primary hover:text-white"
-              >
-                Next →
-              </Button>
-            </div>
-          </div>
-        )}
+                {/* Pagination - Always show when there is data */}
+                <div className="flex flex-col sm:flex-row items-center justify-between p-6 border-t bg-muted/30 gap-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing <strong className="text-foreground">{meta.from || 0}</strong> to <strong className="text-foreground">{meta.to || 0}</strong> of{' '}
+                    <strong className="text-foreground">{meta.total || 0}</strong> tests
+                  </div>
+                  
+                  <div className="flex items-center gap-1">
+                    <Link
+                      href={`/laboratory/lab-tests?page=${(meta.current_page || 1) - 1}`}
+                      className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground ${((meta.current_page || 1) <= 1) ? 'pointer-events-none opacity-50' : ''}`}
+                    >
+                      ← Previous
+                    </Link>
+                    
+                    {/* Page Numbers */}
+                    {Array.from({ length: Math.min(5, meta.last_page || 1) }, (_, i) => {
+                      let pageNum: number;
+                      if ((meta.last_page || 1) <= 5) {
+                        pageNum = i + 1;
+                      } else if (meta.current_page <= 3) {
+                        pageNum = i + 1;
+                      } else if (meta.current_page >= (meta.last_page || 1) - 2) {
+                        pageNum = (meta.last_page || 1) - 4 + i;
+                      } else {
+                        pageNum = meta.current_page - 2 + i;
+                      }
+                      
+                      return (
+                        <Link
+                          key={pageNum}
+                          href={`/laboratory/lab-tests?page=${pageNum}`}
+                          className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 w-9 ${meta.current_page === pageNum ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'border border-input bg-background hover:bg-accent hover:text-accent-foreground'}`}
+                        >
+                          {pageNum}
+                        </Link>
+                      );
+                    })}
+                    
+                    <Link
+                      href={`/laboratory/lab-tests?page=${(meta.current_page || 1) + 1}`}
+                      className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground ${((meta.current_page || 1) >= (meta.last_page || 1)) ? 'pointer-events-none opacity-50' : ''}`}
+                    >
+                      Next →
+                    </Link>
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </LaboratoryLayout>
   );

@@ -109,42 +109,22 @@ class LabTestController extends Controller
      */
     public function index(Request $request): Response
     {
-        $user = Auth::user();
-
-        // Debug logging
-        \Log::info('Lab test index accessed', [
-            'user_id' => $user->id,
-            'username' => $user->username,
-            'role' => $user->role,
-            'has_view_laboratory_permission' => $user->hasPermission('view-laboratory'),
-            'has_required_roles' => $user->hasAnyRole(['Hospital Admin', 'Laboratory Admin']),
-        ]);
-
-// Check if user has appropriate permission (super admin bypass)
-if (!$user->isSuperAdmin() && !$user->hasPermission('view-laboratory')) {
-    \Log::warning('LabTestController index access denied - permission check failed', [
-        'user_id' => $user->id,
-        'username' => $user->username,
-        'role' => $user->role,
-    ]);
-    abort(403, 'Unauthorized access');
-}
-
         // Get filter parameters
-        $query = $request->input('query', '');
+        $searchQuery = $request->input('query', '');
         $status = $request->input('status', '');
         $category = $request->input('category', '');
+        $perPage = $request->input('per_page', 10);
 
         // Build the query
         $labTestsQuery = LabTest::query();
 
         // Apply search query filter
-        if ($query) {
-            $labTestsQuery->where(function ($q) use ($query) {
-                $q->where('name', 'like', '%' . $query . '%')
-                  ->orWhere('test_code', 'like', '%' . $query . '%')
-                  ->orWhere('description', 'like', '%' . $query . '%')
-                  ->orWhere('procedure', 'like', '%' . $query . '%');
+        if ($searchQuery) {
+            $labTestsQuery->where(function ($q) use ($searchQuery) {
+                $q->where('name', 'like', '%' . $searchQuery . '%')
+                  ->orWhere('test_code', 'like', '%' . $searchQuery . '%')
+                  ->orWhere('description', 'like', '%' . $searchQuery . '%')
+                  ->orWhere('procedure', 'like', '%' . $searchQuery . '%');
             });
         }
 
@@ -153,17 +133,14 @@ if (!$user->isSuperAdmin() && !$user->hasPermission('view-laboratory')) {
             $labTestsQuery->where('status', $status);
         }
 
-        // Apply category filter
-        if ($category) {
-            $labTestsQuery->where('category', $category);
-        }
-
-        // Paginate the results
-        $labTests = $labTestsQuery->paginate(50);
+        // Paginate the results - append all query parameters to preserve filters
+        $labTests = $labTestsQuery->orderBy('created_at', 'desc')
+            ->paginate($perPage)
+            ->appends($request->query());
 
         return Inertia::render('Laboratory/LabTests/Index', [
             'labTests' => $labTests,
-            'query' => $query,
+            'query' => $searchQuery,
             'status' => $status,
             'category' => $category,
         ]);

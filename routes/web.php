@@ -44,9 +44,12 @@ Route::get('/dashboard-redirect', function () {
     } elseif ($user->role === 'Reception') {
         // Reception role goes to patients section
         return redirect()->intended('/patients');
-    } elseif ($user->hasPermission('view-pharmacy')) {
+    } elseif ($user->role ==='laboratory') {
         // Sub-admin with pharmacy permissions
         return redirect()->intended('/pharmacy/medicines');
+    } elseif ($user->hasPermission('view-laboratory')) {
+        // Sub-admin with laboratory permissions
+        return redirect()->intended('/laboratory/lab-tests');
     } elseif ($user->hasPermission('view-laboratory')) {
         // Sub-admin with laboratory permissions
         return redirect()->intended('/laboratory/lab-tests');
