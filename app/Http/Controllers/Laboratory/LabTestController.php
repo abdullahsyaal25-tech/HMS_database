@@ -107,7 +107,7 @@ class LabTestController extends Controller
     /**
      * Display a listing of the lab tests.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $user = Auth::user();
 
@@ -130,10 +130,42 @@ if (!$user->isSuperAdmin() && !$user->hasPermission('view-laboratory')) {
     abort(403, 'Unauthorized access');
 }
 
-        $labTests = LabTest::paginate(10);
+        // Get filter parameters
+        $query = $request->input('query', '');
+        $status = $request->input('status', '');
+        $category = $request->input('category', '');
+
+        // Build the query
+        $labTestsQuery = LabTest::query();
+
+        // Apply search query filter
+        if ($query) {
+            $labTestsQuery->where(function ($q) use ($query) {
+                $q->where('name', 'like', '%' . $query . '%')
+                  ->orWhere('test_code', 'like', '%' . $query . '%')
+                  ->orWhere('description', 'like', '%' . $query . '%')
+                  ->orWhere('procedure', 'like', '%' . $query . '%');
+            });
+        }
+
+        // Apply status filter
+        if ($status) {
+            $labTestsQuery->where('status', $status);
+        }
+
+        // Apply category filter
+        if ($category) {
+            $labTestsQuery->where('category', $category);
+        }
+
+        // Paginate the results
+        $labTests = $labTestsQuery->paginate(50);
 
         return Inertia::render('Laboratory/LabTests/Index', [
-            'labTests' => $labTests
+            'labTests' => $labTests,
+            'query' => $query,
+            'status' => $status,
+            'category' => $category,
         ]);
     }
 

@@ -19,11 +19,32 @@ class LabTest extends Model
         'unit',
         'normal_values',
         'status',
+        'category',
     ];
 
     protected $casts = [
         'cost' => 'decimal:2',
     ];
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array
+     */
+    protected $appends = [
+        'test_id',
+    ];
+
+    /**
+     * Accessor to return test_code as test_id for frontend compatibility.
+     * The frontend expects test_id but the database uses test_code.
+     *
+     * @return string
+     */
+    public function getTestIdAttribute(): string
+    {
+        return $this->test_code;
+    }
 
     public function labTestResults()
     {

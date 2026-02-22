@@ -15,8 +15,6 @@ import {
   Beaker,
   LayoutGrid,
   List,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -247,6 +245,7 @@ export default function LabTestIndex({ labTests, query = '', status = '', catego
           value={filters}
           onChange={handleFilterChange}
           onReset={handleReset}
+          onSearch={(query) => handleFilterChange({ ...filters, query })}
           searchPlaceholder="Search tests by name, code, or description..."
           showFilterChips={true}
         />
@@ -383,54 +382,60 @@ export default function LabTestIndex({ labTests, query = '', status = '', catego
             </CardContent>
           </Card>
         )}
-
-        {/* Pagination */}
-        {(labTests.meta?.last_page || 0) > 1 && (
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Showing {labTests.meta?.from || 0} to {labTests.meta?.to || 0} of {labTests.meta?.total || 0} results
-            </p>
-            <div className="flex items-center gap-2">
-              <Link
-                href={labTests.links.prev || '#'}
-                className={cn(
-                  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
-                  'h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-                  !labTests.links.prev && 'pointer-events-none opacity-50'
-                )}
+        {/* Pagination - Always show when there are records */}
+        {(labTests.meta?.total || 0) > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between p-6 border-t bg-muted/30 gap-4">
+            <div className="text-sm text-muted-foreground">
+              Showing <strong className="text-foreground">{labTests.meta?.from || 0}</strong> to <strong className="text-foreground">{labTests.meta?.to || 0}</strong> of{' '}
+              <strong className="text-foreground">{labTests.meta?.total || 0}</strong> tests
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!(labTests.meta?.current_page) || labTests.meta?.current_page <= 1}
+                onClick={() => window.location.href = `/laboratory/lab-tests?page=${(labTests.meta?.current_page || 1) - 1}`}
+                className="hover:bg-primary hover:text-white"
               >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Link>
-              <div className="flex items-center gap-1">
-                {labTests.meta.links
-                  .filter(link => !link.label.includes('Previous') && !link.label.includes('Next'))
-                  .map((link, index) => (
-                    <Link
-                      key={index}
-                      href={link.url || '#'}
-                      className={cn(
-                        'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 w-9',
-                        link.active
-                          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                          : 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-                        !link.url && 'pointer-events-none opacity-50'
-                      )}
-                      dangerouslySetInnerHTML={{ __html: link.label }}
-                    />
-                  ))}
-              </div>
-              <Link
-                href={labTests.links.next || '#'}
-                className={cn(
-                  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
-                  'h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-                  !labTests.links.next && 'pointer-events-none opacity-50'
-                )}
+                ← Previous
+              </Button>
+              
+              {/* Page Numbers */}
+              {Array.from({ length: Math.min(5, labTests.meta.last_page || 1) }, (_, i) => {
+                let pageNum: number;
+                if ((labTests.meta.last_page || 1) <= 5) {
+                  pageNum = i + 1;
+                } else if (labTests.meta.current_page <= 3) {
+                  pageNum = i + 1;
+                } else if (labTests.meta.current_page >= (labTests.meta.last_page || 1) - 2) {
+                  pageNum = (labTests.meta.last_page || 1) - 4 + i;
+                } else {
+                  pageNum = labTests.meta.current_page - 2 + i;
+                }
+                
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={labTests.meta.current_page === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => window.location.href = `/laboratory/lab-tests?page=${pageNum}`}
+                    className={labTests.meta.current_page === pageNum ? "bg-primary" : "hover:bg-primary hover:text-white"}
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+              
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!(labTests.meta?.current_page) || labTests.meta?.current_page >= (labTests.meta?.last_page || 1)}
+                onClick={() => window.location.href = `/laboratory/lab-tests?page=${(labTests.meta?.current_page || 1) + 1}`}
+                className="hover:bg-primary hover:text-white"
               >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Link>
+                Next →
+              </Button>
             </div>
           </div>
         )}
