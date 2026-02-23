@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Models\Appointment;
-use App\Models\Bill;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -22,7 +21,7 @@ class ArchiveOldRecords extends Command
      *
      * @var string
      */
-    protected $description = 'Archive old appointment and bill records to improve performance';
+    protected $description = 'Archive old appointment records to improve performance';
 
     /**
      * Execute the console command.
@@ -39,13 +38,11 @@ class ArchiveOldRecords extends Command
 
         // Count records to archive
         $appointmentCount = Appointment::where('appointment_date', '<', $cutoffDate)->count();
-        $billCount = Bill::where('bill_date', '<', $cutoffDate)->count();
 
         $this->info("Records to archive:");
         $this->line("- Appointments: {$appointmentCount}");
-        $this->line("- Bills: {$billCount}");
 
-        if ($appointmentCount === 0 && $billCount === 0) {
+        if ($appointmentCount === 0) {
             $this->info('No records to archive.');
             return;
         }
@@ -60,7 +57,6 @@ class ArchiveOldRecords extends Command
         }
 
         $this->archiveAppointments($cutoffDate);
-        $this->archiveBills($cutoffDate);
 
         $this->info('Archiving completed successfully.');
     }
@@ -82,27 +78,6 @@ class ArchiveOldRecords extends Command
                 $table->timestamps();
             });
         }
-
-        if (!Schema::hasTable('archive_bills')) {
-            Schema::create('archive_bills', function ($table) {
-                $table->id();
-                $table->string('bill_number')->unique();
-                $table->foreignId('patient_id');
-                $table->foreignId('doctor_id');
-                $table->foreignId('created_by');
-                $table->date('bill_date');
-                $table->decimal('sub_total', 10, 2);
-                $table->decimal('discount', 8, 2);
-                $table->decimal('tax', 8, 2);
-                $table->decimal('total_amount', 10, 2);
-                $table->decimal('amount_paid', 10, 2);
-                $table->decimal('amount_due', 10, 2);
-                $table->enum('payment_status', ['pending', 'partial', 'paid', 'cancelled']);
-                $table->enum('status', ['active', 'cancelled']);
-                $table->text('notes')->nullable();
-                $table->timestamps();
-            });
-        }
     }
 
     private function archiveAppointments($cutoffDate)
@@ -118,20 +93,5 @@ class ArchiveOldRecords extends Command
         $deleted = Appointment::where('appointment_date', '<', $cutoffDate)->delete();
 
         $this->info("Archived {$deleted} appointments.");
-    }
-
-    private function archiveBills($cutoffDate)
-    {
-        $this->info('Archiving bills...');
-
-        DB::statement("
-            INSERT INTO archive_bills
-            SELECT * FROM bills
-            WHERE bill_date < ?
-        ", [$cutoffDate]);
-
-        $deleted = Bill::where('bill_date', '<', $cutoffDate)->delete();
-
-        $this->info("Archived {$deleted} bills.");
     }
 }

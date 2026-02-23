@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Department;
 use App\Models\User;
 use App\Models\Appointment;
-use App\Models\Bill;
 
 class Doctor extends Model
 {
@@ -83,10 +82,5 @@ class Doctor extends Model
     public function appointments()
     {
         return $this->hasMany(Appointment::class);
-    }
-
-    public function bills()
-    {
-        return $this->hasMany(Bill::class);
     }
 }

@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Appointment;
-use App\Models\Bill;
 use App\Models\Doctor;
 use App\Models\Patient;
 use App\Models\Payment;
@@ -138,8 +137,6 @@ class DashboardService
             'total_revenue' => $totalRevenue,
             'appointment_revenue' => $appointmentRevenue,
             'pharmacy_revenue' => $pharmacyRevenue,
-            'pending_bills' => Bill::where('payment_status', 'pending')->count(),
-            'outstanding_amount' => Bill::where('payment_status', 'pending')->sum('amount_due'),
         ];
     }
 
@@ -259,10 +256,6 @@ class DashboardService
         $pharmacyRevenue = Sale::whereBetween('created_at', $dateRange)
             ->where('status', 'completed')
             ->sum('total_amount');
-            
-        $billRevenue = Payment::whereBetween('created_at', $dateRange)
-            ->where('status', 'completed')
-            ->sum('amount');
         
         // Payment methods
         $paymentMethods = Payment::whereBetween('created_at', $dateRange)
@@ -278,33 +271,11 @@ class DashboardService
             })
             ->toArray();
         
-        // Bills aging
-        $now = Carbon::now();
-        $aging = [
-            'current' => Bill::where('payment_status', 'pending')
-                ->where('created_at', '>=', $now->copy()->subDays(30))
-                ->sum('amount_due'),
-            '30_60' => Bill::where('payment_status', 'pending')
-                ->whereBetween('created_at', [$now->copy()->subDays(60), $now->copy()->subDays(30)])
-                ->sum('amount_due'),
-            '60_90' => Bill::where('payment_status', 'pending')
-                ->whereBetween('created_at', [$now->copy()->subDays(90), $now->copy()->subDays(60)])
-                ->sum('amount_due'),
-            '90_plus' => Bill::where('payment_status', 'pending')
-                ->where('created_at', '<', $now->copy()->subDays(90))
-                ->sum('amount_due'),
-        ];
-        
         return [
             'total_revenue' => $appointmentRevenue + $pharmacyRevenue,
             'appointment_revenue' => $appointmentRevenue,
             'pharmacy_revenue' => $pharmacyRevenue,
-            'bill_revenue' => $billRevenue,
             'payment_methods' => $paymentMethods,
-            'outstanding_bills' => Bill::where('payment_status', 'pending')->count(),
-            'outstanding_amount' => Bill::where('payment_status', 'pending')->sum('amount_due'),
-            'aging' => $aging,
-            'avg_bill_amount' => Bill::avg('total_amount') ?? 0,
         ];
     }
 
@@ -592,8 +563,6 @@ class DashboardService
                 'total_revenue' => 0,
                 'appointment_revenue' => 0,
                 'pharmacy_revenue' => 0,
-                'pending_bills' => 0,
-                'outstanding_amount' => 0,
             ],
             'patients' => [
                 'total' => 0,
@@ -614,17 +583,7 @@ class DashboardService
                 'total_revenue' => 0,
                 'appointment_revenue' => 0,
                 'pharmacy_revenue' => 0,
-                'bill_revenue' => 0,
                 'payment_methods' => [],
-                'outstanding_bills' => 0,
-                'outstanding_amount' => 0,
-                'aging' => [
-                    'current' => 0,
-                    '30_60' => 0,
-                    '60_90' => 0,
-                    '90_plus' => 0,
-                ],
-                'avg_bill_amount' => 0,
             ],
             'pharmacy' => [
                 'today_sales' => 0,

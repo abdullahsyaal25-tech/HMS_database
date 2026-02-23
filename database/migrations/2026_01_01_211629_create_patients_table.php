@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('patients', function (Blueprint $table) {
             $table->id();
-            $table->string('patient_id')->unique();
+            $table->string('patient_id', 191)->unique();
             $table->string('first_name')->nullable(); // Name
             $table->string('father_name')->nullable(); // Father's name
             $table->unsignedTinyInteger('age')->nullable(); // Patient age

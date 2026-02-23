@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
 use App\Models\Appointment;
-use App\Models\Bill;
 use App\Models\Sale;
 use App\Models\LabTestResult;
 
@@ -82,11 +81,6 @@ class Patient extends Model
     public function appointments()
     {
         return $this->hasMany(Appointment::class);
-    }
-
-    public function bills()
-    {
-        return $this->hasMany(Bill::class);
     }
 
     public function sales()

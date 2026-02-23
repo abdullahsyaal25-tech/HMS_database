@@ -152,9 +152,12 @@ class DatabaseHealthCheck extends Command
         }
 
         $metrics = $handler->getPerformanceMetrics();
-        $this->line("   📊 Active connections: {$metrics['active_connections'] ?? 'N/A'}");
-        $this->line("   📈 Query log count: {$metrics['query_log_count'] ?? 'N/A'}");
-        $this->line("   🐌 Slow queries (>100ms): {$metrics['slow_queries'] ?? 'N/A'}");
+        $activeConnections = isset($metrics['active_connections']) ? $metrics['active_connections'] : 'N/A';
+        $queryLogCount = isset($metrics['query_log_count']) ? $metrics['query_log_count'] : 'N/A';
+        $slowQueries = isset($metrics['slow_queries']) ? $metrics['slow_queries'] : 'N/A';
+        $this->line("   📊 Active connections: {$activeConnections}");
+        $this->line("   📈 Query log count: {$queryLogCount}");
+        $this->line("   🐌 Slow queries (>100ms): {$slowQueries}");
 
         $this->line('');
     }

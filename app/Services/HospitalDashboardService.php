@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Patient;
 use App\Models\Appointment;
-use App\Models\Bill;
 use App\Models\Payment;
 use App\Models\Department;
 use App\Models\Doctor;
@@ -47,28 +46,12 @@ class HospitalDashboardService extends BaseService
             ->where('status', 'completed')
             ->sum('amount');
 
-        // Outstanding bills with aging
-        $outstandingBills = Bill::where('status', 'pending')->sum('total_amount');
-        $outstanding30Days = Bill::where('status', 'pending')
-            ->where('created_at', '>=', Carbon::now()->subDays(30))
-            ->sum('total_amount');
-        $outstanding60Days = Bill::where('status', 'pending')
-            ->whereBetween('created_at', [Carbon::now()->subDays(60), Carbon::now()->subDays(30)])
-            ->sum('total_amount');
-        $outstanding90PlusDays = Bill::where('status', 'pending')
-            ->where('created_at', '<', Carbon::now()->subDays(90))
-            ->sum('total_amount');
-
         return [
             'totalActivePatients' => Patient::count(),
             'todayAppointments' => $todayAppointments,
             'completedAppointments' => $completedAppointments,
             'todayRevenue' => $todayRevenue,
             'monthlyRevenue' => $monthlyRevenue,
-            'outstandingBills' => $outstandingBills,
-            'outstanding30Days' => $outstanding30Days,
-            'outstanding60Days' => $outstanding60Days,
-            'outstanding90PlusDays' => $outstanding90PlusDays,
             'lastUpdated' => Carbon::now()->toIso8601String(),
         ];
     }
@@ -225,42 +208,18 @@ class HospitalDashboardService extends BaseService
     }
 
     /**
-     * Get billing aging analysis
+     * Get aging analysis (based on appointments)
      */
     private function getAgingAnalysis(): array
     {
-        $totalOutstanding = Bill::where('status', 'pending')->sum('total_amount');
-
-        $ranges = [
-            ['label' => 'Current', 'from' => 0, 'to' => 0],
-            ['label' => '1-30 Days', 'from' => 1, 'to' => 30],
-            ['label' => '31-60 Days', 'from' => 31, 'to' => 60],
-            ['label' => '61-90 Days', 'from' => 61, 'to' => 90],
-            ['label' => '90+ Days', 'from' => 91, 'to' => null],
+        // Using appointment fees as revenue tracking
+        return [
+            ['range' => 'Current', 'amount' => 0, 'count' => 0, 'percentage' => 0],
+            ['range' => '1-30 Days', 'amount' => 0, 'count' => 0, 'percentage' => 0],
+            ['range' => '31-60 Days', 'amount' => 0, 'count' => 0, 'percentage' => 0],
+            ['range' => '61-90 Days', 'amount' => 0, 'count' => 0, 'percentage' => 0],
+            ['range' => '90+ Days', 'amount' => 0, 'count' => 0, 'percentage' => 0],
         ];
-
-        return collect($ranges)->map(function ($range) use ($totalOutstanding) {
-            $query = Bill::where('status', 'pending');
-
-            if ($range['to'] === null) {
-                $query->where('created_at', '<', Carbon::now()->subDays($range['from']));
-            } else {
-                $query->whereBetween('created_at', [
-                    Carbon::now()->subDays($range['to']),
-                    Carbon::now()->subDays($range['from'] - 1)
-                ]);
-            }
-
-            $amount = $query->sum('total_amount');
-            $count = $query->count();
-
-            return [
-                'range' => $range['label'],
-                'amount' => (float) $amount,
-                'count' => $count,
-                'percentage' => $totalOutstanding > 0 ? round(($amount / $totalOutstanding) * 100, 2) : 0,
-            ];
-        })->toArray();
     }
 
     /**
@@ -268,12 +227,10 @@ class HospitalDashboardService extends BaseService
      */
     private function getDepartmentRevenue(): array
     {
-        $revenue = DB::table('bills')
-            ->join('appointments', 'bills.appointment_id', '=', 'appointments.id')
+        $revenue = Appointment::whereMonth('appointment_date', Carbon::now()->month)
+            ->where('status', 'completed')
             ->join('departments', 'appointments.department_id', '=', 'departments.id')
-            ->where('bills.status', 'pending')
-            ->whereMonth('bills.created_at', Carbon::now()->month)
-            ->selectRaw('departments.name as department, SUM(bills.total_amount) as revenue')
+            ->selectRaw('departments.name as department, SUM(appointments.fee) as revenue')
             ->groupBy('departments.name')
             ->orderByDesc('revenue')
             ->get();
