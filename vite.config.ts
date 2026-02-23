@@ -25,16 +25,15 @@ export default defineConfig({
     },
     server: {
         host: '0.0.0.0',
-        port: 5173,
-        strictPort: true,
+        port: 5174,
+        strictPort: false,
         hmr: {
-            host: '192.168.43.189',
-            port: 5173,
+            host: 'localhost',
+            port: 5174,
             overlay: true,
             timeout: 30000,
         },
         cors: true, // Enable CORS for all origins
-        origin: 'http://192.168.43.189:5173', // Set the origin for generated URLs
         watch: {
             // Reduce file watching overhead
             ignored: ['**/node_modules/**', '**/storage/**', '**/vendor/**'],
