@@ -178,6 +178,10 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
     const [selectedDoctorIndex, setSelectedDoctorIndex] = useState(-1);
     const [selectedDoctorObj, setSelectedDoctorObj] = useState<Doctor | null>(null);
     const doctorSearchRef = useRef<HTMLInputElement>(null);
+
+    // Search state for services (one search per service in the form)
+    const [serviceSearchQueries, setServiceSearchQueries] = useState<{ [key: string]: string }>({});
+    const [selectedServiceIndices, setSelectedServiceIndices] = useState<{ [key: string]: number }>({});
     
     // Show toast when appointment is created successfully
     // Use flashId as the primary dependency to detect new appointments
@@ -677,6 +681,102 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
         }
     };
 
+    // Service search handlers
+    const getFilteredServicesForService = (currentServiceId: string): DepartmentService[] => {
+        const query = serviceSearchQueries[currentServiceId] || '';
+        const allOptions = getAvailableServiceOptions(currentServiceId);
+        
+        if (!query.trim()) {
+            return availableServices
+                .filter(s => !selectedServices
+                    .filter(sel => sel.id !== currentServiceId)
+                    .map(sel => sel.department_service_id)
+                    .includes(s.id.toString()))
+                .slice(0, 5);
+        }
+        
+        const q = query.toLowerCase();
+        return availableServices
+            .filter(s => 
+                !selectedServices
+                    .filter(sel => sel.id !== currentServiceId)
+                    .map(sel => sel.department_service_id)
+                    .includes(s.id.toString()) &&
+                s.name.toLowerCase().includes(q)
+            )
+            .slice(0, 5);
+    };
+
+    const handleSelectService = (serviceId: string, service: DepartmentService) => {
+        updateService(serviceId, 'department_service_id', service.id.toString());
+        setServiceSearchQueries(prev => ({ ...prev, [serviceId]: '' }));
+        setSelectedServiceIndices(prev => ({ ...prev, [serviceId]: -1 }));
+    };
+
+    const renderServiceResults = (serviceId: string) => {
+        const query = serviceSearchQueries[serviceId] || '';
+        const filteredServices = getFilteredServicesForService(serviceId);
+        
+        if (!query) return null;
+        if (filteredServices.length === 0) {
+            return (
+                <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                    No services found
+                </div>
+            );
+        }
+        
+        return filteredServices.map((service, index) => (
+            <button
+                key={service.id}
+                onClick={() => handleSelectService(serviceId, service)}
+                className={`w-full px-4 py-2.5 text-left transition-colors flex items-center gap-3 ${
+                    index === (selectedServiceIndices[serviceId] ?? -1) ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
+                }`}
+            >
+                <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div>
+                    <p className="font-medium text-sm">{service.name}</p>
+                    <p className="text-xs text-muted-foreground">؋{service.base_cost}</p>
+                </div>
+            </button>
+        ));
+    };
+
+    const handleServiceSearchKeyDown = (e: React.KeyboardEvent, serviceId: string) => {
+        const filteredServices = getFilteredServicesForService(serviceId);
+        if (filteredServices.length === 0) return;
+        
+        const currentIndex = selectedServiceIndices[serviceId] ?? -1;
+        
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                setSelectedServiceIndices(prev => ({
+                    ...prev,
+                    [serviceId]: currentIndex < filteredServices.length - 1 ? currentIndex + 1 : 0
+                }));
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                setSelectedServiceIndices(prev => ({
+                    ...prev,
+                    [serviceId]: currentIndex > 0 ? currentIndex - 1 : filteredServices.length - 1
+                }));
+                break;
+            case 'Enter':
+                e.preventDefault();
+                if (currentIndex >= 0) {
+                    handleSelectService(serviceId, filteredServices[currentIndex]);
+                }
+                break;
+            case 'Escape':
+                setServiceSearchQueries(prev => ({ ...prev, [serviceId]: '' }));
+                setSelectedServiceIndices(prev => ({ ...prev, [serviceId]: -1 }));
+                break;
+        }
+    };
+
     const getAvailableServiceOptions = (currentServiceId: string) => {
         const selectedIds = selectedServices
             .filter(s => s.id !== currentServiceId)
@@ -1015,14 +1115,72 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
                                                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                                                 <div className="md:col-span-2">
                                                                     <Label className="text-sm font-medium">Service</Label>
-                                                                    <Combobox
-                                                                        options={getAvailableServiceOptions(service.id)}
-                                                                        value={service.department_service_id}
-                                                                        onValueChange={(value) => updateService(service.id, 'department_service_id', value)}
-                                                                        placeholder="Select a service..."
-                                                                        searchPlaceholder="Search services..."
-                                                                        emptyText="No services available"
-                                                                    />
+                                                                    {selectedServices.find(s => s.id === service.id)?.name ? (
+                                                                        <div className="flex items-center justify-between p-3 rounded-md bg-muted/50 border">
+                                                                            <div className="flex items-center gap-3">
+                                                                                <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                                                                                    <Package className="h-4 w-4 text-amber-600" />
+                                                                                </div>
+                                                                                <div>
+                                                                                    <p className="font-medium text-sm">{selectedServices.find(s => s.id === service.id)?.name}</p>
+                                                                                </div>
+                                                                            </div>
+                                                                            <Button 
+                                                                                variant="ghost" 
+                                                                                size="sm" 
+                                                                                onClick={() => {
+                                                                                    updateService(service.id, 'department_service_id', '');
+                                                                                    updateService(service.id, 'name', '');
+                                                                                }}
+                                                                                aria-label="Clear service"
+                                                                            >
+                                                                                <X className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="space-y-2">
+                                                                            <div className="relative">
+                                                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                                                <Input
+                                                                                    placeholder="Search service..."
+                                                                                    value={serviceSearchQueries[service.id] || ''}
+                                                                                    onChange={e => {
+                                                                                        setServiceSearchQueries(prev => ({
+                                                                                            ...prev,
+                                                                                            [service.id]: e.target.value
+                                                                                        }));
+                                                                                        setSelectedServiceIndices(prev => ({
+                                                                                            ...prev,
+                                                                                            [service.id]: -1
+                                                                                        }));
+                                                                                    }}
+                                                                                    onKeyDown={(e) => handleServiceSearchKeyDown(e, service.id)}
+                                                                                    className="pl-9 pr-9"
+                                                                                />
+                                                                                {(serviceSearchQueries[service.id]) && (
+                                                                                    <Button
+                                                                                        variant="ghost"
+                                                                                        size="sm"
+                                                                                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                                                                                        onClick={() => {
+                                                                                            setServiceSearchQueries(prev => ({
+                                                                                                ...prev,
+                                                                                                [service.id]: ''
+                                                                                            }));
+                                                                                        }}
+                                                                                        tabIndex={-1}
+                                                                                    >
+                                                                                        <X className="h-4 w-4" />
+                                                                                    </Button>
+                                                                                )}
+                                                                            </div>
+                                                                            {(serviceSearchQueries[service.id]) && (
+                                                                                <div className="border rounded-md divide-y overflow-hidden max-h-48 overflow-y-auto shadow-md">
+                                                                                    {renderServiceResults(service.id)}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                                 
                                                                 <div>
