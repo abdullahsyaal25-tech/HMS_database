@@ -23,6 +23,8 @@ import {
     Trash2,
     Package,
     Calculator,
+    Search,
+    X,
 } from 'lucide-react';
 import { useState, useMemo, useEffect, useRef } from 'react';
 
@@ -158,6 +160,24 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
     
     // Track previous flashId to detect new submissions
     const prevFlashIdRef = useRef<string | undefined>(undefined);
+    
+    // Search and selection state for Patient
+    const [patientSearchQuery, setPatientSearchQuery] = useState('');
+    const [selectedPatientIndex, setSelectedPatientIndex] = useState(-1);
+    const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+    const patientSearchRef = useRef<HTMLInputElement>(null);
+    
+    // Search and selection state for Department
+    const [departmentSearchQuery, setDepartmentSearchQuery] = useState('');
+    const [selectedDepartmentIndex, setSelectedDepartmentIndex] = useState(-1);
+    const [selectedDepartmentObj, setSelectedDepartmentObj] = useState<Department | null>(null);
+    const departmentSearchRef = useRef<HTMLInputElement>(null);
+    
+    // Search and selection state for Doctor
+    const [doctorSearchQuery, setDoctorSearchQuery] = useState('');
+    const [selectedDoctorIndex, setSelectedDoctorIndex] = useState(-1);
+    const [selectedDoctorObj, setSelectedDoctorObj] = useState<Doctor | null>(null);
+    const doctorSearchRef = useRef<HTMLInputElement>(null);
     
     // Show toast when appointment is created successfully
     // Use flashId as the primary dependency to detect new appointments
@@ -328,32 +348,6 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
         setData(name as keyof typeof data, value);
     };
 
-    const handleComboboxChange = (name: string, value: string) => {
-        // Convert "0" to empty string (when nothing is selected in combobox)
-        const finalValue = value === '0' ? '' : value;
-        setData(name as keyof typeof data, finalValue);
-        
-        // Auto-populate fee when doctor is selected
-        if (name === 'doctor_id' && value) {
-            const selectedDoctor = doctors.find(d => d.id.toString() === value);
-            if (selectedDoctor && selectedDoctor.fees) {
-                setData('fee', selectedDoctor.fees);
-            }
-        }
-        
-        // Clear services when department changes
-        if (name === 'department_id') {
-            setSelectedServices([]);
-            if (data.doctor_id) {
-                const selectedDoctor = doctors.find(d => d.id.toString() === data.doctor_id);
-                if (selectedDoctor && selectedDoctor.department_id?.toString() !== value) {
-                    setData('doctor_id', '');
-                    setData('fee', '');
-                }
-            }
-        }
-    };
-
     const addService = () => {
         const newService: SelectedService = {
             id: Date.now().toString(),
@@ -446,32 +440,242 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
 
     const totals = calculateTotals();
 
-    const patientOptions: ComboboxOption[] = patients.map(patient => ({
-        value: patient.id.toString(),
-        label: patient.full_name,
-        subtitle: `ID: ${patient.patient_id}`,
-        icon: <User className="h-4 w-4 text-blue-600" />
-    }));
+    // Filtered lists for dropdowns
+    const filteredPatients = useMemo(() => {
+        if (!patientSearchQuery.trim()) return patients.slice(0, 5);
+        const q = patientSearchQuery.toLowerCase();
+        return patients
+            .filter(p =>
+                p.full_name.toLowerCase().includes(q) ||
+                p.patient_id.toLowerCase().includes(q)
+            )
+            .slice(0, 5);
+    }, [patients, patientSearchQuery]);
 
-    const doctorOptions: ComboboxOption[] = doctors.map(doctor => ({
-        value: doctor.id.toString(),
-        label: `Dr. ${doctor.full_name}`,
-        subtitle: `${doctor.specialization} • ID: ${doctor.doctor_id}`,
-        icon: <Stethoscope className="h-4 w-4 text-green-600" />
-    }));
+    const filteredDepartments = useMemo(() => {
+        if (!departmentSearchQuery.trim()) return departments.slice(0, 5);
+        const q = departmentSearchQuery.toLowerCase();
+        return departments
+            .filter(d => d.name.toLowerCase().includes(q))
+            .slice(0, 5);
+    }, [departments, departmentSearchQuery]);
 
-    const departmentOptions: ComboboxOption[] = departments.map(dept => ({
-        value: dept.id.toString(),
-        label: dept.name,
-        icon: <Building2 className="h-4 w-4 text-purple-600" />
-    }));
+    const filteredDoctors = useMemo(() => {
+        if (!doctorSearchQuery.trim()) return doctors.slice(0, 5);
+        const q = doctorSearchQuery.toLowerCase();
+        return doctors
+            .filter(d =>
+                d.full_name.toLowerCase().includes(q) ||
+                d.doctor_id.toLowerCase().includes(q)
+            )
+            .slice(0, 5);
+    }, [doctors, doctorSearchQuery]);
 
-    const statusOptions: ComboboxOption[] = [
-        { value: 'scheduled', label: 'Scheduled', icon: <CalendarIcon className="h-4 w-4 text-blue-600" /> },
-        { value: 'completed', label: 'Completed', icon: <User className="h-4 w-4 text-green-600" /> },
-        { value: 'no_show', label: 'No Show', icon: <User className="h-4 w-4 text-gray-600" /> },
-        { value: 'rescheduled', label: 'Rescheduled', icon: <CalendarIcon className="h-4 w-4 text-purple-600" /> },
-    ];
+    // Handle patient selection
+    const handleSelectPatient = (patient: Patient) => {
+        setSelectedPatient(patient);
+        setData('patient_id', patient.id.toString());
+        setPatientSearchQuery('');
+        setSelectedPatientIndex(-1);
+    };
+
+    const handleClearPatient = () => {
+        setSelectedPatient(null);
+        setData('patient_id', '');
+    };
+
+    // Handle department selection
+    const handleSelectDepartment = (department: Department) => {
+        setSelectedDepartmentObj(department);
+        setData('department_id', department.id.toString());
+        setDepartmentSearchQuery('');
+        setSelectedDepartmentIndex(-1);
+        setSelectedServices([]); // Clear services when department changes
+    };
+
+    const handleClearDepartment = () => {
+        setSelectedDepartmentObj(null);
+        setData('department_id', '');
+        setSelectedServices([]); // Clear services
+    };
+
+    // Handle doctor selection
+    const handleSelectDoctor = (doctor: Doctor) => {
+        setSelectedDoctorObj(doctor);
+        setData('doctor_id', doctor.id.toString());
+        setData('fee', doctor.fees);
+        setDoctorSearchQuery('');
+        setSelectedDoctorIndex(-1);
+    };
+
+    const handleClearDoctor = () => {
+        setSelectedDoctorObj(null);
+        setData('doctor_id', '');
+        setData('fee', '');
+    };
+
+    // Render filtered results dropdown
+    const renderPatientResults = () => {
+        if (!patientSearchQuery) return null;
+        if (filteredPatients.length === 0) {
+            return (
+                <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                    No patients found
+                </div>
+            );
+        }
+        return filteredPatients.map((patient, index) => (
+            <button
+                key={patient.id}
+                onClick={() => handleSelectPatient(patient)}
+                className={`w-full px-4 py-2.5 text-left transition-colors flex items-center gap-3 ${
+                    index === selectedPatientIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
+                }`}
+            >
+                <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div>
+                    <p className="font-medium text-sm">{patient.full_name}</p>
+                    <p className="text-xs text-muted-foreground">{patient.patient_id}</p>
+                </div>
+            </button>
+        ));
+    };
+
+    const renderDepartmentResults = () => {
+        if (!departmentSearchQuery) return null;
+        if (filteredDepartments.length === 0) {
+            return (
+                <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                    No departments found
+                </div>
+            );
+        }
+        return filteredDepartments.map((dept, index) => (
+            <button
+                key={dept.id}
+                onClick={() => handleSelectDepartment(dept)}
+                className={`w-full px-4 py-2.5 text-left transition-colors flex items-center gap-3 ${
+                    index === selectedDepartmentIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
+                }`}
+            >
+                <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div>
+                    <p className="font-medium text-sm">{dept.name}</p>
+                </div>
+            </button>
+        ));
+    };
+
+    const renderDoctorResults = () => {
+        if (!doctorSearchQuery) return null;
+        if (filteredDoctors.length === 0) {
+            return (
+                <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                    No doctors found
+                </div>
+            );
+        }
+        return filteredDoctors.map((doctor, index) => (
+            <button
+                key={doctor.id}
+                onClick={() => handleSelectDoctor(doctor)}
+                className={`w-full px-4 py-2.5 text-left transition-colors flex items-center gap-3 ${
+                    index === selectedDoctorIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
+                }`}
+            >
+                <Stethoscope className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div>
+                    <p className="font-medium text-sm">Dr. {doctor.full_name}</p>
+                    <p className="text-xs text-muted-foreground">{doctor.specialization} • {doctor.doctor_id}</p>
+                </div>
+            </button>
+        ));
+    };
+
+    // Keyboard navigation for search dropdowns
+    const handlePatientSearchKeyDown = (e: React.KeyboardEvent) => {
+        if (filteredPatients.length === 0) return;
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                setSelectedPatientIndex(prev =>
+                    prev < filteredPatients.length - 1 ? prev + 1 : 0
+                );
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                setSelectedPatientIndex(prev =>
+                    prev > 0 ? prev - 1 : filteredPatients.length - 1
+                );
+                break;
+            case 'Enter':
+                e.preventDefault();
+                if (selectedPatientIndex >= 0) {
+                    handleSelectPatient(filteredPatients[selectedPatientIndex]);
+                }
+                break;
+            case 'Escape':
+                setPatientSearchQuery('');
+                setSelectedPatientIndex(-1);
+                break;
+        }
+    };
+
+    const handleDepartmentSearchKeyDown = (e: React.KeyboardEvent) => {
+        if (filteredDepartments.length === 0) return;
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                setSelectedDepartmentIndex(prev =>
+                    prev < filteredDepartments.length - 1 ? prev + 1 : 0
+                );
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                setSelectedDepartmentIndex(prev =>
+                    prev > 0 ? prev - 1 : filteredDepartments.length - 1
+                );
+                break;
+            case 'Enter':
+                e.preventDefault();
+                if (selectedDepartmentIndex >= 0) {
+                    handleSelectDepartment(filteredDepartments[selectedDepartmentIndex]);
+                }
+                break;
+            case 'Escape':
+                setDepartmentSearchQuery('');
+                setSelectedDepartmentIndex(-1);
+                break;
+        }
+    };
+
+    const handleDoctorSearchKeyDown = (e: React.KeyboardEvent) => {
+        if (filteredDoctors.length === 0) return;
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                setSelectedDoctorIndex(prev =>
+                    prev < filteredDoctors.length - 1 ? prev + 1 : 0
+                );
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                setSelectedDoctorIndex(prev =>
+                    prev > 0 ? prev - 1 : filteredDoctors.length - 1
+                );
+                break;
+            case 'Enter':
+                e.preventDefault();
+                if (selectedDoctorIndex >= 0) {
+                    handleSelectDoctor(filteredDoctors[selectedDoctorIndex]);
+                }
+                break;
+            case 'Escape':
+                setDoctorSearchQuery('');
+                setSelectedDoctorIndex(-1);
+                break;
+        }
+    };
 
     const getAvailableServiceOptions = (currentServiceId: string) => {
         const selectedIds = selectedServices
@@ -559,75 +763,186 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
                                         Patient & Doctor Selection
                                     </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        {/* Patient Search */}
                                         <div className="space-y-2">
-                                            <Label htmlFor="patient_id" className="text-base font-semibold flex items-center gap-2">
+                                            <Label className="text-base font-semibold flex items-center gap-2">
                                                 <User className="h-4 w-4 text-blue-600" />
-                                                Patient 
+                                                Patient *
                                             </Label>
-                                            <Combobox
-                                                options={patientOptions}
-                                                value={data.patient_id}
-                                                onValueChange={(value) => handleComboboxChange('patient_id', value)}
-                                                placeholder="Search for a patient..."
-                                                searchPlaceholder="Type to search patients..."
-                                                emptyText="No patients found"
-                                                className="h-auto py-3"
-                                            />
+                                            {selectedPatient ? (
+                                                <div className="flex items-center justify-between p-3 rounded-md bg-muted/50 border">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                                            <User className="h-4 w-4 text-blue-600" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-medium text-sm">{selectedPatient.full_name}</p>
+                                                            <p className="text-xs text-muted-foreground">ID: {selectedPatient.patient_id}</p>
+                                                        </div>
+                                                    </div>
+                                                    <Button variant="ghost" size="sm" onClick={handleClearPatient} aria-label="Clear patient">
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    <div className="relative">
+                                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                        <Input
+                                                            ref={patientSearchRef}
+                                                            placeholder="Search patient by name or ID..."
+                                                            value={patientSearchQuery}
+                                                            onChange={e => {
+                                                                setPatientSearchQuery(e.target.value);
+                                                                setSelectedPatientIndex(-1);
+                                                            }}
+                                                            onKeyDown={handlePatientSearchKeyDown}
+                                                            className="pl-9 pr-9"
+                                                        />
+                                                        {patientSearchQuery && (
+                                                            <Button
+                                                                variant="ghost" size="sm"
+                                                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                                                                onClick={() => setPatientSearchQuery('')}
+                                                                tabIndex={-1}
+                                                            >
+                                                                <X className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                    {patientSearchQuery && (
+                                                        <div className="border rounded-md divide-y overflow-hidden max-h-64 overflow-y-auto shadow-md">
+                                                            {renderPatientResults()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                             {errors.patient_id && (
                                                 <p className="text-sm text-red-600 flex items-center gap-1">
                                                     <span className="font-medium">⚠</span> {errors.patient_id}
                                                 </p>
                                             )}
-                                            <p className="text-xs text-muted-foreground">Search by patient name or ID</p>
                                         </div>
-                                        
+
+                                        {/* Department Search */}
                                         <div className="space-y-2">
-                                            <Label htmlFor="department_id" className="text-base font-semibold flex items-center gap-2">
+                                            <Label className="text-base font-semibold flex items-center gap-2">
                                                 <Building2 className="h-4 w-4 text-purple-600" />
                                                 Department <span className="text-green-600 text-xs font-normal">(Optional)</span>
                                             </Label>
-                                            <Combobox
-                                                options={departmentOptions}
-                                                value={data.department_id}
-                                                onValueChange={(value) => handleComboboxChange('department_id', value)}
-                                                placeholder="Select department..."
-                                                searchPlaceholder="Search departments..."
-                                                emptyText="No departments found"
-                                                className="h-auto py-3"
-                                            />
+                                            {selectedDepartmentObj ? (
+                                                <div className="flex items-center justify-between p-3 rounded-md bg-muted/50 border">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-9 w-9 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
+                                                            <Building2 className="h-4 w-4 text-purple-600" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-medium text-sm">{selectedDepartmentObj.name}</p>
+                                                        </div>
+                                                    </div>
+                                                    <Button variant="ghost" size="sm" onClick={handleClearDepartment} aria-label="Clear department">
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    <div className="relative">
+                                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                        <Input
+                                                            ref={departmentSearchRef}
+                                                            placeholder="Search department..."
+                                                            value={departmentSearchQuery}
+                                                            onChange={e => {
+                                                                setDepartmentSearchQuery(e.target.value);
+                                                                setSelectedDepartmentIndex(-1);
+                                                            }}
+                                                            onKeyDown={handleDepartmentSearchKeyDown}
+                                                            className="pl-9 pr-9"
+                                                        />
+                                                        {departmentSearchQuery && (
+                                                            <Button
+                                                                variant="ghost" size="sm"
+                                                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                                                                onClick={() => setDepartmentSearchQuery('')}
+                                                                tabIndex={-1}
+                                                            >
+                                                                <X className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                    {departmentSearchQuery && (
+                                                        <div className="border rounded-md divide-y overflow-hidden max-h-64 overflow-y-auto shadow-md">
+                                                            {renderDepartmentResults()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                             {errors.department_id && (
                                                 <p className="text-sm text-red-600 flex items-center gap-1">
                                                     <span className="font-medium">⚠</span> {errors.department_id}
                                                 </p>
                                             )}
-                                            <p className="text-xs text-muted-foreground">Select a department (optional - leave empty for general appointment)</p>
                                         </div>
 
+                                        {/* Doctor Search */}
                                         <div className="space-y-2">
-                                            <Label htmlFor="doctor_id" className="text-base font-semibold flex items-center gap-2">
+                                            <Label className="text-base font-semibold flex items-center gap-2">
                                                 <Stethoscope className="h-4 w-4 text-green-600" />
                                                 Doctor <span className="text-green-600 text-xs font-normal">(Optional)</span>
                                             </Label>
-                                            <Combobox
-                                                options={doctorOptions}
-                                                value={data.doctor_id}
-                                                onValueChange={(value) => handleComboboxChange('doctor_id', value)}
-                                                placeholder="Search for a doctor..."
-                                                searchPlaceholder="Type to search doctors..."
-                                                emptyText="No doctors found"
-                                                className="h-auto py-3"
-                                                disabled={false}
-                                            />
+                                            {selectedDoctorObj ? (
+                                                <div className="flex items-center justify-between p-3 rounded-md bg-muted/50 border">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                                                            <Stethoscope className="h-4 w-4 text-green-600" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-medium text-sm">Dr. {selectedDoctorObj.full_name}</p>
+                                                            <p className="text-xs text-muted-foreground">{selectedDoctorObj.specialization}</p>
+                                                        </div>
+                                                    </div>
+                                                    <Button variant="ghost" size="sm" onClick={handleClearDoctor} aria-label="Clear doctor">
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    <div className="relative">
+                                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                        <Input
+                                                            ref={doctorSearchRef}
+                                                            placeholder="Search doctor by name or ID..."
+                                                            value={doctorSearchQuery}
+                                                            onChange={e => {
+                                                                setDoctorSearchQuery(e.target.value);
+                                                                setSelectedDoctorIndex(-1);
+                                                            }}
+                                                            onKeyDown={handleDoctorSearchKeyDown}
+                                                            className="pl-9 pr-9"
+                                                        />
+                                                        {doctorSearchQuery && (
+                                                            <Button
+                                                                variant="ghost" size="sm"
+                                                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                                                                onClick={() => setDoctorSearchQuery('')}
+                                                                tabIndex={-1}
+                                                            >
+                                                                <X className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                    {doctorSearchQuery && (
+                                                        <div className="border rounded-md divide-y overflow-hidden max-h-64 overflow-y-auto shadow-md">
+                                                            {renderDoctorResults()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                             {errors.doctor_id && (
                                                 <p className="text-sm text-red-600 flex items-center gap-1">
                                                     <span className="font-medium">⚠</span> {errors.doctor_id}
                                                 </p>
                                             )}
-                                            <p className="text-xs text-muted-foreground">
-                                                {data.doctor_id 
-                                                    ? "Doctor's fee will be automatically populated" 
-                                                    : "Select a specific doctor (optional - leave empty for department-only appointment)"}
-                                            </p>
                                         </div>
                                     </div>
                                 </div>
