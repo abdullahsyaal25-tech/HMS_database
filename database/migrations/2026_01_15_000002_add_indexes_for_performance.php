@@ -28,19 +28,6 @@ return new class extends Migration
             }
         });
 
-        // Bills table indexes
-        Schema::table('bills', function (Blueprint $table) {
-            if (!Schema::hasIndex('bills', 'idx_bills_patient_date')) {
-                $table->index(['patient_id', 'bill_date'], 'idx_bills_patient_date');
-            }
-            if (!Schema::hasIndex('bills', 'idx_bills_status_created')) {
-                $table->index(['payment_status', 'created_at'], 'idx_bills_status_created');
-            }
-            if (!Schema::hasIndex('bills', 'idx_bills_date')) {
-                $table->index('bill_date', 'idx_bills_date');
-            }
-        });
-
         // Doctors table indexes
         Schema::table('doctors', function (Blueprint $table) {
             if (!Schema::hasIndex('doctors', 'idx_doctors_user')) {

@@ -76,11 +76,11 @@ return new class extends Migration
             }
         });
 
-        Schema::table('bills', function (Blueprint $table) {
-            if (!$this->indexExists('bills', 'idx_bills_patient_status')) {
-                $table->index(['patient_id', 'payment_status'], 'idx_bills_patient_status');
-            }
-        });
+        // Schema::table('bills', function (Blueprint $table) {
+        //     if (!$this->indexExists('bills', 'idx_bills_patient_status')) {
+        //         $table->index(['patient_id', 'payment_status'], 'idx_bills_patient_status');
+        //     }
+        // });
 
         // Add check constraints for data integrity (MySQL 8.0.16+)
         $this->addCheckConstraints();
@@ -92,15 +92,15 @@ return new class extends Migration
     private function addCheckConstraints(): void
     {
         try {
-            // Bill amount constraints
-            DB::statement('ALTER TABLE bills ADD CONSTRAINT chk_bill_amounts CHECK (
-                sub_total >= 0 AND 
-                discount >= 0 AND 
-                tax >= 0 AND 
-                total_amount >= 0 AND 
-                amount_paid >= 0 AND 
-                amount_due >= 0
-            )');
+            // // Bill amount constraints
+            // DB::statement('ALTER TABLE bills ADD CONSTRAINT chk_bill_amounts CHECK (
+            //     sub_total >= 0 AND 
+            //     discount >= 0 AND 
+            //     tax >= 0 AND 
+            //     total_amount >= 0 AND 
+            //     amount_paid >= 0 AND 
+            //     amount_due >= 0
+            // )');
 
             // Appointment fee constraint
             DB::statement('ALTER TABLE appointments ADD CONSTRAINT chk_appointment_fee CHECK (fee >= 0)');
@@ -128,7 +128,7 @@ return new class extends Migration
     {
         // Remove check constraints
         try {
-            DB::statement('ALTER TABLE bills DROP CONSTRAINT IF EXISTS chk_bill_amounts');
+            // DB::statement('ALTER TABLE bills DROP CONSTRAINT IF EXISTS chk_bill_amounts');
             DB::statement('ALTER TABLE appointments DROP CONSTRAINT IF EXISTS chk_appointment_fee');
             DB::statement('ALTER TABLE doctors DROP CONSTRAINT IF EXISTS chk_doctor_fees');
             DB::statement('ALTER TABLE medicines DROP CONSTRAINT IF EXISTS chk_medicine_values');
@@ -136,11 +136,11 @@ return new class extends Migration
             // Ignore if constraints don't exist
         }
 
-        Schema::table('bills', function (Blueprint $table) {
-            if (Schema::hasIndex('bills', 'idx_bills_patient_status')) {
-                $table->dropIndex('idx_bills_patient_status');
-            }
-        });
+        // Schema::table('bills', function (Blueprint $table) {
+        //     if (Schema::hasIndex('bills', 'idx_bills_patient_status')) {
+        //         $table->dropIndex('idx_bills_patient_status');
+        //     }
+        // });
 
         Schema::table('appointments', function (Blueprint $table) {
             if (Schema::hasIndex('appointments', 'idx_appointments_status_date')) {

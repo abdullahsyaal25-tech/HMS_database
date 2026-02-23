@@ -26,18 +26,18 @@ return new class extends Migration
             }
         });
 
-        // Bills table indexes
-        Schema::table('bills', function (Blueprint $table) {
-            if (!$this->indexExists('bills', 'idx_bills_patient_status')) {
-                $table->index(['patient_id', 'payment_status'], 'idx_bills_patient_status')->comment('Composite index for payment status filtering');
-            }
-            if (!$this->indexExists('bills', 'idx_bills_bill_number')) {
-                $table->index('bill_number', 'idx_bills_bill_number')->comment('Index for bill number lookups');
-            }
-            if (!$this->indexExists('bills', 'idx_bills_creator_created')) {
-                $table->index(['created_by', 'created_at'], 'idx_bills_creator_created')->comment('Composite index for creator-based queries');
-            }
-        });
+        // // Bills table indexes
+        // Schema::table('bills', function (Blueprint $table) {
+        //     if (!$this->indexExists('bills', 'idx_bills_patient_status')) {
+        //         $table->index(['patient_id', 'payment_status'], 'idx_bills_patient_status')->comment('Composite index for payment status filtering');
+        //     }
+        //     if (!$this->indexExists('bills', 'idx_bills_bill_number')) {
+        //         $table->index('bill_number', 'idx_bills_bill_number')->comment('Index for bill number lookups');
+        //     }
+        //     if (!$this->indexExists('bills', 'idx_bills_creator_created')) {
+        //         $table->index(['created_by', 'created_at'], 'idx_bills_creator_created')->comment('Composite index for creator-based queries');
+        //     }
+        // });
 
         // Appointments table indexes
         Schema::table('appointments', function (Blueprint $table) {
@@ -69,10 +69,10 @@ return new class extends Migration
         $this->safeDropIndex('patients', 'idx_patients_patient_id');
         $this->safeDropIndex('patients', 'idx_patients_user_created');
 
-        // Drop indexes for bills table
-        $this->safeDropIndex('bills', 'idx_bills_patient_status');
-        $this->safeDropIndex('bills', 'idx_bills_bill_number');
-        $this->safeDropIndex('bills', 'idx_bills_creator_created');
+        // // Drop indexes for bills table
+        // $this->safeDropIndex('bills', 'idx_bills_patient_status');
+        // $this->safeDropIndex('bills', 'idx_bills_bill_number');
+        // $this->safeDropIndex('bills', 'idx_bills_creator_created');
 
         // Drop indexes for appointments table
         $this->safeDropIndex('appointments', 'idx_appts_patient_date');
