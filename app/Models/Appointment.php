@@ -24,12 +24,15 @@ class Appointment extends Model
         'notes',
         'fee',
         'discount',
+        'discount_type',
+        'discount_fixed',
     ];
 
     protected $casts = [
         'appointment_date' => 'datetime',
         'fee' => 'decimal:2',
         'discount' => 'decimal:2',
+        'discount_fixed' => 'decimal:2',
     ];
 
     // Include accessors in toArray() by default

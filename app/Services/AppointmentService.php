@@ -169,6 +169,8 @@ class AppointmentService
                 'notes' => $data['notes'] ?? null,
                 'fee' => $fee,
                 'discount' => $discount,
+                'discount_type' => $data['discount_type'] ?? 'percentage',
+                'discount_fixed' => $data['discount_fixed'] ?? 0,
             ]);
 
             // Attach services if provided
@@ -178,10 +180,13 @@ class AppointmentService
                     \App\Models\Department::where('id', $data['department_id'])->where('name', 'Laboratory')->exists() &&
                     collect($data['services'])->contains('is_lab_test', true);
                 
+                // ALWAYS attach services to appointment_services table for revenue tracking
+                // Pass appointment data with discount info so it can be distributed across services
+                $this->attachServices($appointment, $data['services'], $data);
+                
+                // Additionally create lab test requests if it's a lab appointment
                 if ($isLabAppointment) {
                     $this->createLabTestRequests($appointment, $data['services'], $data);
-                } else {
-                    $this->attachServices($appointment, $data['services']);
                 }
             }
 
@@ -196,34 +201,103 @@ class AppointmentService
 
     /**
      * Attach services to appointment
+     * Only attaches non-lab services to appointment_services table
+     * Lab services are tracked via LabTestRequest separately
+     * Applies both individual service discounts AND global appointment discount to final_cost
      */
-    private function attachServices(Appointment $appointment, array $services): void
+    private function attachServices(Appointment $appointment, array $services, array $appointmentData = []): void
     {
         Log::info('Attaching services to appointment', [
             'appointment_id' => $appointment->id,
             'services_count' => count($services),
-            'services_data' => $services,
         ]);
         
         $attachData = [];
+        $nonLabServices = [];
         
+        // Filter out lab tests and collect non-lab services
         foreach ($services as $service) {
+            // Skip lab tests - they're tracked via LabTestRequest instead
+            if (isset($service['is_lab_test']) && $service['is_lab_test']) {
+                Log::info('Skipping lab test from attachServices', [
+                    'service_id' => $service['id'] ?? 'unknown',
+                    'service_name' => $service['name'] ?? 'unknown',
+                ]);
+                continue;
+            }
+            
+            // Only process if department_service_id exists (not a lab test)
+            if (!isset($service['department_service_id']) || !$service['department_service_id']) {
+                Log::warning('Service skipped - no department_service_id', ['service' => $service]);
+                continue;
+            }
+            
+            $nonLabServices[] = $service;
+        }
+        
+        // If no non-lab services, return early
+        if (empty($nonLabServices)) {
+            Log::info('No non-lab services to attach');
+            return;
+        }
+        
+        // Calculate global discount to distribute across services
+        $globalDiscount = 0;
+        $discountType = $appointmentData['discount_type'] ?? 'percentage';
+        
+        // Calculate service subtotal (sum of all service costs)
+        $serviceSubtotal = array_sum(array_map(fn($s) => $s['custom_cost'], $nonLabServices));
+        
+        // Calculate global discount based on type
+        if ($discountType === 'percentage' && $serviceSubtotal > 0) {
+            $globalDiscountPercent = $appointmentData['discount'] ?? 0;
+            $globalDiscount = $serviceSubtotal * ($globalDiscountPercent / 100);
+        } elseif ($discountType === 'fixed') {
+            $globalDiscount = $appointmentData['discount_fixed'] ?? 0;
+        }
+        
+        // Distribute global discount proportionally across services
+        $globalDiscountPerService = count($nonLabServices) > 0 ? $globalDiscount / count($nonLabServices) : 0;
+        
+        Log::info('Global discount calculation', [
+            'discount_type' => $discountType,
+            'global_discount' => $globalDiscount,
+            'services_count' => count($nonLabServices),
+            'discount_per_service' => $globalDiscountPerService,
+        ]);
+        
+        // Prepare attach data with combined discounts
+        foreach ($nonLabServices as $service) {
             $customCost = $service['custom_cost'];
             $discountPercentage = $service['discount_percentage'] ?? 0;
-            $discountAmount = $customCost * ($discountPercentage / 100);
-            $finalCost = round($customCost - $discountAmount, 2);
+            
+            // Calculate service-level discount
+            $serviceDiscount = $customCost * ($discountPercentage / 100);
+            
+            // Add proportional global discount
+            $totalDiscount = $serviceDiscount + $globalDiscountPerService;
+            $finalCost = round(max(0, $customCost - $totalDiscount), 2);
             
             $attachData[$service['department_service_id']] = [
                 'custom_cost' => $customCost,
                 'discount_percentage' => $discountPercentage,
                 'final_cost' => $finalCost,
             ];
+            
+            Log::info('Service discount calculation', [
+                'service_cost' => $customCost,
+                'service_discount' => $serviceDiscount,
+                'global_discount_share' => $globalDiscountPerService,
+                'total_discount' => $totalDiscount,
+                'final_cost' => $finalCost,
+            ]);
         }
         
         Log::info('Services attach data prepared', [
             'attach_data' => $attachData,
         ]);
         
+        // Attach all services
         $appointment->services()->attach($attachData);
         
         // Verify services were attached
