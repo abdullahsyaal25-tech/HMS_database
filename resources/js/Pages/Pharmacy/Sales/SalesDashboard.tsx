@@ -137,14 +137,13 @@ export default function SalesDashboard({
             return newSet;
         });
     };
-
     // Helper function to build URL with params
     const buildUrl = (params: Record<string, string | number>) => {
         const urlParams = new URLSearchParams();
         Object.entries(params).forEach(([key, value]) => {
             urlParams.set(key, String(value));
         });
-        return `/pharmacy/sales?${urlParams.toString()}`;
+        return `/pharmacy/sales/dashboard?${urlParams.toString()}`;
     };
 
     // Filter sales based on search
@@ -375,10 +374,12 @@ export default function SalesDashboard({
                     <Card className="hover:shadow-md transition-shadow">
                         <CardContent className="p-3 flex items-center justify-between">
                             <div>
-                                <p className="text-xs text-muted-foreground">Pending</p>
-                                <p className="text-xl font-bold text-blue-500">{summary.pending_sales}</p>
+                                <p className="text-xs text-muted-foreground">Today's Profits</p>
+                                <p className="text-xl font-bold text-emerald-600">
+                                    {formatCurrency(sales.reduce((sum, sale) => sum + ((sale.grand_total || 0) - (sale.total_cost || 0)), 0))}
+                                </p>
                             </div>
-                            <Clock className="h-5 w-5 text-blue-400" />
+                            <TrendingUp className="h-5 w-5 text-emerald-400" />
                         </CardContent>
                     </Card>
                     <Card className="hover:shadow-md transition-shadow">
@@ -393,9 +394,9 @@ export default function SalesDashboard({
                     <Card className="hover:shadow-md transition-shadow">
                         <CardContent className="p-3 flex items-center justify-between">
                             <div>
-                                <p className="text-xs text-muted-foreground">Avg Sale Value</p>
-                                <p className="text-xl font-bold text-purple-500">
-                                    {formatCurrency(summary.total_sales > 0 ? summary.total_revenue / summary.total_sales : 0)}
+                                <p className="text-xs text-muted-foreground">Total Profits</p>
+                                <p className="text-xl font-bold text-purple-600">
+                                    {formatCurrency(sales.reduce((sum, sale) => sum + ((sale.grand_total || 0) - (sale.total_cost || 0)), 0))}
                                 </p>
                             </div>
                             <TrendingUp className="h-5 w-5 text-purple-400" />
