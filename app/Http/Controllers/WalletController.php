@@ -79,27 +79,32 @@ class WalletController extends Controller
 
     /**
      * Get appointment revenue for a date range.
-     * Calculates from completed appointments using their fee field minus discounts.
+     * Calculates from completed appointments ONLY using doctor consultation fee (fee - discount).
+     * Services are tracked separately in getDepartmentRevenue().
      */
     private function getAppointmentRevenue(Carbon $start, Carbon $end)
     {
-        // Get completed appointments and calculate their grand total (fee - discount)
+        // Get completed appointments WITHOUT services and calculate only doctor fee (fee - discount)
+        // Appointments with services are tracked in department revenue instead
         $appointments = Appointment::whereIn('status', ['completed', 'confirmed'])
             ->whereBetween('appointment_date', [$start, $end])
+            ->whereDoesntHave('services')  // Only appointments without services
             ->get();
         
         return $appointments->sum(function ($appointment) {
-            return $appointment->grand_total;
+            return max(0, ($appointment->fee ?? 0) - ($appointment->discount ?? 0));
         });
     }
 
     /**
      * Get department service revenue for a date range.
      * Calculates from appointment_services (department services used in appointments).
+     * This includes all service-based appointment revenue, separate from doctor consultation fees.
      */
     private function getDepartmentRevenue(Carbon $start, Carbon $end)
     {
         // Sum the final_cost from appointment_services for completed appointments
+        // These are services selected when creating appointments, NOT doctor consultation fees
         return DB::table('appointment_services')
             ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])

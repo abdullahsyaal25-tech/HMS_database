@@ -95,7 +95,7 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'AFN',
             minimumFractionDigits: 2,
         }).format(amount);
     };

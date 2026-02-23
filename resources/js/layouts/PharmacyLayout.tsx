@@ -101,9 +101,9 @@ const pharmacyNavItems: (NavItem & { permission?: string })[] = [
         icon: BarChart3,
         items: [
             {
-                title: 'All Sales',
+                title: 'Sales List',
                 href: '/pharmacy/sales',
-                icon: BarChart3,
+                icon: ShoppingCart,
             },
             {
                 title: 'Sales Dashboard',

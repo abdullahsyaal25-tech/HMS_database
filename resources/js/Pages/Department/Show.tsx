@@ -39,10 +39,9 @@ export default function DepartmentShow({ department, doctors }: DepartmentShowPr
     const { data, setData, post, put, reset, processing, errors } = useForm({
         name: '',
         description: '',
-        base_cost: 0,
-        fee_percentage: 0,
-        discount_percentage: 0,
-        doctor_percentage: 0,
+        base_cost: '',
+        discount_percentage: '',
+        doctor_percentage: '',
         doctor_id: null as number | null,
         is_active: true,
     });
@@ -58,10 +57,9 @@ export default function DepartmentShow({ department, doctors }: DepartmentShowPr
         setData({
             name: service.name,
             description: service.description || '',
-            base_cost: service.base_cost,
-            fee_percentage: service.fee_percentage,
-            discount_percentage: service.discount_percentage,
-            doctor_percentage: service.doctor_percentage ?? 0,
+            base_cost: service.base_cost.toString() || '',
+            discount_percentage: service.discount_percentage ? service.discount_percentage.toString() : '',
+            doctor_percentage: service.doctor_percentage ? service.doctor_percentage.toString() : '',
             doctor_id: service.doctor_id ?? null,
             is_active: service.is_active,
         });
@@ -455,8 +453,8 @@ export default function DepartmentShow({ department, doctors }: DepartmentShowPr
                                 </DialogDescription>
                             </DialogHeader>
                             <form onSubmit={handleServiceSubmit}>
-                                <div className="grid gap-4 py-4">
-                                    <div className="grid gap-2">
+                                <div className="grid gap-2 py-4">
+                                    <div className="grid gap-1.5">
                                         <Label htmlFor="name">Service Name</Label>
                                         <Input
                                             id="name"
@@ -467,110 +465,135 @@ export default function DepartmentShow({ department, doctors }: DepartmentShowPr
                                         />
                                         {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
                                     </div>
-                                    <div className="grid gap-2">
+                                    <div className="grid gap-1.5">
                                         <Label htmlFor="description">Description</Label>
                                         <Textarea
                                             id="description"
                                             value={data.description}
                                             onChange={(e) => setData('description', e.target.value)}
                                             placeholder="Brief description of the service"
+                                            className="resize-none max-h-24"
                                         />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="base_cost">Base Cost ($)</Label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="grid gap-1.5">
+                                            <Label htmlFor="base_cost">Base Cost (؋) *</Label>
                                             <Input
                                                 id="base_cost"
                                                 type="number"
                                                 step="0.01"
                                                 value={data.base_cost}
-                                                onChange={(e) => setData('base_cost', parseFloat(e.target.value))}
+                                                onChange={(e) => setData('base_cost', e.target.value)}
+                                                placeholder="Enter base cost"
                                                 required
                                             />
+                                            {errors.base_cost && <p className="text-xs text-red-500">{errors.base_cost}</p>}
                                         </div>
-                                        <div className="grid gap-2">
+                                        <div className="grid gap-1.5">
                                             <Label htmlFor="is_active">Status</Label>
-                                            <div className="flex items-center space-x-2 pt-2">
+                                            <div className="flex items-center space-x-2 pt-1.5">
                                                 <Switch
                                                     id="is_active"
                                                     checked={data.is_active}
                                                     onCheckedChange={(checked) => setData('is_active', checked)}
                                                 />
-                                                <Label htmlFor="is_active">Active</Label>
+                                                <Label htmlFor="is_active" className="cursor-pointer">{data.is_active ? 'Active' : 'Inactive'}</Label>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="fee_percentage">Fee Percentage (%)</Label>
-                                            <Input
-                                                id="fee_percentage"
-                                                type="number"
-                                                step="0.01"
-                                                value={data.fee_percentage}
-                                                onChange={(e) => setData('fee_percentage', parseFloat(e.target.value))}
-                                            />
+
+                                    <div className="border-t pt-2 space-y-2">
+                                        <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide mt-1">Optional Pricing</h3>
+                                        
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid gap-1.5">
+                                                <Label htmlFor="discount_percentage" className="flex items-center gap-1 text-sm">
+                                                    Discount (%)
+                                                    <span className="text-xs text-muted-foreground font-normal">opt</span>
+                                                </Label>
+                                                <Input
+                                                    id="discount_percentage"
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    max="100"
+                                                    value={data.discount_percentage}
+                                                    onChange={(e) => setData('discount_percentage', e.target.value)}
+                                                    placeholder="0"
+                                                />
+                                                {errors.discount_percentage && <p className="text-xs text-red-500">{errors.discount_percentage}</p>}
+                                            </div>
+
+                                            <div className="grid gap-1.5">
+                                                <Label htmlFor="doctor_percentage" className="flex items-center gap-1 text-sm">
+                                                    Doctor Share (%)
+                                                    <span className="text-xs text-muted-foreground font-normal">opt</span>
+                                                </Label>
+                                                <Input
+                                                    id="doctor_percentage"
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    max="100"
+                                                    value={data.doctor_percentage}
+                                                    onChange={(e) => setData('doctor_percentage', e.target.value)}
+                                                    placeholder="0"
+                                                />
+                                                {errors.doctor_percentage && <p className="text-xs text-red-500">{errors.doctor_percentage}</p>}
+                                            </div>
                                         </div>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="discount_percentage">Discount (%)</Label>
-                                            <Input
-                                                id="discount_percentage"
-                                                type="number"
-                                                step="0.01"
-                                                value={data.discount_percentage}
-                                                onChange={(e) => setData('discount_percentage', parseFloat(e.target.value))}
-                                            />
+                                    </div>
+
+                                    <div className="border-t pt-2 space-y-2">
+                                        <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide mt-1">Doctor Assignment</h3>
+                                        
+                                        <div className="grid gap-1.5">
+                                            <Label htmlFor="doctor_id" className="flex items-center gap-1 text-sm">
+                                                Assign Doctor
+                                                <span className="text-xs text-muted-foreground font-normal">opt</span>
+                                            </Label>
+                                            <select
+                                                id="doctor_id"
+                                                value={data.doctor_id ?? ''}
+                                                onChange={(e) => setData('doctor_id', e.target.value ? parseInt(e.target.value) : null)}
+                                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                            >
+                                                <option value="">— Select a doctor —</option>
+                                                {doctors.map((doctor) => (
+                                                    <option key={doctor.id} value={doctor.id}>
+                                                        Dr. {doctor.full_name}{doctor.specialization ? ` (${doctor.specialization})` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {errors.doctor_id && <p className="text-xs text-red-500">{errors.doctor_id}</p>}
                                         </div>
                                     </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="doctor_id" className="flex items-center gap-1">
-                                            Assigned Doctor
-                                            <span className="text-xs text-muted-foreground font-normal">(optional)</span>
-                                        </Label>
-                                        <select
-                                            id="doctor_id"
-                                            value={data.doctor_id ?? ''}
-                                            onChange={(e) => setData('doctor_id', e.target.value ? parseInt(e.target.value) : null)}
-                                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        >
-                                            <option value="">— No doctor assigned —</option>
-                                            {doctors.map((doctor) => (
-                                                <option key={doctor.id} value={doctor.id}>
-                                                    Dr. {doctor.full_name}{doctor.specialization ? ` (${doctor.specialization})` : ''}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {errors.doctor_id && <p className="text-xs text-red-500">{errors.doctor_id}</p>}
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="doctor_percentage" className="flex items-center gap-1">
-                                            Doctor Percentage (%)
-                                            <span className="text-xs text-muted-foreground font-normal">(optional)</span>
-                                        </Label>
-                                        <Input
-                                            id="doctor_percentage"
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            max="100"
-                                            value={data.doctor_percentage}
-                                            onChange={(e) => setData('doctor_percentage', parseFloat(e.target.value) || 0)}
-                                            placeholder="e.g. 30"
-                                        />
-                                        {errors.doctor_percentage && <p className="text-xs text-red-500">{errors.doctor_percentage}</p>}
-                                    </div>
-                                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 p-3 rounded-lg mt-2 space-y-2">
+                                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-3 mt-2 space-y-1.5">
                                         <div className="flex justify-between items-center">
-                                            <span className="text-sm font-medium">Estimated Final Cost:</span>
-                                            <span className="text-lg font-bold text-indigo-700">
-                                                ${(data.base_cost + (data.base_cost * (data.fee_percentage / 100)) - (data.base_cost * (data.discount_percentage / 100))).toFixed(2)}
+                                            <span className="text-xs font-medium text-slate-700">Base Cost:</span>
+                                            <span className="text-base font-bold text-indigo-700">
+                                                ؋{data.base_cost ? parseFloat(data.base_cost.toString()).toFixed(2) : '0.00'}
                                             </span>
                                         </div>
-                                        {data.doctor_percentage > 0 && (
-                                            <div className="flex justify-between items-center border-t border-indigo-200 pt-2">
-                                                <span className="text-sm font-medium text-purple-700">Doctor Earnings ({data.doctor_percentage}%):</span>
-                                                <span className="text-base font-bold text-purple-700">
-                                                    ${(data.base_cost * (data.doctor_percentage / 100)).toFixed(2)}
+                                        {data.discount_percentage && parseFloat(data.discount_percentage.toString()) > 0 && (
+                                            <div className="flex justify-between items-center text-xs">
+                                                <span className="text-muted-foreground">Discount ({data.discount_percentage}%):</span>
+                                                <span className="text-green-600 font-medium">
+                                                    -؋{(parseFloat(data.base_cost?.toString() || '0') * parseFloat(data.discount_percentage.toString()) / 100).toFixed(2)}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="border-t border-indigo-200 pt-1.5 flex justify-between items-center">
+                                            <span className="text-xs font-semibold text-slate-900">Final Cost:</span>
+                                            <span className="text-base font-bold text-indigo-700">
+                                                ؋{(parseFloat(data.base_cost?.toString() || '0') - (data.discount_percentage ? parseFloat(data.base_cost?.toString() || '0') * parseFloat(data.discount_percentage.toString()) / 100 : 0)).toFixed(2)}
+                                            </span>
+                                        </div>
+                                        {data.doctor_percentage && parseFloat(data.doctor_percentage.toString()) > 0 && (
+                                            <div className="border-t border-indigo-200 pt-1.5 flex justify-between items-center bg-purple-100/50 rounded p-1.5">
+                                                <span className="text-xs font-medium text-purple-700">Doctor Share ({data.doctor_percentage}%):</span>
+                                                <span className="text-sm font-bold text-purple-700">
+                                                    ؋{(parseFloat(data.base_cost?.toString() || '0') * parseFloat(data.doctor_percentage.toString()) / 100).toFixed(2)}
                                                 </span>
                                             </div>
                                         )}
