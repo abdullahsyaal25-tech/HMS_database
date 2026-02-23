@@ -81,14 +81,25 @@ class WalletController extends Controller
      * Get appointment revenue for a date range.
      * Calculates from completed appointments ONLY using doctor consultation fee (fee - discount).
      * Services are tracked separately in getDepartmentRevenue().
+     * Excludes laboratory department appointments (counted in laboratory revenue instead).
      */
     private function getAppointmentRevenue(Carbon $start, Carbon $end)
     {
-        // Get completed appointments WITHOUT services and calculate only doctor fee (fee - discount)
+        // Get completed appointments WITHOUT services AND NOT from Laboratory department
         // Appointments with services are tracked in department revenue instead
+        // Laboratory appointments (even without services attached) are tracked in laboratory revenue
         $appointments = Appointment::whereIn('status', ['completed', 'confirmed'])
             ->whereBetween('appointment_date', [$start, $end])
             ->whereDoesntHave('services')  // Only appointments without services
+            ->where(function ($query) {
+                // Exclude appointments where department is Laboratory
+                $query->whereNull('department_id')
+                      ->orWhereNotIn('department_id', function ($subQuery) {
+                          $subQuery->select('id')
+                                   ->from('departments')
+                                   ->where('name', 'Laboratory');
+                      });
+            })
             ->get();
         
         return $appointments->sum(function ($appointment) {
@@ -99,15 +110,18 @@ class WalletController extends Controller
     /**
      * Get department service revenue for a date range.
      * Calculates from appointment_services (department services used in appointments).
-     * This includes all service-based appointment revenue, separate from doctor consultation fees.
+     * Excludes laboratory services which are counted separately in getLaboratoryRevenue().
      */
     private function getDepartmentRevenue(Carbon $start, Carbon $end)
     {
         // Sum the final_cost from appointment_services for completed appointments
-        // These are services selected when creating appointments, NOT doctor consultation fees
+        // Exclude laboratory department services (those are tracked in laboratory revenue)
         return DB::table('appointment_services')
             ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+            ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+            ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
+            ->where('departments.name', '!=', 'Laboratory')  // Exclude laboratory services
             ->whereBetween('appointment_services.created_at', [$start, $end])
             ->sum('appointment_services.final_cost');
     }
@@ -125,13 +139,15 @@ class WalletController extends Controller
 
     /**
      * Get laboratory revenue for a date range.
-     * Calculates from LabTestResults (completed or performed) joined with LabTest to get costs.
+     * Includes:
+     * 1. Lab test results that are completed or performed
+     * 2. Laboratory services from appointments (department services from Laboratory department)
+     * 3. Laboratory department appointments (appointments where department is Laboratory)
      */
     private function getLaboratoryRevenue(Carbon $start, Carbon $end)
     {
-        // Get lab test results that are completed OR have been performed (have performed_at date)
-        // This includes results that are technically "pending" but have actually been done
-        return DB::table('lab_test_results')
+        // Get lab test results that are completed OR have been performed
+        $labTestResultsRevenue = DB::table('lab_test_results')
             ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
             ->where(function ($query) {
                 $query->where('lab_test_results.status', 'completed')
@@ -139,6 +155,36 @@ class WalletController extends Controller
             })
             ->whereBetween('lab_test_results.performed_at', [$start, $end])
             ->sum('lab_tests.cost');
+
+        // Get laboratory services from appointments (department services)
+        $appointmentLabServicesRevenue = DB::table('appointment_services')
+            ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+            ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+            ->join('departments', 'department_services.department_id', '=', 'departments.id')
+            ->whereIn('appointments.status', ['completed', 'confirmed'])
+            ->where('departments.name', '=', 'Laboratory')  // Only laboratory department services
+            ->whereBetween('appointment_services.created_at', [$start, $end])
+            ->sum('appointment_services.final_cost');
+
+        // Get laboratory department appointments (appointments where department=Laboratory and no services attached)
+        // These are standalone lab appointments created through the department selection
+        $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
+            ->whereBetween('appointment_date', [$start, $end])
+            ->whereDoesntHave('services')  // Only appointments without attached services
+            ->where(function ($query) {
+                // Include only Laboratory department appointments
+                $query->whereIn('department_id', function ($subQuery) {
+                    $subQuery->select('id')
+                             ->from('departments')
+                             ->where('name', 'Laboratory');
+                });
+            })
+            ->get()
+            ->sum(function ($appointment) {
+                return max(0, ($appointment->fee ?? 0) - ($appointment->discount ?? 0));
+            });
+
+        return $labTestResultsRevenue + $appointmentLabServicesRevenue + $labDepartmentAppointmentsRevenue;
     }
 
     /**

@@ -210,6 +210,8 @@ class AppointmentController extends Controller
             'notes' => 'nullable|string|max:5000',
             'fee' => 'nullable|numeric|min:0',
             'discount' => 'nullable|numeric|min:0|max:100',
+            'discount_type' => 'nullable|in:percentage,fixed',
+            'discount_fixed' => 'nullable|numeric|min:0',
             'status' => 'required|in:scheduled,completed,cancelled,no_show,rescheduled',
             'services' => 'nullable',
             'services.*.department_service_id' => 'required_with:services',
@@ -243,6 +245,8 @@ class AppointmentController extends Controller
                 'notes' => $sanitized['notes'],
                 'fee' => $sanitized['fee'],
                 'discount' => $sanitized['discount'],
+                'discount_type' => $validated['discount_type'] ?? 'percentage',
+                'discount_fixed' => $validated['discount_fixed'] ?? 0,
                 'status' => $validated['status'] ?? 'completed',
             ];
 

@@ -117,18 +117,43 @@ class AppointmentService
                 WHERE TABLE_SCHEMA = DATABASE()
                 AND TABLE_NAME = 'appointments'
             ")->next_id ?? 1;
-
             // Calculate fee based on services or use doctor's fee
             $fee = $data['fee'] ?? 0;
-            $discount = $data['discount'] ?? 0;
+            $discount = 0;
             
             // If services are provided, calculate total from services
             if (!empty($data['services'])) {
                 $fee = 0;
-                $discount = 0;
+                
+                // First, sum up service costs and individual service discounts
                 foreach ($data['services'] as $service) {
                     $fee += $service['custom_cost'];
                     $discount += ($service['custom_cost'] * $service['discount_percentage'] / 100);
+                }
+                
+                // Then, add additional discount if it exists
+                // This is the global discount applied at appointment level
+                if ($fee > 0) {
+                    $discountType = $data['discount_type'] ?? 'percentage';
+                    $additionalDiscount = 0;
+                    
+                    if ($discountType === 'percentage') {
+                        $discountPercent = $data['discount'] ?? 0;
+                        $additionalDiscount = $fee * ($discountPercent / 100);
+                    } else {
+                        $additionalDiscount = $data['discount_fixed'] ?? 0;
+                    }
+                    
+                    $discount += $additionalDiscount;
+                }
+            } else {
+                // For non-service appointments, handle discount based on discount type
+                $discountType = $data['discount_type'] ?? 'percentage';
+                if ($discountType === 'percentage') {
+                    $discountPercent = $data['discount'] ?? 0;
+                    $discount = $fee * ($discountPercent / 100);
+                } else {
+                    $discount = $data['discount_fixed'] ?? 0;
                 }
             }
 

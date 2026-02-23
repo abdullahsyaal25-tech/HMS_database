@@ -352,6 +352,32 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
         setData(name as keyof typeof data, value);
     };
 
+    // Handle discount type change with value preservation
+    const handleDiscountTypeChange = (newType: 'percentage' | 'fixed') => {
+        setData('discount_type', newType);
+        // Keep the values intact - user can manually convert if needed
+        // This prevents loss of data when switching between types
+    };
+
+    // Calculate actual discount amount regardless of type
+    const getDiscountAmount = () => {
+        if (totals.isServiceBased) {
+            const subtotal = totals.subtotal;
+            if (data.discount_type === 'percentage') {
+                return subtotal * (parseFloat(data.discount) || 0) / 100;
+            } else {
+                return parseFloat(data.discount_fixed) || 0;
+            }
+        } else {
+            const subtotal = parseFloat(data.fee) || 0;
+            if (data.discount_type === 'percentage') {
+                return subtotal * (parseFloat(data.discount) || 0) / 100;
+            } else {
+                return parseFloat(data.discount_fixed) || 0;
+            }
+        }
+    };
+
     const addService = () => {
         const newService: SelectedService = {
             id: Date.now().toString(),
@@ -1276,7 +1302,7 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
                                                     <Button
                                                         type="button"
                                                         variant={data.discount_type === 'percentage' ? 'default' : 'outline'}
-                                                        onClick={() => setData('discount_type', 'percentage')}
+                                                        onClick={() => handleDiscountTypeChange('percentage')}
                                                         className="flex-1 h-12 text-sm"
                                                     >
                                                         <Percent className="h-4 w-4 mr-1" />
@@ -1285,7 +1311,7 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
                                                     <Button
                                                         type="button"
                                                         variant={data.discount_type === 'fixed' ? 'default' : 'outline'}
-                                                        onClick={() => setData('discount_type', 'fixed')}
+                                                        onClick={() => handleDiscountTypeChange('fixed')}
                                                         className="flex-1 h-12 text-sm"
                                                     >
                                                         <span className="mr-1">؋</span>
@@ -1317,6 +1343,9 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
                                                         className="pl-11 h-12 text-base"
                                                     />
                                                 </div>
+                                                <p className="text-xs text-green-600 font-medium">
+                                                    💰 Discount Amount: ؋{getDiscountAmount().toFixed(2)}
+                                                </p>
                                                 {errors.discount && (
                                                     <p className="text-sm text-red-600 flex items-center gap-1">
                                                         <span className="font-medium">⚠</span> {errors.discount}
@@ -1360,7 +1389,7 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
                                                             <Button
                                                                 type="button"
                                                                 variant={data.discount_type === 'percentage' ? 'default' : 'outline'}
-                                                                onClick={() => setData('discount_type', 'percentage')}
+                                                                onClick={() => handleDiscountTypeChange('percentage')}
                                                                 className="flex-1 h-10 text-xs"
                                                             >
                                                                 <Percent className="h-3 w-3 mr-1" />
@@ -1369,7 +1398,7 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
                                                             <Button
                                                                 type="button"
                                                                 variant={data.discount_type === 'fixed' ? 'default' : 'outline'}
-                                                                onClick={() => setData('discount_type', 'fixed')}
+                                                                onClick={() => handleDiscountTypeChange('fixed')}
                                                                 className="flex-1 h-10 text-xs"
                                                             >
                                                                 <span className="mr-1">؋</span>
@@ -1401,6 +1430,9 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
                                                                 className="pl-10 h-10 text-sm"
                                                             />
                                                         </div>
+                                                        <p className="text-xs text-green-600 font-medium">
+                                                            💰 Discount Amount: ؋{getDiscountAmount().toFixed(2)}
+                                                        </p>
                                                     </div>
                                                 </div>
 
