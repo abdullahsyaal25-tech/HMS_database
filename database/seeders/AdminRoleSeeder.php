@@ -169,24 +169,6 @@ class AdminRoleSeeder extends Seeder
             ],
 
             [
-                'name' => 'Billing Admin',
-                'slug' => 'billing-admin',
-                'description' => 'Full access to billing and finance module',
-                'priority' => 60,
-                'parent_role_id' => 4, // Department Admin
-                'module_access' => ['billing', 'invoices', 'payments', 'refunds', 'insurance'],
-                'data_visibility_scope' => ['billing' => true],
-                'user_management_capabilities' => [],
-                'system_configuration_access' => ['module_settings_only'],
-                'reporting_permissions' => ['view_module', 'export_module'],
-                'role_specific_limitations' => ['module_scope_only'],
-                'mfa_required' => false,
-                'mfa_grace_period_days' => 7,
-                'session_timeout_minutes' => 60,
-                'concurrent_session_limit' => 3,
-            ],
-
-            [
                 'name' => 'Reception Admin',
                 'slug' => 'reception-admin',
                 'description' => 'Full access to patient registration, appointments, and queue management',

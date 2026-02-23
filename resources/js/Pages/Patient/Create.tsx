@@ -239,24 +239,7 @@ export default function PatientCreate({ flash }: PatientCreateProps) {
                                             </p>
                                         )}
                                     </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Contact Information */}
-                        <Card className="shadow-lg border-t-4 border-t-green-500">
-                            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
-                                <CardTitle className="flex items-center gap-2 text-xl">
-                                    <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                                        <Phone className="h-5 w-5 text-green-600" />
-                                    </div>
-                                    Contact Information
-                                </CardTitle>
-                                <CardDescription className="text-base">
-                                    Provide phone number and address details
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-6 pt-6">
+                         
                                 <div className="space-y-2">
                                     <Label htmlFor="phone" className="text-base font-semibold flex items-center gap-2">
                                         <Phone className="h-4 w-4 text-green-600" />
@@ -288,7 +271,7 @@ export default function PatientCreate({ flash }: PatientCreateProps) {
                                         value={data.address}
                                         onChange={handleChange}
                                         placeholder="Enter address"
-                                        rows={3}
+                                        rows={1}
                                         className="resize-none"
                                     />
                                     {errors.address && (
@@ -297,8 +280,7 @@ export default function PatientCreate({ flash }: PatientCreateProps) {
                                         </p>
                                     )}
                                 </div>
-                            </CardContent>
-                        </Card>
+                                
 
                         {/* Action Buttons */}
                         <div className="flex justify-end space-x-4 pb-8">
@@ -317,6 +299,9 @@ export default function PatientCreate({ flash }: PatientCreateProps) {
                                 {processing ? 'Saving...' : 'Save Patient'}
                             </Button>
                         </div>
+                            </div>     
+                            </CardContent>
+                        </Card>
                     </form>
                 </div>
             </div>

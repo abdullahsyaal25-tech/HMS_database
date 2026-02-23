@@ -56,9 +56,6 @@ Route::get('/dashboard-redirect', function () {
     } elseif ($user->hasPermission('view-appointments')) {
         // Sub-admin with appointments permissions
         return redirect()->intended('/appointments');
-    } elseif ($user->hasPermission('view-billing')) {
-        // Sub-admin with billing permissions
-        return redirect()->intended('/billing');
     } elseif ($user->hasPermission('view-dashboard')) {
         // Any user with dashboard permission
         return redirect()->intended(route('dashboard', absolute: false));

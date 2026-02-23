@@ -9,9 +9,6 @@ use App\Models\Department;
 use App\Models\Appointment;
 use App\Models\Medicine;
 use App\Models\MedicineCategory;
-use App\Models\Bill;
-use App\Models\BillItem;
-use App\Models\Payment;
 use App\Models\LabTest;
 use App\Models\LabTestRequest;
 use App\Models\LabTestResult;
@@ -33,8 +30,6 @@ trait CreatesHMSTestData
     protected \Illuminate\Support\Collection $testDoctors;
     protected \Illuminate\Support\Collection $testDepartments;
     protected \Illuminate\Support\Collection $testAppointments;
-    protected \Illuminate\Support\Collection $testBills;
-    protected \Illuminate\Support\Collection $testPayments;
     protected \Illuminate\Support\Collection $testMedicines;
     protected \Illuminate\Support\Collection $testLabTests;
     protected \Illuminate\Support\Collection $testRoles;
@@ -91,15 +86,6 @@ trait CreatesHMSTestData
             ['name' => 'delete-appointments', 'description' => 'Permission to delete appointments'],
             ['name' => 'cancel-appointments', 'description' => 'Permission to cancel appointments'],
             ['name' => 'complete-appointments', 'description' => 'Permission to complete appointments'],
-            
-            // Billing permissions
-            ['name' => 'view-billing', 'description' => 'Permission to view billing'],
-            ['name' => 'create-billing', 'description' => 'Permission to create billing'],
-            ['name' => 'edit-billing', 'description' => 'Permission to edit billing'],
-            ['name' => 'delete-billing', 'description' => 'Permission to delete billing'],
-            ['name' => 'process-refunds', 'description' => 'Permission to process refunds'],
-            ['name' => 'void-bills', 'description' => 'Permission to void bills'],
-            ['name' => 'approve-discounts', 'description' => 'Permission to approve discounts'],
             
             // Pharmacy permissions
             ['name' => 'view-pharmacy', 'description' => 'Permission to view pharmacy'],
@@ -214,7 +200,6 @@ trait CreatesHMSTestData
         $hospitalAdminPermissions = [
             'view-dashboard', 'view-patients', 'create-patients', 'edit-patients',
             'view-doctors', 'view-appointments', 'create-appointments', 'edit-appointments',
-            'view-billing', 'create-billing', 'edit-billing', 'process-refunds',
             'view-audit-logs', 'view-medical-records', 'create-medical-records',
             'edit-medical-records', 'manage-users',
         ];
@@ -245,7 +230,7 @@ trait CreatesHMSTestData
         // Pharmacy Admin permissions
         $pharmacyPermissions = [
             'view-dashboard', 'view-pharmacy', 'manage-medicines', 'view-inventory',
-            'create-sales', 'view-alerts', 'manage-alerts', 'view-billing',
+            'create-sales', 'view-alerts', 'manage-alerts',
         ];
         $roles['pharmacy-admin']->permissions()->attach(
             array_intersect_key($permissions->toArray(), array_flip($pharmacyPermissions))
@@ -263,7 +248,7 @@ trait CreatesHMSTestData
         // Staff permissions
         $staffPermissions = [
             'view-dashboard', 'view-patients', 'create-patients',
-            'view-appointments', 'create-appointments', 'view-billing',
+            'view-appointments', 'create-appointments',
         ];
         $roles['staff']->permissions()->attach(
             array_intersect_key($permissions->toArray(), array_flip($staffPermissions))
@@ -317,20 +302,6 @@ trait CreatesHMSTestData
                 'patient_id' => $patients->random()->id,
                 'doctor_id' => $doctors->random()->id,
             ])
-            ->create();
-    }
-
-    /**
-     * Create test bills with items.
-     */
-    protected function createTestBills(int $count = 10): \Illuminate\Support\Collection
-    {
-        $patients = $this->testPatients ?? $this->createTestPatients();
-
-        return $this->testBills = Bill::factory()
-            ->count($count)
-            ->sequence(fn () => ['patient_id' => $patients->random()->id])
-            ->has(BillItem::factory()->count(3), 'items')
             ->create();
     }
 
@@ -402,29 +373,9 @@ trait CreatesHMSTestData
             'quantity' => 30,
         ]);
 
-        // Create bill
-        $bill = Bill::factory()->create([
-            'patient_id' => $patient->id,
-            'appointment_id' => $appointment->id,
-        ]);
-
-        BillItem::factory()->create([
-            'bill_id' => $bill->id,
-            'description' => 'Consultation Fee',
-            'quantity' => 1,
-            'unit_price' => 200.00,
-        ]);
-
-        // Create payment
-        $payment = Payment::factory()->create([
-            'bill_id' => $bill->id,
-            'amount' => $bill->total_amount,
-            'status' => 'completed',
-        ]);
-
         return compact(
             'patient', 'department', 'doctor', 'medicine', 'category',
-            'appointment', 'medicalRecord', 'prescription', 'bill', 'payment'
+            'appointment', 'medicalRecord', 'prescription'
         );
     }
 
@@ -450,10 +401,6 @@ trait CreatesHMSTestData
     protected function cleanupTestData(array $modelsToClean = []): void
     {
         $defaultModels = [
-            Payment::class,
-            BillRefund::class,
-            BillItem::class,
-            Bill::class,
             PrescriptionItem::class,
             Prescription::class,
             LabTestResult::class,

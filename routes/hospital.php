@@ -287,8 +287,6 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/patients', [ReportController::class, 'patientReport'])->name('reports.patient');
         Route::get('/doctors', [ReportController::class, 'doctorReport'])->name('reports.doctor');
         Route::get('/appointments', [ReportController::class, 'appointmentReport'])->name('reports.appointment');
-        Route::get('/billing', [ReportController::class, 'billingReport'])->name('reports.billing');
-        Route::get('/billing/download', [ReportController::class, 'billingReportDownload'])->name('reports.billing.download');
         Route::get('/pharmacy-sales', [ReportController::class, 'pharmacySalesReport'])->name('reports.pharmacy-sales');
         Route::get('/lab-test', [ReportController::class, 'labTestReport'])->name('reports.lab-test');
 

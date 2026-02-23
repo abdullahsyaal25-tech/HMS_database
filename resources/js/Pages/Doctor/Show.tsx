@@ -302,13 +302,6 @@ export default function DoctorShow({ doctor }: DoctorShowProps) {
                                         </Button>
                                     </Link>
 
-                                    <Link href={`/billing?doctor_id=${doctor.id}`} className="block">
-                                        <Button variant="outline" size="sm" className="w-full justify-start hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300">
-                                            <span className="mr-2 font-bold text-base">؋</span>
-                                            View Billing
-                                        </Button>
-                                    </Link>
-
                                     <Link href={`/departments/services/doctor-percentage?doctor=${doctor.id}`} className="block">
                                         <Button variant="outline" size="sm" className="w-full justify-start text-purple-700 hover:text-purple-800 hover:bg-purple-50 hover:border-purple-300">
                                             <Percent className="mr-2 h-4 w-4" />

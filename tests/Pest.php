@@ -184,11 +184,6 @@ function createAppointment(array $overrides = [])
     return \App\Models\Appointment::factory()->create($overrides);
 }
 
-function createBill(array $overrides = [])
-{
-    return \App\Models\Bill::factory()->create($overrides);
-}
-
 function createUser(array $overrides = [])
 {
     return \App\Models\User::factory()->create($overrides);

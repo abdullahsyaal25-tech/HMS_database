@@ -81,27 +81,6 @@ export default function ReportsIndex() {
                             </Card>
                         </Link>
                         
-                        <Link href="/reports/billing" className="block">
-                            <Card className="hover:shadow-md transition-shadow">
-                                <CardHeader>
-                                    <div className="flex items-center space-x-3">
-                                        <div className="bg-red-100 p-2 rounded-full">
-                                            <FileText className="h-5 w-5 text-red-600" />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-lg">Billing Reports</CardTitle>
-                                            <CardDescription>View billing and payment reports</CardDescription>
-                                        </div>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <Button variant="outline" className="w-full">
-                                        View Report
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        </Link>
-                        
                         <Link href="/reports/pharmacy-sales" className="block">
                             <Card className="hover:shadow-md transition-shadow">
                                 <CardHeader>

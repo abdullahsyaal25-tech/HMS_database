@@ -270,24 +270,7 @@ export default function PatientEdit({ patient, flash }: PatientEditProps) {
                                             </p>
                                         )}
                                     </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Contact Information */}
-                        <Card className="shadow-lg border-t-4 border-t-green-500">
-                            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
-                                <CardTitle className="flex items-center gap-2 text-xl">
-                                    <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                                        <Phone className="h-5 w-5 text-green-600" />
-                                    </div>
-                                    Contact Information
-                                </CardTitle>
-                                <CardDescription className="text-base">
-                                    Update phone number and address
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-6 pt-6">
+                            
                                 <div className="space-y-2">
                                     <Label htmlFor="phone" className="text-base font-semibold flex items-center gap-2">
                                         <Phone className="h-4 w-4 text-green-600" />
@@ -328,11 +311,7 @@ export default function PatientEdit({ patient, flash }: PatientEditProps) {
                                         </p>
                                     )}
                                 </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Action Buttons */}
-                        <div className="flex justify-end space-x-4 pb-8">
+                                <div className="flex justify-end space-y-2">
                             <Link href="/patients">
                                 <Button type="button" variant="outline" size="lg" className="shadow-md">
                                     Cancel
@@ -348,6 +327,12 @@ export default function PatientEdit({ patient, flash }: PatientEditProps) {
                                 {processing ? 'Saving...' : 'Update Patient'}
                             </Button>
                         </div>
+                        </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Action Buttons */}
+                        
                     </form>
                 </div>
             </div>

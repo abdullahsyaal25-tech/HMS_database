@@ -4,7 +4,6 @@ use App\Models\User;
 use App\Models\Patient;
 use App\Models\Doctor;
 use App\Models\Appointment;
-use App\Models\Bill;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
@@ -49,30 +48,11 @@ describe('Complete Patient Journey', function () {
         // Step 3: Complete appointment
         $this->putJson("/api/v1/appointments/{$appointmentId}/complete");
 
-        // Step 4: Create bill
-        $billResponse = $this->postJson('/api/v1/bills', [
-            'patient_id' => $patientId,
-            'billing_date' => now()->format('Y-m-d'),
-            'items' => [
-                ['description' => 'Consultation', 'quantity' => 1, 'unit_price' => 150.00],
-            ],
-        ]);
-
-        $billResponse->assertStatus(201);
-        $billId = $billResponse->json('id');
-
-        // Step 5: Process payment
-        $this->postJson("/api/v1/bills/{$billId}/payment", [
-            'amount' => 150.00,
-            'payment_method' => 'credit_card',
-        ]);
-
         // Verify complete workflow
-        expect(Bill::find($billId)->status)->toBe('paid');
         expect(Appointment::find($appointmentId)->status)->toBe('completed');
     });
 
-    it('should handle appointment cancellation and refund workflow', function () {
+    it('should handle appointment cancellation workflow', function () {
         Sanctum::actingAs($this->adminUser);
 
         $patient = Patient::factory()->create();
@@ -81,25 +61,11 @@ describe('Complete Patient Journey', function () {
             'status' => 'scheduled',
         ]);
 
-        $bill = Bill::factory()->create([
-            'patient_id' => $patient->id,
-            'total_amount' => 150.00,
-            'paid_amount' => 150.00,
-            'status' => 'paid',
-        ]);
-
         // Cancel appointment
         $this->putJson("/api/v1/appointments/{$appointment->id}/cancel", [
             'reason' => 'Patient requested cancellation',
         ]);
 
-        // Refund payment
-        $this->postJson("/api/v1/bills/{$bill->id}/refund", [
-            'amount' => 150.00,
-            'reason' => 'Appointment cancelled',
-        ]);
-
-        expect($bill->fresh()->status)->toBe('refunded');
         expect($appointment->fresh()->status)->toBe('cancelled');
     });
 });

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from 'react';
-import type { Doctor, Patient, Appointment, Medicine, LabTest, Bill } from '../types';
+import type { Doctor, Patient, Appointment, Medicine, LabTest } from '../types';
 import { logger } from '@/services/logger';
 
 // ============================================================================
@@ -68,7 +68,6 @@ interface UIState {
         appointmentForm: boolean;
         medicineForm: boolean;
         labTestForm: boolean;
-        billForm: boolean;
     };
 }
 
@@ -227,7 +226,6 @@ const initialUIState: UIState = {
         appointmentForm: false,
         medicineForm: false,
         labTestForm: false,
-        billForm: false,
     },
 };
 

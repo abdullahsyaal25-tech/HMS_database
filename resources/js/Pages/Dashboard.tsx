@@ -82,26 +82,16 @@ interface DashboardProps extends PageProps {
     new_patients: number;
     total_doctors: number;
     total_departments: number;
-    total_appointments: number;
-    completed_appointments: number;
-    total_revenue: number;
-    appointment_revenue: number;
-    pharmacy_revenue: number;
-    pending_bills: number;
-    outstanding_amount: number;
+  total_appointments: number;
+  completed_appointments: number;
+  total_revenue: number;
+  appointment_revenue: number;
+  pharmacy_revenue: number;
   };
   financial: {
     total_revenue: number;
     appointment_revenue: number;
     pharmacy_revenue: number;
-    outstanding_bills: number;
-    outstanding_amount: number;
-    aging: {
-      current: number;
-      '30_60': number;
-      '60_90': number;
-      '90_plus': number;
-    };
   };
   appointments: {
     total: number;
@@ -481,20 +471,10 @@ export default function Dashboard({
                   </div>
                 </div>
               )}
-              {(summary?.pending_bills || 0) > 0 && (
-                <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <CreditCard className="h-5 w-5 text-blue-600" />
-                  <div>
-                    <p className="font-medium text-blue-800">Pending Bills</p>
-                    <p className="text-sm text-blue-600">{summary.pending_bills} bills awaiting payment</p>
-                  </div>
-                </div>
-              )}
               {/* Show "No alerts" message when there are no alerts */}
               {(pharmacy?.low_stock_count || 0) === 0 &&
                (pharmacy?.expiring_count || 0) === 0 &&
-               (pharmacy?.expired_count || 0) === 0 &&
-               (summary?.pending_bills || 0) === 0 && (
+               (pharmacy?.expired_count || 0) === 0 && (
                 <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
                   <Shield className="h-5 w-5 text-green-600" />
                   <div>

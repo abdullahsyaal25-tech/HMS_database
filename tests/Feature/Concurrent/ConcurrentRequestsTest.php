@@ -5,7 +5,6 @@ use App\Models\Patient;
 use App\Models\Doctor;
 use App\Models\Appointment;
 use App\Models\Medicine;
-use App\Models\Bill;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
@@ -78,34 +77,5 @@ describe('Stock Update Race Conditions', function () {
 
         $response->assertStatus(422);
         expect($medicine->fresh()->stock_quantity)->toBe(5);
-    });
-});
-
-describe('Payment Processing', function () {
-    it('should prevent overpayment through concurrent payments', function () {
-        $bill = Bill::factory()->create([
-            'total_amount' => 500.00,
-            'paid_amount' => 0,
-            'status' => 'pending',
-        ]);
-
-        // First payment
-        $response1 = $this->postJson("/api/v1/bills/{$bill->id}/payment", [
-            'amount' => 300.00,
-            'payment_method' => 'credit_card',
-        ]);
-
-        // Second payment
-        $response2 = $this->postJson("/api/v1/bills/{$bill->id}/payment", [
-            'amount' => 300.00,
-            'payment_method' => 'cash',
-        ]);
-
-        // One should succeed, one should fail
-        $successCount = collect([$response1, $response2])->filter(fn($r) => $r->status() === 201)->count();
-        expect($successCount)->toBe(1);
-
-        $bill->refresh();
-        expect($bill->paid_amount)->toBeLessThanOrEqual(500.00);
     });
 });
