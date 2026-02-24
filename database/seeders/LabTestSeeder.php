@@ -232,16 +232,29 @@ class LabTestSeeder extends Seeder
                 'status' => 'active',
             ],
 
+            // ==================== BASIC METABOLIC PANEL ====================
+            [
+                'test_code' => 'BMP',
+                'name' => 'Basic Metabolic Panel (BMP)',
+                'description' => 'Comprehensive metabolic panel including Glucose, BUN, Creatinine, Sodium, Potassium, Chloride, CO2, Calcium',
+                'procedure' => 'Blood sample analysis using automated chemistry analyzer',
+                'cost' => 200.00,
+                'turnaround_time' => 4,
+                'unit' => 'Various',
+                'normal_values' => 'Glucose: 70-100 mg/dL, BUN: 7-20 mg/dL, Creatinine: 0.6-1.2 mg/dL, Sodium: 135-145 mEq/L, Potassium: 3.5-5.0 mEq/L, Chloride: 98-106 mEq/L, CO2: 23-29 mEq/L, Calcium: 8.5-10.5 mg/dL',
+                'status' => 'active',
+            ],
+
             // ==================== LIPID PROFILE ====================
             [
-                'test_code' => 'LIPID',
+                'test_code' => 'Lipid',
                 'name' => 'Lipid Profile',
                 'description' => 'Comprehensive test including Cholesterol, Triglycerides, HDL, LDL, VLDL',
                 'procedure' => 'Blood sample analysis for lipid fractions',
                 'cost' => 250.00,
                 'turnaround_time' => 8,
                 'unit' => 'mg/dL',
-                'normal_values' => 'Cholesterol: <200, TG: <150, HDL: >40, LDL: <100, VLDL: 5-40 mg/dL',
+                'normal_values' => 'Total Cholesterol: 0-200 mg/dL, LDL: 0-100 mg/dL, HDL: 40-200 mg/dL, Triglycerides: 0-150 mg/dL',
                 'status' => 'active',
             ],
             [
@@ -582,14 +595,14 @@ class LabTestSeeder extends Seeder
                 'status' => 'active',
             ],
             [
-                'test_code' => 'HBA1C',
+                'test_code' => 'HbA1c',
                 'name' => 'HbA1c (Glycated Hemoglobin)',
                 'description' => 'Average blood glucose over past 2-3 months',
                 'procedure' => 'HPLC or immunoturbidimetric method',
                 'cost' => 250.00,
                 'turnaround_time' => 24,
                 'unit' => '%',
-                'normal_values' => 'Normal: <5.7%, Prediabetes: 5.7-6.4%, Diabetes: >=6.5%',
+                'normal_values' => '4.0-5.7%',
                 'status' => 'active',
             ],
 
@@ -1566,16 +1579,29 @@ class LabTestSeeder extends Seeder
                 'status' => 'active',
             ],
 
+            // ==================== BASIC METABOLIC PANEL ====================
+            [
+                'test_code' => 'BMP',
+                'name' => 'Basic Metabolic Panel (BMP)',
+                'description' => 'Comprehensive metabolic panel including Glucose, BUN, Creatinine, Sodium, Potassium, Chloride, CO2, Calcium',
+                'procedure' => 'Blood sample analysis using automated chemistry analyzer',
+                'cost' => 200.00,
+                'turnaround_time' => 4,
+                'unit' => 'Various',
+                'normal_values' => 'Glucose: 70-100 mg/dL, BUN: 7-20 mg/dL, Creatinine: 0.6-1.2 mg/dL, Sodium: 135-145 mEq/L, Potassium: 3.5-5.0 mEq/L, Chloride: 98-106 mEq/L, CO2: 23-29 mEq/L, Calcium: 8.5-10.5 mg/dL',
+                'status' => 'active',
+            ],
+
             // ==================== LIPID PROFILE ====================
             [
-                'test_code' => 'LIPID',
+                'test_code' => 'Lipid',
                 'name' => 'Lipid Profile',
                 'description' => 'Comprehensive test including Cholesterol, Triglycerides, HDL, LDL, VLDL',
                 'procedure' => 'Blood sample analysis for lipid fractions',
                 'cost' => 250.00,
                 'turnaround_time' => 8,
                 'unit' => 'mg/dL',
-                'normal_values' => 'Cholesterol: <200, TG: <150, HDL: >40, LDL: <100, VLDL: 5-40 mg/dL',
+                'normal_values' => 'Total Cholesterol: 0-200 mg/dL, LDL: 0-100 mg/dL, HDL: 40-200 mg/dL, Triglycerides: 0-150 mg/dL',
                 'status' => 'active',
             ],
             [
@@ -1916,14 +1942,14 @@ class LabTestSeeder extends Seeder
                 'status' => 'active',
             ],
             [
-                'test_code' => 'HBA1C',
+                'test_code' => 'HbA1c',
                 'name' => 'HbA1c (Glycated Hemoglobin)',
                 'description' => 'Average blood glucose over past 2-3 months',
                 'procedure' => 'HPLC or immunoturbidimetric method',
                 'cost' => 250.00,
                 'turnaround_time' => 24,
                 'unit' => '%',
-                'normal_values' => 'Normal: <5.7%, Prediabetes: 5.7-6.4%, Diabetes: >=6.5%',
+                'normal_values' => '4.0-5.7%',
                 'status' => 'active',
             ],
 
