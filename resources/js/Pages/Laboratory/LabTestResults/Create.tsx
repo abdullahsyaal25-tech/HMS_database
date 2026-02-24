@@ -43,7 +43,14 @@ interface LabTest {
   normal_values: string | null;
   parameters?: TestParameter[];
 }
-
+interface LabTestRequest {
+  id: number;
+  request_id: string;
+  patient_id: number;
+  test_name: string;
+  status: string;
+  patient: Patient;
+}
 interface TestParameter {
   id: string;
   name: string;
@@ -54,14 +61,6 @@ interface TestParameter {
   isCriticalHigh?: number;
 }
 
-interface LabTestRequest {
-  id: number;
-  request_id: string;
-  patient_id: number;
-  test_name: string;
-  status: string;
-  patient: Patient;
-}
 
 interface PatientTestRequest {
   test_name: string;
@@ -485,25 +484,6 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                         )}
                       </div>
 
-                      {/* Request Linking (Optional) */}
-                      <div className="space-y-2">
-                        <Label htmlFor="request_id">Link to Request (Optional)</Label>
-                        <Select
-                          value={data.request_id}
-                          onValueChange={(value) => setData('request_id', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select request" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {requests.map((req) => (
-                              <SelectItem key={req.id} value={req.id.toString()}>
-                                {req.request_id} - {req.test_name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
 
                       {/* Performed Date/Time */}
                       <div className="grid grid-cols-2 gap-3">
@@ -566,21 +546,6 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                           </div>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Notes */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Additional Notes</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Textarea
-                        value={data.notes}
-                        onChange={(e) => setData('notes', e.target.value)}
-                        placeholder="Enter any additional notes or interpretation..."
-                        rows={4}
-                      />
                     </CardContent>
                   </Card>
                 </div>
