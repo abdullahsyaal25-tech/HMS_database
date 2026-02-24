@@ -174,9 +174,7 @@ export default function Adjustments({ medicines, recentAdjustments, preselectedM
             case 'add':
                 return <Badge className="bg-green-500/10 text-green-600 border-green-500/30">Add</Badge>;
             case 'remove':
-                return <Badge className="bg-red-500/10 text-red-600 border-red-500/30">Remove</Badge>;
-            case 'set':
-                return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/30">Set</Badge>;
+                return <Badge className="bg-red-500/10 text-red-600 border-red-500/30">Remove</Badge>
             default:
                 return <Badge variant="outline">{type}</Badge>;
         }
@@ -292,12 +290,7 @@ export default function Adjustments({ medicines, recentAdjustments, preselectedM
                                                     Remove Stock
                                                 </div>
                                             </SelectItem>
-                                            <SelectItem value="set">
-                                                <div className="flex items-center gap-2">
-                                                    <RotateCcw className="h-4 w-4 text-blue-600" />
-                                                    Set Stock Level
-                                                </div>
-                                            </SelectItem>
+                                        
                                         </SelectContent>
                                     </Select>
                                     {errors.adjustment_type && (
@@ -420,56 +413,58 @@ export default function Adjustments({ medicines, recentAdjustments, preselectedM
                         </CardHeader>
                         <CardContent>
                             <div className="rounded-md border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Date</TableHead>
-                                            <TableHead>Medicine</TableHead>
-                                            <TableHead>Type</TableHead>
-                                            <TableHead className="text-right">Change</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {recentAdjustments?.data?.length > 0 ? (
-                                            recentAdjustments.data.map((adjustment) => (
-                                                <TableRow key={adjustment.id}>
-                                                    <TableCell className="text-sm">
-                                                        {formatDate(adjustment.created_at)}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div>
-                                                            <p className="font-medium text-sm">{adjustment.medicine?.name}</p>
-                                                            <p className="text-xs text-muted-foreground">{adjustment.medicine?.medicine_id}</p>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {getAdjustmentTypeBadge(adjustment.adjustment_type)}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <div className="text-sm">
-                                                            <span className={cn(
-                                                                adjustment.new_stock > adjustment.previous_stock ? 'text-green-600' :
-                                                                adjustment.new_stock < adjustment.previous_stock ? 'text-red-600' : 'text-muted-foreground'
-                                                            )}>
-                                                                {adjustment.previous_stock} → {adjustment.new_stock}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            by {adjustment.user?.name}
-                                                        </p>
+                                <div className="max-h-[400px] overflow-y-auto">
+                                    <Table>
+                                        <TableHeader className="sticky top-0 bg-background z-10">
+                                            <TableRow>
+                                                <TableHead>Date</TableHead>
+                                                <TableHead>Medicine</TableHead>
+                                                <TableHead>Type</TableHead>
+                                                <TableHead className="text-right">Change</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {recentAdjustments?.data?.length > 0 ? (
+                                                recentAdjustments.data.map((adjustment) => (
+                                                    <TableRow key={adjustment.id}>
+                                                        <TableCell className="text-sm">
+                                                            {formatDate(adjustment.created_at)}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div>
+                                                                <p className="font-medium text-sm">{adjustment.medicine?.name}</p>
+                                                                <p className="text-xs text-muted-foreground">{adjustment.medicine?.medicine_id}</p>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {getAdjustmentTypeBadge(adjustment.adjustment_type)}
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <div className="text-sm">
+                                                                <span className={cn(
+                                                                    adjustment.new_stock > adjustment.previous_stock ? 'text-green-600' :
+                                                                    adjustment.new_stock < adjustment.previous_stock ? 'text-red-600' : 'text-muted-foreground'
+                                                                )}>
+                                                                    {adjustment.previous_stock} → {adjustment.new_stock}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                by {adjustment.user?.name}
+                                                            </p>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            ) : (
+                                                <TableRow>
+                                                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                                        <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                                        No adjustments found
                                                     </TableCell>
                                                 </TableRow>
-                                            ))
-                                        ) : (
-                                            <TableRow>
-                                                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                                                    <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                                    No adjustments found
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
                             </div>
 
                             {/* Pagination */}

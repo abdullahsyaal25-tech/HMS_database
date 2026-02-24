@@ -93,7 +93,7 @@ class PurchaseController extends Controller
         
         $medicines = Medicine::with('category')
             ->orderBy('name')
-            ->get(['id', 'name', 'medicine_id', 'stock_quantity', 'unit_price', 'cost_price', 'form', 'strength']);
+            ->get(['id', 'name', 'medicine_id', 'stock_quantity', 'unit_price', 'cost_price', 'sale_price', 'form', 'strength']);
         
         $suppliers = Supplier::active()->get();
         
@@ -233,10 +233,11 @@ class PurchaseController extends Controller
                 $previousStock = $medicine->stock_quantity;
                 $newStock = $previousStock + $item->quantity;
                 
-                // Update medicine stock
+                // Update medicine stock and prices
                 $medicine->update([
                     'stock_quantity' => $newStock,
                     'cost_price' => $item->cost_price,
+                    'sale_price' => $item->sale_price ?? $medicine->sale_price,
                     'batch_number' => $item->batch_number ?? $medicine->batch_number,
                     'expiry_date' => $item->expiry_date ?? $medicine->expiry_date,
                 ]);

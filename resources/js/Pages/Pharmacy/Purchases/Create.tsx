@@ -45,6 +45,7 @@ interface Medicine {
     stock_quantity: number;
     unit_price: number;
     cost_price: number;
+    sale_price: number;
     form: string | null;
     strength: string | null;
     category?: {
@@ -118,7 +119,7 @@ export default function CreatePurchase({ medicines, suppliers, purchaseNumber }:
                 name: medicine.name,
                 quantity: 1,
                 cost_price: medicine.cost_price || medicine.unit_price,
-                sale_price: medicine.unit_price || '',
+                sale_price: medicine.sale_price || medicine.unit_price || '',
                 batch_number: '',
                 expiry_date: '',
                 current_stock: medicine.stock_quantity,

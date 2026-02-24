@@ -215,9 +215,9 @@ export default function MedicineShow({ medicine, recentSales, stockHistory }: Me
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Unit Price</p>
+                  <p className="text-sm text-muted-foreground">Sale Price</p>
                   <p className="text-2xl font-bold">
-                    <PriceDisplay amount={medicine.unit_price} size="lg" />
+                    <PriceDisplay amount={medicine.sale_price ?? 0} size="lg" />
                   </p>
                 </div>
                 <div className="h-10 w-10 rounded-full bg-green-500/20 flex items-center justify-center">
@@ -373,9 +373,9 @@ export default function MedicineShow({ medicine, recentSales, stockHistory }: Me
                       </div>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Unit Price</p>
+                      <p className="text-sm text-muted-foreground">Sale Price</p>
                       <p className="font-medium text-lg">
-                        <PriceDisplay amount={medicine.unit_price} size="lg" variant="total" />
+                        <PriceDisplay amount={medicine.sale_price ?? 0} size="lg" variant="total" />
                       </p>
                     </div>
                     <div>
@@ -390,7 +390,7 @@ export default function MedicineShow({ medicine, recentSales, stockHistory }: Me
                         <p className="text-sm text-muted-foreground">Stock Value</p>
                         <p className="text-xl font-bold">
                           <PriceDisplay 
-                            amount={medicine.stock_quantity * medicine.unit_price} 
+                            amount={medicine.stock_quantity * (medicine.sale_price ?? 0)} 
                             size="xl" 
                             variant="total"
                           />
