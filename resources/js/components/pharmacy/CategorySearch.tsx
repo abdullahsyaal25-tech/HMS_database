@@ -26,26 +26,57 @@ const CategorySearch = React.forwardRef<CategorySearchRef, CategorySearchProps>(
     ) => {
         const [open, setOpen] = React.useState(false);
         const [query, setQuery] = React.useState('');
+        const [selectedIndex, setSelectedIndex] = React.useState(-1);
         const inputRef = React.useRef<HTMLInputElement>(null);
+        const searchInputRef = React.useRef<HTMLInputElement>(null);
 
         React.useImperativeHandle(ref, () => ({ focus: () => inputRef.current?.focus() }));
 
         const filtered = React.useMemo(() => {
             if (!query.trim()) return categories;
             const q = query.toLowerCase();
-            return categories.filter((c) => c.name.toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q));
+            return categories.filter((c: MedicineCategory) => c.name.toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q));
         }, [categories, query]);
 
         const handleSelect = (c: MedicineCategory) => {
             onSelect(c);
             setQuery('');
             setOpen(false);
+            setSelectedIndex(-1);
         };
 
         const handleClear = (e: React.MouseEvent) => {
             e.stopPropagation();
             setQuery('');
             inputRef.current?.focus();
+        };
+
+        const handleKeyDown = (e: React.KeyboardEvent) => {
+            if (filtered.length === 0) return;
+
+            switch (e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    setSelectedIndex(prev => 
+                        prev < filtered.length - 1 ? prev + 1 : 0
+                    );
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    setSelectedIndex(prev => 
+                        prev > 0 ? prev - 1 : filtered.length - 1
+                    );
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    if (selectedIndex >= 0) {
+                        handleSelect(filtered[selectedIndex]);
+                    }
+                    break;
+                case 'Escape':
+                    setSelectedIndex(-1);
+                    break;
+            }
         };
 
         return (
@@ -84,10 +115,15 @@ const CategorySearch = React.forwardRef<CategorySearchRef, CategorySearchProps>(
                             <div className="flex items-center border-b px-3 py-2">
                                 <Search className="mr-2 size-4 shrink-0 opacity-50" />
                                 <input
+                                    ref={searchInputRef}
                                     className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
                                     placeholder="Type to search categories..."
                                     value={query}
-                                    onChange={(e) => setQuery(e.target.value)}
+                                    onChange={(e) => {
+                                        setQuery(e.target.value);
+                                        setSelectedIndex(-1);
+                                    }}
+                                    onKeyDown={handleKeyDown}
                                 />
                             </div>
                             <div className="max-h-[240px] overflow-y-auto">
@@ -98,11 +134,14 @@ const CategorySearch = React.forwardRef<CategorySearchRef, CategorySearchProps>(
                                         <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
                                             {filtered.length} categories
                                         </div>
-                                        {filtered.map((c) => (
+                                        {filtered.map((c: MedicineCategory, index: number) => (
                                             <div
                                                 key={c.id}
                                                 onClick={() => handleSelect(c)}
-                                                className="flex items-center justify-between py-3 px-2 cursor-pointer rounded-sm hover:bg-accent hover:text-accent-foreground"
+                                                className={cn(
+                                                    "flex items-center justify-between py-3 px-2 cursor-pointer rounded-sm",
+                                                    index === selectedIndex ? "bg-accent text-accent-foreground" : "hover:bg-accent hover:text-accent-foreground"
+                                                )}
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div className="flex items-center justify-center size-8 rounded-md bg-muted">

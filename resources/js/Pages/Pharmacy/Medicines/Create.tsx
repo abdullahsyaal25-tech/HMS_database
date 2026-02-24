@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CategorySearch } from '@/components/pharmacy';
 import { Switch } from '@/components/ui/switch';
@@ -23,6 +22,7 @@ import {
   RefreshCw,
   Tag,
   Boxes,
+  X,
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
@@ -35,7 +35,7 @@ interface MedicineCreateProps {
 interface MedicineFormData {
   name: string;
   medicine_id: string;
-  description: string;
+  description?: string;
   category_id: string;
   manufacturer: string;
   dosage_form: string;
@@ -173,7 +173,7 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information Section */}
+          {/* All-in-One Card */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -181,51 +181,29 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                   <Pill className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <CardTitle>Basic Information</CardTitle>
-                  <CardDescription>Medicine name, code, and categorization</CardDescription>
+                  <CardTitle>Add New Medicine</CardTitle>
+                  <CardDescription>Enter medicine details</CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Medicine Name */}
-                <div className="space-y-2">
-                  <Label htmlFor="name">
-                    Medicine Name <span className="text-destructive">*</span>
-                  </Label>
-                  <div className="relative">
-                    <Pill className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="name"
-                      name="name"
-                      value={data.name}
-                      onChange={handleChange}
-                      placeholder="e.g., Paracetamol"
-                      className={cn("pl-9", errors.name && "border-destructive")}
-                    />
-                  </div>
-                  {errors.name && (
-                    <p className="text-sm text-destructive flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errors.name}
-                    </p>
-                  )}
-                </div>
-                
-                {/* Medicine Code */}
+            <CardContent className="space-y-4">
+              {/* Row 1: Medicine Code, Medicine Name, Category, Dosage Form */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Medicine Code - First Field */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="medicine_id">
                       Medicine Code <span className="text-destructive">*</span>
                     </Label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <Switch
                         checked={autoGenerateCode}
                         onCheckedChange={setAutoGenerateCode}
                         id="auto-code"
+                        className="h-3 w-6"
                       />
                       <Label htmlFor="auto-code" className="text-xs text-muted-foreground cursor-pointer">
-                        Auto-generate
+                        Auto
                       </Label>
                     </div>
                   </div>
@@ -265,26 +243,63 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                   )}
                 </div>
                 
+                {/* Medicine Name - Second Field with autoFocus */}
+                <div className="space-y-2">
+                  <Label htmlFor="name">
+                    Medicine Name <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Pill className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="name"
+                      name="name"
+                      value={data.name}
+                      onChange={handleChange}
+                      placeholder="e.g., Paracetamol"
+                      className={cn("pl-9", errors.name && "border-destructive")}
+                      autoFocus
+                    />
+                  </div>
+                  {errors.name && (
+                    <p className="text-sm text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.name}
+                    </p>
+                  )}
+                </div>
+                
                 {/* Category */}
                 <div className="space-y-2">
                   <Label htmlFor="category_id">
                     Category <span className="text-destructive">*</span>
                   </Label>
-                  <CategorySearch
-                    categories={categories}
-                    value={selectedCategory || null}
-                    onSelect={(c) => setData('category_id', c.id.toString())}
-                    placeholder="Search or select a category"
-                  />
+                  {selectedCategory ? (
+                    <div className="flex items-center justify-between p-2.5 rounded-md bg-muted/50 border">
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium text-sm">{selectedCategory.name}</span>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setData('category_id', '')}
+                        className="h-7 w-7 p-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <CategorySearch
+                      categories={categories}
+                      value={selectedCategory || null}
+                      onSelect={(c) => setData('category_id', c.id.toString())}
+                      placeholder="Search category..."
+                    />
+                  )}
                   {errors.category_id && (
                     <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {errors.category_id}
-                    </p>
-                  )}
-                  {selectedCategory && (
-                    <p className="text-xs text-muted-foreground">
-                      {selectedCategory.description || 'No description available'}
                     </p>
                   )}
                 </div>
@@ -297,15 +312,12 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                     onValueChange={(value) => handleSelectChange('dosage_form', value)}
                   >
                     <SelectTrigger className={cn(errors.dosage_form && "border-destructive")}>
-                      <SelectValue placeholder="Select dosage form" />
+                      <SelectValue placeholder="Select form" />
                     </SelectTrigger>
                     <SelectContent>
                       {dosageForms.map((form) => (
                         <SelectItem key={form.value} value={form.value}>
-                          <div className="flex items-center gap-2">
-                            <Beaker className="h-4 w-4 text-muted-foreground" />
-                            <span>{form.label}</span>
-                          </div>
+                          {form.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -319,43 +331,8 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                 </div>
               </div>
 
-              {/* Description */}
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={data.description}
-                  onChange={handleChange}
-                  placeholder="Enter a detailed description of the medicine..."
-                  rows={3}
-                  className={cn(errors.description && "border-destructive")}
-                />
-                {errors.description && (
-                  <p className="text-sm text-destructive flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    {errors.description}
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Manufacturer & Batch Section */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                  <Building className="h-4 w-4 text-blue-600" />
-                </div>
-                <div>
-                  <CardTitle>Manufacturer & Batch</CardTitle>
-                  <CardDescription>Manufacturer details and batch information</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Row 2: Manufacturer, Strength, Batch Number, Expiry Date */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {/* Manufacturer */}
                 <div className="space-y-2">
                   <Label htmlFor="manufacturer">
@@ -368,7 +345,7 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                       name="manufacturer"
                       value={data.manufacturer}
                       onChange={handleChange}
-                      placeholder="e.g., Pfizer, GSK"
+                      placeholder="e.g., Pfizer"
                       className={cn("pl-9", errors.manufacturer && "border-destructive")}
                     />
                   </div>
@@ -390,7 +367,7 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                       name="strength"
                       value={data.strength}
                       onChange={handleChange}
-                      placeholder="e.g., 500mg, 10ml"
+                      placeholder="e.g., 500mg"
                       className={cn("pl-9", errors.strength && "border-destructive")}
                     />
                   </div>
@@ -402,11 +379,9 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                   )}
                 </div>
                 
-                {/* Batch Number */}
+                {/* Batch Number (optional) */}
                 <div className="space-y-2">
-                  <Label htmlFor="batch_number">
-                    Batch Number <span className="text-destructive">*</span>
-                  </Label>
+                  <Label htmlFor="batch_number">Batch Number</Label>
                   <div className="relative">
                     <Boxes className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -414,7 +389,7 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                       name="batch_number"
                       value={data.batch_number}
                       onChange={handleChange}
-                      placeholder="e.g., BATCH-2024-001"
+                      placeholder="Optional"
                       className={cn("pl-9", errors.batch_number && "border-destructive")}
                     />
                   </div>
@@ -422,28 +397,6 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                     <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {errors.batch_number}
-                    </p>
-                  )}
-                </div>
-                
-                {/* Barcode */}
-                <div className="space-y-2">
-                  <Label htmlFor="barcode">Barcode (Optional)</Label>
-                  <div className="relative">
-                    <Barcode className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="barcode"
-                      name="barcode"
-                      value={data.barcode}
-                      onChange={handleChange}
-                      placeholder="e.g., 123456789012"
-                      className={cn("pl-9", errors.barcode && "border-destructive")}
-                    />
-                  </div>
-                  {errors.barcode && (
-                    <p className="text-sm text-destructive flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errors.barcode}
                     </p>
                   )}
                 </div>
@@ -472,24 +425,9 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                   )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Pricing & Stock Section */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center">
-                  <Currency className="h-4 w-4 text-green-600" />
-                </div>
-                <div>
-                  <CardTitle>Pricing & Stock</CardTitle>
-                  <CardDescription>Cost, sale price, and inventory details</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Row 3: Cost Price, Sale Price, Stock Quantity, Reorder Level */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {/* Cost Price */}
                 <div className="space-y-2">
                   <Label htmlFor="cost_price">
@@ -504,7 +442,7 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                       step="1"
                       value={data.cost_price}
                       onChange={handleChange}
-                      placeholder="Enter cost price"
+                      placeholder="Cost"
                       className={cn("pl-9", errors.cost_price && "border-destructive")}
                     />
                   </div>
@@ -531,7 +469,7 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                       min="0"
                       value={data.sale_price}
                       onChange={handleChange}
-                      placeholder="Enter sale price"
+                      placeholder="Sale"
                       className={cn("pl-9", errors.sale_price && "border-destructive")}
                     />
                   </div>
@@ -541,19 +479,12 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                       {errors.sale_price}
                     </p>
                   )}
-                  {data.sale_price && data.cost_price && (
-                    <p className="text-xs text-muted-foreground">
-                      Profit margin: {Number(data.cost_price) > 0 
-                        ? (((Number(data.sale_price) - Number(data.cost_price)) / Number(data.cost_price)) * 100).toFixed(1) + '%'
-                        : 'N/A'}
-                    </p>
-                  )}
                 </div>
                 
                 {/* Stock Quantity */}
                 <div className="space-y-2">
                   <Label htmlFor="stock_quantity">
-                    Stock Quantity <span className="text-destructive">*</span>
+                    Stock Qty <span className="text-destructive">*</span>
                   </Label>
                   <div className="relative">
                     <Package className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -563,7 +494,7 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                       type="number"
                       value={data.stock_quantity}
                       onChange={handleChange}
-                      placeholder="Enter stock quantity"
+                      placeholder="Qty"
                       className={cn("pl-9", errors.stock_quantity && "border-destructive")}
                     />
                   </div>
@@ -589,7 +520,7 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                       min="0"
                       value={data.reorder_level}
                       onChange={handleChange}
-                      placeholder="Enter reorder level"
+                      placeholder="Min level"
                       className={cn("pl-9", errors.reorder_level && "border-destructive")}
                     />
                   </div>
@@ -599,9 +530,6 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                       {errors.reorder_level}
                     </p>
                   )}
-                  <p className="text-xs text-muted-foreground">
-                    Alert will be triggered when stock falls below this level
-                  </p>
                 </div>
               </div>
             </CardContent>
