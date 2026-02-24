@@ -165,7 +165,7 @@ trait HasPerformanceOptimization
         $defaults = [
             'patient' => ['id', 'patient_id', 'first_name', 'father_name', 'phone', 'age', 'gender'],
             'doctor' => ['id', 'doctor_id', 'full_name', 'specialization', 'department_id'],
-            'medicine' => ['id', 'name', 'generic_name', 'category_id', 'unit_price', 'stock_quantity'],
+            'medicine' => ['id', 'name', 'generic_name', 'category_id', 'sale_price', 'stock_quantity'],
             'bill' => ['id', 'bill_id', 'patient_id', 'doctor_id', 'total_amount', 'payment_status', 'bill_date'],
             'appointment' => ['id', 'patient_id', 'doctor_id', 'appointment_date', 'status'],
             'department' => ['id', 'name'],

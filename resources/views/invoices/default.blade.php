@@ -385,7 +385,7 @@
                         <td>{{ $item['description'] }}</td>
                         <td class="text-center">{{ ucfirst($item['category']) }}</td>
                         <td class="text-center">{{ $item['quantity'] }}</td>
-                        <td class="text-right">؋{{ number_format($item['unit_price'], 2) }}</td>
+                        <td class="text-right">؋{{ number_format($item['sale_price'], 2) }}</td>
                         <td class="text-right">
                             @if($item['discount'] > 0)
                                 -؋{{ number_format($item['discount'], 2) }}

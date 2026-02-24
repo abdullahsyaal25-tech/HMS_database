@@ -243,7 +243,7 @@
             @php $row = 1; @endphp
             @foreach($medicines as $medicine)
                 @php
-                    $itemValue = $medicine->stock_quantity * $medicine->unit_price;
+                    $itemValue = $medicine->stock_quantity * $medicine->sale_price;
                     $status = 'In Stock';
                     $statusClass = 'badge-in-stock';
                     if ($medicine->stock_quantity <= 0) {
@@ -264,7 +264,7 @@
                     <td>{{ $medicine->category->name ?? 'Uncategorized' }}</td>
                     <td class="text-center">{{ number_format($medicine->stock_quantity) }}</td>
                     <td class="text-center">{{ number_format($medicine->reorder_level) }}</td>
-                    <td class="text-right">{{ config('pharmacy.currency', 'AFN') }} {{ number_format($medicine->unit_price, 2) }}</td>
+                    <td class="text-right">{{ config('pharmacy.currency', 'AFN') }} {{ number_format($medicine->sale_price, 2) }}</td>
                     <td class="text-right">{{ config('pharmacy.currency', 'AFN') }} {{ number_format($itemValue, 2) }}</td>
                     <td class="text-center">
                         <span class="badge {{ $statusClass }}">{{ $status }}</span>
