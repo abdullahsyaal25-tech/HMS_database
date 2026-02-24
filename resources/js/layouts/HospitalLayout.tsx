@@ -107,11 +107,6 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                 icon: Calendar,
                 items: [
                     {
-                        title: 'Dashboard',
-                        href: '/appointments/dashboard',
-                        icon: LayoutGrid,
-                    },
-                    {
                         title: 'Reception',
                         href: '/appointments',
                         icon: Calendar,
