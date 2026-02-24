@@ -15,11 +15,13 @@ class MedicineAlert extends Model
         'status',
         'is_read',
         'triggered_at',
+        'resolved_at',
     ];
 
     protected $casts = [
         'is_read' => 'boolean',
         'triggered_at' => 'datetime',
+        'resolved_at' => 'datetime',
         'status' => 'string',
     ];
 

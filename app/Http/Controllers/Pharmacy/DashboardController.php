@@ -90,22 +90,44 @@ class DashboardController extends Controller
             ->sum('grand_total');
         
         // Calculate Today's Profit using actual cost prices from sales_items
-        // Profit = (total_price - cost_price_at_sale_time)
-        // Using total_price which already accounts for item-level discounts
+        // Profit = (total_price after item discount - cost) - sale-level discount
+        // Item discount: total_price * (1 - discount_percentage/100)
+        // Sale discount: subtract sales.discount from total profit
         $todayProfit = DB::table('sales_items')
             ->join('sales', 'sales_items.sale_id', '=', 'sales.id')
             ->whereDate('sales.created_at', $today)
             ->whereIn('sales.status', $validStatuses)
-            ->selectRaw('SUM(sales_items.total_price - (sales_items.quantity * COALESCE(sales_items.cost_price, 0))) as profit')
-            ->value('profit') ?? 0;
+            ->selectRaw('
+                SUM(
+                    (sales_items.total_price * (1 - COALESCE(sales_items.discount, 0) / 100))
+                    - (sales_items.quantity * COALESCE(sales_items.cost_price, 0))
+                ) as item_profit
+            ')
+            ->value('item_profit') ?? 0;
+        
+        // Subtract sale-level discounts from today's profit
+        $todaySaleDiscounts = Sale::whereDate('created_at', $today)
+            ->whereIn('status', $validStatuses)
+            ->sum('discount') ?? 0;
+        $todayProfit = $todayProfit - $todaySaleDiscounts;
         
         // Calculate Total Profit using actual cost prices from sales_items
         // Using total_price which already accounts for item-level discounts
         $totalProfit = DB::table('sales_items')
             ->join('sales', 'sales_items.sale_id', '=', 'sales.id')
             ->whereIn('sales.status', $validStatuses)
-            ->selectRaw('SUM(sales_items.total_price - (sales_items.quantity * COALESCE(sales_items.cost_price, 0))) as profit')
-            ->value('profit') ?? 0;
+            ->selectRaw('
+                SUM(
+                    (sales_items.total_price * (1 - COALESCE(sales_items.discount, 0) / 100))
+                    - (sales_items.quantity * COALESCE(sales_items.cost_price, 0))
+                ) as item_profit
+            ')
+            ->value('item_profit') ?? 0;
+        
+        // Subtract all sale-level discounts from total profit
+        $totalSaleDiscounts = Sale::whereIn('status', $validStatuses)
+            ->sum('discount') ?? 0;
+        $totalProfit = $totalProfit - $totalSaleDiscounts;
         
         // Low stock count (stock_quantity <= 10)
         $lowStockCount = Medicine::where('stock_quantity', '>', 0)
