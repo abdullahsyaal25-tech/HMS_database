@@ -16,6 +16,9 @@ export type { MedicineCardProps, MedicineCardAction } from './MedicineCard';
 export { MedicineSearch } from './MedicineSearch';
 export type { MedicineSearchProps } from './MedicineSearch';
 
+export { CategorySearch } from './CategorySearch';
+export type { CategorySearchProps } from './CategorySearch';
+
 export { Cart, CartSummary } from './Cart';
 export type { CartProps, CartSummaryProps } from './Cart';
 

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CategorySearch } from '@/components/pharmacy';
 import { Switch } from '@/components/ui/switch';
 import Heading from '@/components/heading';
 import {
@@ -269,24 +270,12 @@ export default function MedicineCreate({ categories }: MedicineCreateProps) {
                   <Label htmlFor="category_id">
                     Category <span className="text-destructive">*</span>
                   </Label>
-                  <Select 
-                    value={data.category_id} 
-                    onValueChange={(value) => handleSelectChange('category_id', value)}
-                  >
-                    <SelectTrigger className={cn(errors.category_id && "border-destructive")}>
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id.toString()}>
-                          <div className="flex items-center gap-2">
-                            <Tag className="h-4 w-4 text-muted-foreground" />
-                            <span>{category.name}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <CategorySearch
+                    categories={categories}
+                    value={selectedCategory || null}
+                    onSelect={(c) => setData('category_id', c.id.toString())}
+                    placeholder="Search or select a category"
+                  />
                   {errors.category_id && (
                     <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
