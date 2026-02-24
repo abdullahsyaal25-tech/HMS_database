@@ -12,6 +12,7 @@ use App\Models\Patient;
 use App\Services\SalesService;
 use App\Services\InventoryService;
 use App\Services\AuditLogService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -97,6 +98,24 @@ class SalesController extends Controller
                       $sq->where('name', 'like', '%' . $searchTerm . '%');
                   });
             });
+        }
+
+        // Apply status filter
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        // Apply payment method filter
+        if ($request->filled('payment_method') && $request->payment_method !== 'all') {
+            $query->where('payment_method', $request->payment_method);
+        }
+
+        // Apply date_from / date_to filters (override view-based date range if provided)
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
         }
 
         // Apply category filter
@@ -230,9 +249,26 @@ class SalesController extends Controller
             }
         }
 
+        // Transform sales items to include soldBy relationship properly
+        $salesItems = collect($sales->items())->map(function ($sale) {
+            return array_merge($sale->toArray(), [
+                'soldBy' => $sale->soldBy ? [
+                    'id' => $sale->soldBy->id,
+                    'name' => $sale->soldBy->name,
+                ] : null,
+                'patient' => $sale->patient ? [
+                    'id' => $sale->patient->id,
+                    'patient_id' => $sale->patient->patient_id,
+                    'first_name' => $sale->patient->first_name,
+                    'father_name' => $sale->patient->father_name,
+                ] : null,
+                'items_count' => $sale->items_count,
+            ]);
+        });
+
         return Inertia::render('Pharmacy/Sales/Index', [
             'sales' => [
-                'data' => $sales->items(),
+                'data' => $salesItems,
                 'links' => [
                     'first' => $sales->url(1),
                     'last' => $sales->url($sales->lastPage()),
@@ -286,22 +322,27 @@ class SalesController extends Controller
         $now = now();
         switch ($view) {
             case 'yearly':
-                $year = $request->query('year', $now->year);
+                $year = (int) $request->query('year', $now->year);
                 $dateFrom = "{$year}-01-01";
                 $dateTo = "{$year}-12-31";
                 $periodLabel = "Year {$year}";
                 break;
             case 'monthly':
-                $year = $request->query('year', $now->year);
-                $month = $request->query('month', $now->month);
-                $dateFrom = "{$year}-{$month}-01";
-                $dateTo = date('Y-m-t', strtotime("{$year}-{$month}-01"));
-                $periodLabel = date('F Y', strtotime("{$year}-{$month}-01"));
+                $year = (int) $request->query('year', $now->year);
+                $month = (int) $request->query('month', $now->month);
+                $dateFrom = sprintf('%04d-%02d-01', $year, $month);
+                $dateTo = date('Y-m-t', strtotime($dateFrom));
+                $periodLabel = date('F Y', strtotime($dateFrom));
                 break;
             default: // today
-                $dateFrom = $now->toDateString();
-                $dateTo = $now->toDateString();
-                $periodLabel = 'Today';
+                // Support navigating to a specific day via day/month/year params
+                $day   = (int) $request->query('day',   $now->day);
+                $month = (int) $request->query('month', $now->month);
+                $year  = (int) $request->query('year',  $now->year);
+                $specificDate = Carbon::createFromDate($year, $month, $day);
+                $dateFrom = $specificDate->toDateString();
+                $dateTo   = $specificDate->toDateString();
+                $periodLabel = $specificDate->isToday() ? 'Today' : $specificDate->format('M d, Y');
                 $view = 'today';
                 break;
         }
@@ -320,11 +361,30 @@ class SalesController extends Controller
 
         // Transform sales data for the dashboard
         $salesData = $sales->map(function ($sale) {
+            $totalCost = 0;
+            $products = $sale->items->map(function ($item) use (&$totalCost) {
+                $lineCost = (float) ($item->cost_price ?? 0) * (int) ($item->quantity ?? 0);
+                $totalCost += $lineCost;
+                return [
+                    'id' => $item->id,
+                    'name' => $item->medicine->name,
+                    'quantity' => $item->quantity,
+                    'unit_price' => (float) $item->unit_price,
+                    'discount_percentage' => (float) ($item->discount ?? 0),
+                    'final_price' => (float) $item->total_price,
+                    'cost_price' => (float) ($item->cost_price ?? 0),
+                ];
+            });
+
             return [
                 'id' => $sale->id,
                 'sale_id' => $sale->sale_id,
                 'sale_date' => $sale->created_at->toISOString(),
                 'status' => $sale->status,
+                'customer' => $sale->patient ? [
+                    'id' => $sale->patient->id,
+                    'name' => $sale->patient->first_name . ' ' . $sale->patient->father_name,
+                ] : null,
                 'patient' => $sale->patient ? [
                     'id' => $sale->patient->id,
                     'name' => $sale->patient->first_name . ' ' . $sale->patient->father_name,
@@ -333,20 +393,12 @@ class SalesController extends Controller
                     'id' => $sale->soldBy->id,
                     'name' => $sale->soldBy->name,
                 ] : null,
-                'products' => $sale->items->map(function ($item) {
-                    return [
-                        'id' => $item->id,
-                        'name' => $item->medicine->name,
-                        'quantity' => $item->quantity,
-                        'unit_price' => $item->unit_price,
-                        'discount_percentage' => $item->discount_percentage ?? 0,
-                        'final_price' => $item->total_price,
-                    ];
-                }),
+                'products' => $products,
                 'products_count' => $sale->items->count(),
-                'grand_total' => $sale->grand_total,
-                'fee' => $sale->tax_amount ?? 0,
-                'discount' => $sale->discount_amount ?? 0,
+                'grand_total' => (float) $sale->grand_total,
+                'total_cost' => $totalCost,
+                'fee' => (float) ($sale->tax ?? 0),
+                'discount' => (float) ($sale->discount ?? 0),
             ];
         });
 
@@ -354,15 +406,35 @@ class SalesController extends Controller
         $summaryQuery = Sale::whereDate('created_at', '>=', $dateFrom)
                            ->whereDate('created_at', '<=', $dateTo);
 
+        // Total discount - EXCLUDE cancelled sales (only completed, pending, refunded)
+        $totalDiscount = (float) (clone $summaryQuery)
+            ->where('status', '!=', 'cancelled')
+            ->sum('discount');
+
+        // Total profit: sum(grand_total) - sum(cost_price * quantity) - EXCLUDE cancelled sales
+        $totalCostResult = DB::table('sales_items')
+            ->join('sales', 'sales_items.sale_id', '=', 'sales.id')
+            ->whereDate('sales.created_at', '>=', $dateFrom)
+            ->whereDate('sales.created_at', '<=', $dateTo)
+            ->where('sales.status', '!=', 'cancelled')
+            ->selectRaw('SUM(sales_items.cost_price * sales_items.quantity) as total_cost')
+            ->value('total_cost');
+
+        $totalGrandTotal = (float) (clone $summaryQuery)
+            ->where('status', '!=', 'cancelled')
+            ->sum('grand_total');
+        $totalProfit = $totalGrandTotal - (float) ($totalCostResult ?? 0);
+
         $summary = [
-            'total_revenue' => (float) $summaryQuery->where('status', 'completed')->sum('grand_total'),
-            'yearly_revenue' => (float) Sale::whereYear('created_at', $now->year)
-                                          ->where('status', 'completed')->sum('grand_total'),
-            'total_sales' => $summaryQuery->count(),
-            'completed_count' => $summaryQuery->where('status', 'completed')->count(),
-            'cancelled_count' => $summaryQuery->where('status', 'cancelled')->count(),
-            'pending_count' => $summaryQuery->where('status', 'pending')->count(),
-            'refunded_count' => $summaryQuery->where('status', 'refunded')->count(),
+            'total_revenue'    => (float) (clone $summaryQuery)->where('status', 'completed')->sum('grand_total'),
+            'yearly_revenue'   => (float) Sale::whereYear('created_at', $now->year)->where('status', 'completed')->sum('grand_total'),
+            'total_sales'      => (clone $summaryQuery)->count(),
+            'completed_sales'  => (clone $summaryQuery)->where('status', 'completed')->count(),
+            'cancelled_sales'  => (clone $summaryQuery)->where('status', 'cancelled')->count(),
+            'pending_sales'    => (clone $summaryQuery)->where('status', 'pending')->count(),
+            'refunded_sales'   => (clone $summaryQuery)->where('status', 'refunded')->count(),
+            'total_discount'   => $totalDiscount,
+            'total_profit'     => $totalProfit,
         ];
 
         // Get categories for filter
@@ -387,45 +459,42 @@ class SalesController extends Controller
         ];
 
         if ($view === 'today') {
-            $currentDate = $now->toDateString();
-            $prevDate = $now->copy()->subDay()->toDateString();
-            $nextDate = $now->copy()->addDay()->toDateString();
+            // Use the specific date being viewed (supports navigating to past/future days)
+            $viewingDate = isset($specificDate) ? $specificDate : $now;
+            $prevDay = $viewingDate->copy()->subDay();
+            $nextDay = $viewingDate->copy()->addDay();
 
             $navigation['can_go_prev'] = true;
-            $navigation['can_go_next'] = $nextDate <= $now->toDateString();
-            $navigation['prev_params'] = ['view' => 'today', 'day' => $now->copy()->subDay()->day, 'month' => $now->copy()->subDay()->month, 'year' => $now->copy()->subDay()->year];
+            $navigation['can_go_next'] = $nextDay->lte($now); // can't go to future
+            $navigation['prev_params'] = ['view' => 'today', 'day' => $prevDay->day, 'month' => $prevDay->month, 'year' => $prevDay->year];
             if ($navigation['can_go_next']) {
-                $navigation['next_params'] = ['view' => 'today', 'day' => $now->copy()->addDay()->day, 'month' => $now->copy()->addDay()->month, 'year' => $now->copy()->addDay()->year];
+                $navigation['next_params'] = ['view' => 'today', 'day' => $nextDay->day, 'month' => $nextDay->month, 'year' => $nextDay->year];
             }
         } elseif ($view === 'monthly') {
-            $currentMonth = $now->month;
-            $currentYear = $now->year;
-            $prevMonth = $currentMonth - 1;
-            $prevYear = $currentYear;
-            if ($prevMonth < 1) {
-                $prevMonth = 12;
-                $prevYear--;
-            }
+            $viewYear  = isset($year) ? $year : $now->year;
+            $viewMonth = isset($month) ? $month : $now->month;
 
-            $nextMonth = $currentMonth + 1;
-            $nextYear = $currentYear;
-            if ($nextMonth > 12) {
-                $nextMonth = 1;
-                $nextYear++;
-            }
+            $prevMonth = $viewMonth - 1;
+            $prevYear  = $viewYear;
+            if ($prevMonth < 1) { $prevMonth = 12; $prevYear--; }
+
+            $nextMonth = $viewMonth + 1;
+            $nextYear  = $viewYear;
+            if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
 
             $navigation['can_go_prev'] = true;
-            $navigation['can_go_next'] = $nextYear < $now->year || ($nextYear == $now->year && $nextMonth <= $now->month);
+            $navigation['can_go_next'] = ($nextYear < $now->year) || ($nextYear == $now->year && $nextMonth <= $now->month);
             $navigation['prev_params'] = ['view' => 'monthly', 'month' => $prevMonth, 'year' => $prevYear];
             if ($navigation['can_go_next']) {
                 $navigation['next_params'] = ['view' => 'monthly', 'month' => $nextMonth, 'year' => $nextYear];
             }
         } elseif ($view === 'yearly') {
+            $viewYear = isset($year) ? $year : $now->year;
             $navigation['can_go_prev'] = true;
-            $navigation['can_go_next'] = $request->query('year', $now->year) + 1 < $now->year;
-            $navigation['prev_params'] = ['view' => 'yearly', 'year' => $request->query('year', $now->year) - 1];
+            $navigation['can_go_next'] = ($viewYear + 1) <= $now->year;
+            $navigation['prev_params'] = ['view' => 'yearly', 'year' => $viewYear - 1];
             if ($navigation['can_go_next']) {
-                $navigation['next_params'] = ['view' => 'yearly', 'year' => $request->query('year', $now->year) + 1];
+                $navigation['next_params'] = ['view' => 'yearly', 'year' => $viewYear + 1];
             }
         }
 
@@ -433,9 +502,9 @@ class SalesController extends Controller
             'sales' => $salesData,
             'filters' => [
                 'view' => $view,
-                'year' => $request->query('year', $now->year),
-                'month' => $request->query('month', $now->month),
-                'day' => $request->query('day', $now->day),
+                'year'  => isset($year)  ? $year  : $now->year,
+                'month' => isset($month) ? $month : $now->month,
+                'day'   => isset($day)   ? $day   : $now->day,
             ],
             'summary' => $summary,
             'categories' => $categories,

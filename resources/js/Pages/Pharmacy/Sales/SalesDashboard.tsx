@@ -57,11 +57,14 @@ interface SaleData {
     sale_date: string;
     status: string;
     customer: Customer | null;
+    patient: Customer | null;
     pharmacist: Pharmacist | null;
     products: Product[];
     products_count: number;
     grand_total: number;
+    total_cost: number;
     discount: number;
+    fee: number;
 }
 
 interface FilterCategory {
@@ -71,11 +74,14 @@ interface FilterCategory {
 
 interface Summary {
     total_revenue: number;
+    yearly_revenue?: number;
     total_sales: number;
     completed_sales: number;
     cancelled_sales: number;
     pending_sales: number;
     refunded_sales: number;
+    total_discount: number;
+    total_profit: number;
 }
 
 interface Navigation {
@@ -150,8 +156,10 @@ export default function SalesDashboard({
     const filteredSales = sales.filter(sale =>
         (categoryFilter === 'all' || sale.products?.some(p => p.name?.toLowerCase().includes(categoryFilter.toLowerCase()))) &&
         (
+            !searchTerm ||
             sale.sale_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             sale.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            sale.patient?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             sale.pharmacist?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             sale.products?.some(p => p.name?.toLowerCase().includes(searchTerm.toLowerCase()))
         )
@@ -220,38 +228,36 @@ export default function SalesDashboard({
                         </p>
                     </div>
                     
-                    {/* View Toggle for Super Admins */}
-                    {is_super_admin && (
-                        <div className="flex items-center gap-2 bg-white rounded-lg p-1 shadow-sm border">
-                            <Link href={buildUrl({ ...filters, view: 'today' })}>
-                                <Button
-                                    variant={currentView === 'today' ? 'default' : 'ghost'}
-                                    size="sm"
-                                    className="transition-all"
-                                >
-                                    Today
-                                </Button>
-                            </Link>
-                            <Link href={buildUrl({ ...filters, view: 'monthly' })}>
-                                <Button
-                                    variant={currentView === 'monthly' ? 'default' : 'ghost'}
-                                    size="sm"
-                                    className="transition-all"
-                                >
-                                    Monthly
-                                </Button>
-                            </Link>
-                            <Link href={buildUrl({ ...filters, view: 'yearly' })}>
-                                <Button
-                                    variant={currentView === 'yearly' ? 'default' : 'ghost'}
-                                    size="sm"
-                                    className="transition-all"
-                                >
-                                    Yearly
-                                </Button>
-                            </Link>
-                        </div>
-                    )}
+                    {/* View Toggle - available for all users */}
+                    <div className="flex items-center gap-2 bg-white rounded-lg p-1 shadow-sm border">
+                        <Link href={buildUrl({ view: 'today' })}>
+                            <Button
+                                variant={currentView === 'today' ? 'default' : 'ghost'}
+                                size="sm"
+                                className="transition-all"
+                            >
+                                Today
+                            </Button>
+                        </Link>
+                        <Link href={buildUrl({ view: 'monthly', month: filters.month, year: filters.year })}>
+                            <Button
+                                variant={currentView === 'monthly' ? 'default' : 'ghost'}
+                                size="sm"
+                                className="transition-all"
+                            >
+                                Monthly
+                            </Button>
+                        </Link>
+                        <Link href={buildUrl({ view: 'yearly', year: filters.year })}>
+                            <Button
+                                variant={currentView === 'yearly' ? 'default' : 'ghost'}
+                                size="sm"
+                                className="transition-all"
+                            >
+                                Yearly
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Navigation and Period Label */}
@@ -374,9 +380,11 @@ export default function SalesDashboard({
                     <Card className="hover:shadow-md transition-shadow">
                         <CardContent className="p-3 flex items-center justify-between">
                             <div>
-                                <p className="text-xs text-muted-foreground">Today's Profits</p>
+                                <p className="text-xs text-muted-foreground">
+                                    {currentView === 'today' ? "Period Profit" : currentView === 'monthly' ? 'Monthly Profit' : 'Yearly Profit'}
+                                </p>
                                 <p className="text-xl font-bold text-emerald-600">
-                                    {formatCurrency(sales.reduce((sum, sale) => sum + ((sale.grand_total || 0) - (sale.total_cost || 0)), 0))}
+                                    {formatCurrency(summary.total_profit || 0)}
                                 </p>
                             </div>
                             <TrendingUp className="h-5 w-5 text-emerald-400" />
@@ -394,9 +402,9 @@ export default function SalesDashboard({
                     <Card className="hover:shadow-md transition-shadow">
                         <CardContent className="p-3 flex items-center justify-between">
                             <div>
-                                <p className="text-xs text-muted-foreground">Total Profits</p>
+                                <p className="text-xs text-muted-foreground">Pending</p>
                                 <p className="text-xl font-bold text-purple-600">
-                                    {formatCurrency(sales.reduce((sum, sale) => sum + ((sale.grand_total || 0) - (sale.total_cost || 0)), 0))}
+                                    {summary.pending_sales}
                                 </p>
                             </div>
                             <TrendingUp className="h-5 w-5 text-purple-400" />
@@ -407,7 +415,7 @@ export default function SalesDashboard({
                             <div>
                                 <p className="text-xs text-muted-foreground">Total Discount</p>
                                 <p className="text-xl font-bold text-indigo-500">
-                                    {formatCurrency(sales.reduce((sum, sale) => sum + sale.discount, 0))}
+                                    {formatCurrency(summary.total_discount || 0)}
                                 </p>
                             </div>
                             <AlertCircle className="h-5 w-5 text-indigo-400" />
@@ -493,7 +501,7 @@ export default function SalesDashboard({
                                                                     <User className="h-4 w-4 text-blue-600" />
                                                                 </div>
                                                                 <span className="font-medium">
-                                                                    {sale.customer?.name || 'Walk-in Customer'}
+                                                                    {sale.customer?.name || sale.patient?.name || 'Walk-in Customer'}
                                                                 </span>
                                                             </div>
                                                         </TableCell>

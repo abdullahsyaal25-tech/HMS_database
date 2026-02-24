@@ -144,6 +144,15 @@ export default function MedicineIndex({
     });
   };
 
+  const handleSearch = (searchQuery: string) => {
+    const newFilters = { ...filters, query: searchQuery };
+    setFilters(newFilters);
+    router.get('/pharmacy/medicines', newFilters, {
+      preserveState: true,
+      preserveScroll: true,
+    });
+  };
+
   const handleReset = () => {
     setFilters({});
     router.get('/pharmacy/medicines', {}, {
@@ -306,6 +315,7 @@ export default function MedicineIndex({
           filters={filterConfigs}
           value={filters}
           onChange={handleFilterChange}
+          onSearch={handleSearch}
           onReset={handleReset}
           searchPlaceholder="Search medicines by name, manufacturer, or batch..."
           showFilterChips={true}
@@ -444,56 +454,54 @@ export default function MedicineIndex({
           </Card>
         )}
 
-        {/* Pagination */}
-        {(medicines.meta?.last_page || 0) > 1 && (
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Showing {medicines.meta?.from || 0} to {medicines.meta?.to || 0} of {medicines.meta?.total || 0} results
-            </p>
-            <div className="flex items-center gap-2">
-              <Link
-                href={medicines.links.prev || '#'}
-                className={cn(
-                  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
-                  'h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-                  !medicines.links.prev && 'pointer-events-none opacity-50'
-                )}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Link>
-              <div className="flex items-center gap-1">
-                {medicines.meta.links
-                  .filter(link => !link.label.includes('Previous') && !link.label.includes('Next'))
-                  .map((link, index) => (
-                    <Link
-                      key={index}
-                      href={link.url || '#'}
-                      className={cn(
-                        'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 w-9',
-                        link.active
-                          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                          : 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-                        !link.url && 'pointer-events-none opacity-50'
-                      )}
-                      dangerouslySetInnerHTML={{ __html: decodeHtmlEntity(link.label) }}
-                    />
-                  ))}
-              </div>
-              <Link
-                href={medicines.links.next || '#'}
-                className={cn(
-                  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
-                  'h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-                  !medicines.links.next && 'pointer-events-none opacity-50'
-                )}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Link>
+        {/* Pagination - always visible */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {medicines.meta?.from || 0} to {medicines.meta?.to || 0} of {medicines.meta?.total || 0} results
+          </p>
+          <div className="flex items-center gap-2">
+            <Link
+              href={medicines.links?.prev || '#'}
+              className={cn(
+                'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+                'h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+                !medicines.links?.prev && 'pointer-events-none opacity-50'
+              )}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Previous
+            </Link>
+            <div className="flex items-center gap-1">
+              {medicines.meta?.links
+                ?.filter(link => !link.label.includes('Previous') && !link.label.includes('Next'))
+                .map((link, index) => (
+                  <Link
+                    key={index}
+                    href={link.url || '#'}
+                    className={cn(
+                      'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 w-9',
+                      link.active
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                        : 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+                      !link.url && 'pointer-events-none opacity-50'
+                    )}
+                    dangerouslySetInnerHTML={{ __html: decodeHtmlEntity(link.label) }}
+                  />
+                ))}
             </div>
+            <Link
+              href={medicines.links?.next || '#'}
+              className={cn(
+                'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+                'h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+                !medicines.links?.next && 'pointer-events-none opacity-50'
+              )}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Link>
           </div>
-        )}
+        </div>
       </div>
     </PharmacyLayout>
   );

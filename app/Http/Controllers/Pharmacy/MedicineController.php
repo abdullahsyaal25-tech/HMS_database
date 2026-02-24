@@ -120,14 +120,14 @@ class MedicineController extends Controller
             $stockStatus = htmlspecialchars(strip_tags($request->stock_status), ENT_QUOTES, 'UTF-8');
             switch ($stockStatus) {
                 case 'in_stock':
-                    $query->where('quantity', '>', $lowStockThreshold);
+                    $query->where('stock_quantity', '>', $lowStockThreshold);
                     break;
                 case 'low_stock':
-                    $query->where('quantity', '<=', $lowStockThreshold)
-                          ->where('quantity', '>', 0);
+                    $query->where('stock_quantity', '<=', $lowStockThreshold)
+                          ->where('stock_quantity', '>', 0);
                     break;
                 case 'out_of_stock':
-                    $query->where('quantity', '<=', 0);
+                    $query->where('stock_quantity', '<=', 0);
                     break;
             }
         }
@@ -188,11 +188,10 @@ class MedicineController extends Controller
         $recentlyAdded = Medicine::where('created_at', '>=', $today->copy()->subDays(30))
             ->count();
         
-        // Total revenue = (Stock Value using sale_price) - (Revenue from completed sales)
-        $stockValue = Medicine::selectRaw('COALESCE(SUM(quantity * sale_price), 0) as total')
+        // Total Revenue = current stock value (stock_quantity × unit_price)
+        // Uses stock_quantity and unit_price to match the displayed price on medicine cards
+        $totalRevenue = Medicine::selectRaw('COALESCE(SUM(stock_quantity * unit_price), 0) as total')
             ->value('total') ?? 0;
-        $soldRevenue = Sale::where('status', 'completed')->sum('grand_total') ?? 0;
-        $totalRevenue = $stockValue - $soldRevenue;
         
         return Inertia::render('Pharmacy/Medicines/Index', [
             'medicines' => $medicines,
