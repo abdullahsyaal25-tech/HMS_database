@@ -396,7 +396,7 @@ export default function LabTestIndex({ labTests, query = '', status = '', catego
                   
                   <div className="flex items-center gap-1">
                     <Link
-                      href={`/laboratory/lab-tests?page=${(meta.current_page || 1) - 1}`}
+                      href={`/laboratory/lab-tests?page=${(meta.current_page || 1) - 1}&query=${filters.query || ''}&status=${filters.status || ''}&category=${filters.category || ''}`}
                       className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground ${((meta.current_page || 1) <= 1) ? 'pointer-events-none opacity-50' : ''}`}
                     >
                       ← Previous
@@ -418,7 +418,7 @@ export default function LabTestIndex({ labTests, query = '', status = '', catego
                       return (
                         <Link
                           key={pageNum}
-                          href={`/laboratory/lab-tests?page=${pageNum}`}
+                          href={`/laboratory/lab-tests?page=${pageNum}&query=${filters.query || ''}&status=${filters.status || ''}&category=${filters.category || ''}`}
                           className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 w-9 ${meta.current_page === pageNum ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'border border-input bg-background hover:bg-accent hover:text-accent-foreground'}`}
                         >
                           {pageNum}
@@ -427,7 +427,7 @@ export default function LabTestIndex({ labTests, query = '', status = '', catego
                     })}
                     
                     <Link
-                      href={`/laboratory/lab-tests?page=${(meta.current_page || 1) + 1}`}
+                      href={`/laboratory/lab-tests?page=${(meta.current_page || 1) + 1}&query=${filters.query || ''}&status=${filters.status || ''}&category=${filters.category || ''}`}
                       className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground ${((meta.current_page || 1) >= (meta.last_page || 1)) ? 'pointer-events-none opacity-50' : ''}`}
                     >
                       Next →

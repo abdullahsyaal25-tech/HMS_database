@@ -189,29 +189,67 @@ class DepartmentController extends Controller
                     ->whereDate('scheduled_at', $appointment->appointment_date->toDateString())
                     ->get();
                 
+                // Calculate global discount from appointment level (if set)
+                $globalDiscount = 0;
+                $labTestsSubtotal = 0;
+                
+                // First pass: calculate subtotal
+                foreach ($labTestRequests as $labRequest) {
+                    $labTest = \App\Models\LabTest::where('name', $labRequest->test_name)->first();
+                    $labTestsSubtotal += $labTest ? (float) $labTest->cost : 0;
+                }
+                
+                // Calculate global discount based on type
+                if ($labTestsSubtotal > 0) {
+                    if ($appointment->discount_type === 'percentage') {
+                        $globalDiscount = $labTestsSubtotal * (($appointment->discount ?? 0) / 100);
+                    } elseif ($appointment->discount_type === 'fixed') {
+                        $globalDiscount = $appointment->discount_fixed ?? 0;
+                    }
+                }
+                
+                // Distribute global discount proportionally across lab tests
+                $numTests = count($labTestRequests);
+                $discountPerTest = $numTests > 0 ? $globalDiscount / $numTests : 0;
+                
                 foreach ($labTestRequests as $labRequest) {
                     // Find the lab test cost by name
                     $labTest = \App\Models\LabTest::where('name', $labRequest->test_name)->first();
                     $cost = $labTest ? (float) $labTest->cost : 0;
+                    
+                    // Apply proportional global discount to each test
+                    $finalCost = max(0, $cost - $discountPerTest);
                     
                     $services[] = [
                         'id' => $labRequest->id,
                         'name' => $labRequest->test_name,
                         'custom_cost' => $cost,
                         'discount_percentage' => 0,
-                        'final_cost' => $cost,
+                        'final_cost' => $finalCost,
                     ];
                 }
             }
             
-            // If still no services, add a default consultation fee
+            // If still no services, add a default consultation fee with global discount applied
             if (empty($services)) {
+                // For consultation fees without services, apply the appointment's global discount
+                $consultationCost = (float) $appointment->fee;
+                $globalDiscount = 0;
+                
+                if ($appointment->discount_type === 'percentage') {
+                    $globalDiscount = $consultationCost * (($appointment->discount ?? 0) / 100);
+                } elseif ($appointment->discount_type === 'fixed') {
+                    $globalDiscount = $appointment->discount_fixed ?? 0;
+                }
+                
+                $finalConsultationCost = max(0, $consultationCost - $globalDiscount);
+                
                 $services[] = [
                     'id' => null,
                     'name' => 'Consultation Fee',
-                    'custom_cost' => (float) $appointment->fee,
+                    'custom_cost' => $consultationCost,
                     'discount_percentage' => 0,
-                    'final_cost' => (float) $appointment->grand_total,
+                    'final_cost' => $finalConsultationCost,
                 ];
             }
             

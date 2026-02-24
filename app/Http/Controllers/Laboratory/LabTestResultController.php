@@ -30,7 +30,7 @@ class LabTestResultController extends Controller
     /**
      * Display a listing of the lab test results.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $user = Auth::user();
         
@@ -39,9 +39,57 @@ class LabTestResultController extends Controller
             abort(403, 'Unauthorized access');
         }
         
-        $labTestResults = LabTestResult::with('test', 'patient')
-            ->latest()
+        // Get filter parameters
+        $statusFilter = $request->input('status', '');
+        $patientFilter = $request->input('patient_id', '');
+        $testFilter = $request->input('test_id', '');
+        $dateFrom = $request->input('date_from', '');
+        $dateTo = $request->input('date_to', '');
+        $searchQuery = $request->input('query', '');
+        
+        // Build the query
+        $query = LabTestResult::with('test', 'patient');
+        
+        // Apply search filter
+        if ($searchQuery) {
+            $query->where(function ($q) use ($searchQuery) {
+                $q->where('result_id', 'like', '%' . $searchQuery . '%')
+                  ->orWhereHas('patient', function ($q) use ($searchQuery) {
+                      $q->where('first_name', 'like', '%' . $searchQuery . '%')
+                        ->orWhere('father_name', 'like', '%' . $searchQuery . '%');
+                  })
+                  ->orWhereHas('test', function ($q) use ($searchQuery) {
+                      $q->where('name', 'like', '%' . $searchQuery . '%');
+                  });
+            });
+        }
+        
+        // Apply status filter
+        if ($statusFilter) {
+            $query->where('status', $statusFilter);
+        }
+        
+        // Apply patient filter
+        if ($patientFilter) {
+            $query->where('patient_id', $patientFilter);
+        }
+        
+        // Apply test filter
+        if ($testFilter) {
+            $query->where('lab_test_id', $testFilter);
+        }
+        
+        // Apply date range filters
+        if ($dateFrom) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+        
+        $labTestResults = $query->latest()
             ->paginate(10)
+            ->withQueryString()
             ->through(function ($result) {
                 // Map 'test' relationship to 'labTest' for frontend compatibility
                 $data = $result->toArray();
@@ -66,7 +114,14 @@ class LabTestResultController extends Controller
         
         return Inertia::render('Laboratory/LabTestResults/Index', [
             'labTestResults' => $labTestResults,
-            'filters' => (object)[],
+            'filters' => [
+                'status' => $statusFilter,
+                'patient_id' => $patientFilter,
+                'test_id' => $testFilter,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+                'query' => $searchQuery,
+            ],
             'patients' => $patients,
             'labTests' => $labTests,
             'stats' => $stats,

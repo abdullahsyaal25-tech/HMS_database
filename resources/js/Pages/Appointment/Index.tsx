@@ -46,6 +46,8 @@ interface Service {
 interface Appointment {
     id: number;
     appointment_id: string;
+    fee?: number;
+    discount?: number;
     patient_id: number;
     doctor_id: number;
     appointment_date: string;
@@ -143,6 +145,10 @@ export default function AppointmentIndex({ appointments, stats }: AppointmentInd
             default:
                 return 'outline';
         }
+    };
+
+    const formatCurrency = (amount: number) => {
+        return `؋${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
 
     // Calculate statistics - use server-side counts from stats prop
@@ -287,6 +293,7 @@ export default function AppointmentIndex({ appointments, stats }: AppointmentInd
                                         <TableHead className="font-semibold">Date & Time</TableHead>
                                         <TableHead className="font-semibold">Status</TableHead>
                                         <TableHead className="font-semibold">Reason</TableHead>
+                                        <TableHead className="font-semibold">Amount</TableHead>
                                         <TableHead className="text-right font-semibold">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -364,6 +371,17 @@ export default function AppointmentIndex({ appointments, stats }: AppointmentInd
                                                     <div className="max-w-xs truncate text-sm text-muted-foreground" title={appointment.reason}>
                                                         {appointment.reason}
                                                     </div>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {appointment.services && appointment.services.length > 0 ? (
+                                                        <span className="font-semibold text-emerald-600">
+                                                            {formatCurrency(appointment.services.reduce((sum, s) => sum + (s.pivot?.final_cost || 0), 0))}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="font-semibold text-emerald-600">
+                                                            {formatCurrency(Math.max(0, (appointment.fee ?? 0) - (appointment.discount ?? 0)))}
+                                                        </span>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end space-x-2">

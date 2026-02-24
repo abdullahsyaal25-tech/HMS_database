@@ -136,7 +136,7 @@ class LabTestController extends Controller
         // Paginate the results - append all query parameters to preserve filters
         $labTests = $labTestsQuery->orderBy('created_at', 'desc')
             ->paginate($perPage)
-            ->appends($request->query());
+            ->withQueryString();
 
         return Inertia::render('Laboratory/LabTests/Index', [
             'labTests' => $labTests,

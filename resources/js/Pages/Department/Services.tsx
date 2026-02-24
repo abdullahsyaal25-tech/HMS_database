@@ -555,7 +555,7 @@ export default function ServicesDashboard({
                                                         </TableCell>
                                                         <TableCell className="text-right">
                                                             <span className="font-semibold text-emerald-600">
-                                                                {formatCurrency(service.grand_total)}
+                                                                {formatCurrency((service.services?.reduce((sum, s) => sum + (s.final_cost || 0), 0) || 0))}
                                                             </span>
                                                         </TableCell>
                                                         <TableCell>

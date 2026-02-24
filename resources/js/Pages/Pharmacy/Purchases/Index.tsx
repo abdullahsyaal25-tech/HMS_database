@@ -414,7 +414,14 @@ export default function PurchasesIndex({ purchases, suppliers, stats, filters }:
                                         onClick={() =>
                                             router.get(
                                                 '/pharmacy/purchases',
-                                                { page: purchases.current_page - 1 },
+                                                {
+                                                    page: purchases.current_page - 1,
+                                                    query: filters.query || undefined,
+                                                    status: filters.status || undefined,
+                                                    supplier_id: filters.supplier_id || undefined,
+                                                    date_from: filters.date_from || undefined,
+                                                    date_to: filters.date_to || undefined,
+                                                },
                                                 { preserveState: true }
                                             )
                                         }
@@ -429,7 +436,14 @@ export default function PurchasesIndex({ purchases, suppliers, stats, filters }:
                                         onClick={() =>
                                             router.get(
                                                 '/pharmacy/purchases',
-                                                { page: purchases.current_page + 1 },
+                                                {
+                                                    page: purchases.current_page + 1,
+                                                    query: filters.query || undefined,
+                                                    status: filters.status || undefined,
+                                                    supplier_id: filters.supplier_id || undefined,
+                                                    date_from: filters.date_from || undefined,
+                                                    date_to: filters.date_to || undefined,
+                                                },
                                                 { preserveState: true }
                                             )
                                         }
