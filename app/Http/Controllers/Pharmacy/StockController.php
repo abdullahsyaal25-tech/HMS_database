@@ -86,7 +86,7 @@ class StockController extends Controller
                                        ->whereRaw('stock_quantity <= reorder_level * 0.5')
                                        ->count(),
             'total_value' => Medicine::where('stock_quantity', '>', 0)
-                                     ->sum(DB::raw('stock_quantity * unit_price')),
+                                     ->sum(DB::raw('stock_quantity * sale_price')),
         ];
         
         return Inertia::render('Pharmacy/Stock/Index', [
@@ -160,7 +160,7 @@ class StockController extends Controller
             abort(403, 'Unauthorized access');
         }
         
-        $medicines = Medicine::select('id', 'name', 'medicine_id', 'stock_quantity', 'reorder_level', 'unit_price')
+        $medicines = Medicine::select('id', 'name', 'medicine_id', 'stock_quantity', 'reorder_level', 'sale_price')
             ->with('category')
             ->get();
         
@@ -260,7 +260,7 @@ class StockController extends Controller
         }
         
         $totalValue = $medicines->sum(function ($medicine) {
-            return $medicine->stock_quantity * $medicine->unit_price;
+            return $medicine->stock_quantity * $medicine->sale_price;
         });
         
         $totalItems = $medicines->count();
@@ -271,7 +271,7 @@ class StockController extends Controller
                 $category = $items->first()->category;
                 $itemCount = $items->count();
                 $categoryValue = $items->sum(function ($item) {
-                    return $item->stock_quantity * $item->unit_price;
+                    return $item->stock_quantity * $item->sale_price;
                 });
 
                 // Handle uncategorized medicines
@@ -310,7 +310,7 @@ class StockController extends Controller
         ];
         
         foreach ($medicines as $medicine) {
-            $itemValue = $medicine->stock_quantity * $medicine->unit_price;
+            $itemValue = $medicine->stock_quantity * $medicine->sale_price;
             
             if ($medicine->stock_quantity <= 0) {
                 $statusCounts['out_of_stock']++;
@@ -366,8 +366,8 @@ class StockController extends Controller
                     'name' => $medicine->name,
                     'medicine_id' => $medicine->medicine_id,
                     'stock_quantity' => $medicine->stock_quantity,
-                    'unit_price' => $medicine->unit_price,
-                    'total_value' => $medicine->stock_quantity * $medicine->unit_price,
+                    'sale_price' => $medicine->sale_price,
+                    'total_value' => $medicine->stock_quantity * $medicine->sale_price,
                     'category' => $medicine->category,
                 ];
             })
@@ -467,8 +467,8 @@ class StockController extends Controller
                     $medicine->category?->name ?? 'Uncategorized',
                     $medicine->stock_quantity,
                     $medicine->reorder_level,
-                    $medicine->unit_price,
-                    $medicine->stock_quantity * $medicine->unit_price,
+                    $medicine->sale_price,
+                    $medicine->stock_quantity * $medicine->sale_price,
                     $status,
                 ]);
             }
@@ -492,7 +492,7 @@ class StockController extends Controller
         $totalItems = $medicines->count();
         $totalUnits = $medicines->sum('stock_quantity');
         $totalValue = $medicines->sum(function ($m) {
-            return $m->stock_quantity * $m->unit_price;
+            return $m->stock_quantity * $m->sale_price;
         });
         
         $statusCounts = [
@@ -733,7 +733,7 @@ class StockController extends Controller
         
         // Calculate totals
         $totalValue = $medicines->sum(function ($medicine) {
-            return $medicine->stock_quantity * $medicine->unit_price;
+            return $medicine->stock_quantity * $medicine->sale_price;
         });
         
         $totalItems = $medicines->count();
@@ -744,7 +744,7 @@ class StockController extends Controller
             ->map(function ($items) use ($totalValue) {
                 $category = $items->first()->category;
                 $categoryValue = $items->sum(function ($item) {
-                    return $item->stock_quantity * $item->unit_price;
+                    return $item->stock_quantity * $item->sale_price;
                 });
 
                 return [
@@ -772,7 +772,7 @@ class StockController extends Controller
         ];
         
         foreach ($medicines as $medicine) {
-            $itemValue = $medicine->stock_quantity * $medicine->unit_price;
+            $itemValue = $medicine->stock_quantity * $medicine->sale_price;
             
             if ($medicine->stock_quantity <= 0) {
                 $statusCounts['out_of_stock']++;
@@ -869,8 +869,8 @@ class StockController extends Controller
                     $medicine->name,
                     $medicine->category?->name ?? 'Uncategorized',
                     $medicine->stock_quantity,
-                    number_format($medicine->unit_price, 2),
-                    number_format($medicine->stock_quantity * $medicine->unit_price, 2),
+                    number_format($medicine->sale_price, 2),
+                    number_format($medicine->stock_quantity * $medicine->sale_price, 2),
                     $status,
                 ]);
             }

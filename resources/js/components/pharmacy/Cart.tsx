@@ -107,7 +107,7 @@ const Cart = React.forwardRef<HTMLDivElement, CartProps>(
         // Calculate totals
         const subtotal = items.reduce((sum, item) => {
             const itemDiscount = item.discount || 0;
-            const itemTotal = item.quantity * item.unit_price * (1 - itemDiscount / 100);
+            const itemTotal = item.quantity * item.sale_price * (1 - itemDiscount / 100);
             return sum + itemTotal;
         }, 0);
 
@@ -267,7 +267,7 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
     readOnly = false,
 }) => {
     const isOverStock = item.quantity > item.stock_quantity;
-    const itemTotal = item.quantity * item.unit_price * (1 - (item.discount || 0) / 100);
+    const itemTotal = item.quantity * item.sale_price * (1 - (item.discount || 0) / 100);
 
     return (
         <div className={cn(
@@ -305,7 +305,7 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
                 {/* Unit Price */}
                 <div className="text-sm">
                     <span className="text-muted-foreground">Price: </span>
-                    <span className="font-medium">{formatCurrency(item.unit_price)}</span>
+                    <span className="font-medium">{formatCurrency(item.sale_price)}</span>
                 </div>
 
                 {/* Quantity - Directly editable input without plus/minus buttons */}

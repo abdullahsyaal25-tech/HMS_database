@@ -70,9 +70,9 @@ class SalesService
                     'sale_id' => $sale->id,
                     'medicine_id' => $item['medicine_id'],
                     'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
+                    'sale_price' => $item['sale_price'],
                     'cost_price' => $medicine->cost_price ?? 0, // Store cost price at time of sale
-                    'total_price' => $item['quantity'] * $item['unit_price'],
+                    'total_price' => $item['quantity'] * $item['sale_price'],
                     'discount' => $item['discount'] ?? 0,
                 ]);
 
@@ -146,7 +146,7 @@ class SalesService
 
         foreach ($items as $item) {
             $medicine = Medicine::find($item['medicine_id']);
-            $itemTotal = $item['quantity'] * $item['unit_price'];
+            $itemTotal = $item['quantity'] * $item['sale_price'];
             
             // Apply item-level discount if present
             if (isset($item['discount']) && $item['discount'] > 0) {

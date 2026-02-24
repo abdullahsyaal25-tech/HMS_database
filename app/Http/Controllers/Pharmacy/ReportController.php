@@ -187,7 +187,7 @@ class ReportController extends Controller
         
         // Calculate summary statistics
         $totalMedicines = Medicine::count();
-        $totalValue = Medicine::select(DB::raw('SUM(stock_quantity * unit_price) as total'))->value('total') ?? 0;
+        $totalValue = Medicine::select(DB::raw('SUM(stock_quantity * sale_price) as total'))->value('total') ?? 0;
         $lowStockCount = Medicine::where('stock_quantity', '>', 0)
             ->whereColumn('stock_quantity', '<=', 'reorder_level')
             ->count();
@@ -196,7 +196,7 @@ class ReportController extends Controller
         // Category breakdown
         $categoryBreakdown = MedicineCategory::withCount('medicines')
             ->with(['medicines' => function ($q) {
-                $q->select(DB::raw('SUM(stock_quantity * unit_price) as value'));
+                $q->select(DB::raw('SUM(stock_quantity * sale_price) as value'));
             }])
             ->get()
             ->map(function ($category) {
@@ -204,7 +204,7 @@ class ReportController extends Controller
                     'name' => $category->name,
                     'count' => $category->medicines_count,
                     'value' => $category->medicines->sum(function ($m) {
-                        return $m->stock_quantity * $m->unit_price;
+                        return $m->stock_quantity * $m->sale_price;
                     }),
                 ];
             })
@@ -319,7 +319,7 @@ class ReportController extends Controller
                 $q->where('expiry_date', '<', $now)
                   ->orWhere('expiry_date', '<=', $now->copy()->addDays(30));
             })
-            ->select(DB::raw('SUM(stock_quantity * unit_price) as total'))
+            ->select(DB::raw('SUM(stock_quantity * sale_price) as total'))
             ->value('total') ?? 0;
         
         return Inertia::render('Pharmacy/Reports/ExpiryReport', [

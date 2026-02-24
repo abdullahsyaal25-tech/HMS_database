@@ -9,7 +9,7 @@ export interface Medicine {
     expiry_date: string | null;
     stock_quantity: number;
     reorder_level: number;
-    unit_price: number;
+    sale_price: number;
     sale_price?: number;
     cost_price?: number;
     barcode?: string | null;
@@ -41,7 +41,7 @@ export interface MedicineFormData {
     expiry_date: string;
     stock_quantity: string;
     reorder_level: string;
-    unit_price: string;
+    sale_price: string;
     dosage_form: string;
     strength: string;
 }

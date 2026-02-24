@@ -110,7 +110,7 @@ export default function SaleCreate({ medicines, patients: patientsProp }: SaleCr
     };
 
     const { subtotal, discount, total } = useMemo(() => {
-        const sub  = cartItems.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+        const sub  = cartItems.reduce((s, i) => s + i.quantity * i.sale_price, 0);
         let   disc = discountType === 'percentage' ? sub * (discountValue / 100) : discountValue;
         disc       = Math.min(disc, sub);
         return { subtotal: sub, discount: disc, total: sub - disc };
@@ -141,7 +141,7 @@ export default function SaleCreate({ medicines, patients: patientsProp }: SaleCr
                 medicine_id:    medicine.id,
                 name:           medicine.name,
                 quantity:       1,
-                unit_price:     medicine.unit_price,
+                sale_price:     medicine.sale_price,
                 stock_quantity: medicine.stock_quantity,
                 dosage_form:    medicine.dosage_form,
                 strength:       medicine.strength,
@@ -526,10 +526,10 @@ export default function SaleCreate({ medicines, patients: patientsProp }: SaleCr
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2 text-right text-sm">
-                                                        {formatCurrency(item.unit_price)}
+                                                        {formatCurrency(item.sale_price)}
                                                     </td>
                                                     <td className="px-3 py-2 text-right text-sm font-medium">
-                                                        {formatCurrency(item.quantity * item.unit_price)}
+                                                        {formatCurrency(item.quantity * item.sale_price)}
                                                     </td>
                                                     <td className="px-3 py-2">
                                                         <Button

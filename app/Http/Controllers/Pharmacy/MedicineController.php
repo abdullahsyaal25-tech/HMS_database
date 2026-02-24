@@ -188,9 +188,9 @@ class MedicineController extends Controller
         $recentlyAdded = Medicine::where('created_at', '>=', $today->copy()->subDays(30))
             ->count();
         
-        // Total Revenue = current stock value (stock_quantity × unit_price)
-        // Uses stock_quantity and unit_price to match the displayed price on medicine cards
-        $totalRevenue = Medicine::selectRaw('COALESCE(SUM(stock_quantity * unit_price), 0) as total')
+        // Total Revenue = current stock value (stock_quantity × sale_price)
+        // Uses stock_quantity and sale_price to match the displayed price on medicine cards
+        $totalRevenue = Medicine::selectRaw('COALESCE(SUM(stock_quantity * sale_price), 0) as total')
             ->value('total') ?? 0;
         
         return Inertia::render('Pharmacy/Medicines/Index', [
@@ -264,7 +264,7 @@ class MedicineController extends Controller
                 'description' => $sanitized['description'],
                 'cost_price' => $sanitized['cost_price'],
                 'sale_price' => $sanitized['sale_price'],
-                'unit_price' => $sanitized['sale_price'],
+                'sale_price' => $sanitized['sale_price'],
                 'stock_quantity' => $sanitized['stock_quantity'],
                 'quantity' => $sanitized['stock_quantity'],
                 'reorder_level' => $sanitized['reorder_level'],
@@ -381,7 +381,7 @@ class MedicineController extends Controller
                 'description' => $sanitized['description'],
                 'cost_price' => $sanitized['cost_price'],
                 'sale_price' => $sanitized['sale_price'],
-                'unit_price' => $sanitized['sale_price'],
+                'sale_price' => $sanitized['sale_price'],
                 'stock_quantity' => $sanitized['stock_quantity'],
                 'quantity' => $sanitized['stock_quantity'],
                 'reorder_level' => $sanitized['reorder_level'],

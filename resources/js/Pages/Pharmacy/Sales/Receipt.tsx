@@ -235,7 +235,7 @@ export default function Receipt({ sale, pharmacy }: ReceiptProps) {
                                             </div>
                                             <div className="flex justify-between text-xs text-muted-foreground">
                                                 <span>
-                                                    {item.quantity} x {formatCurrency(item.unit_price)}
+                                                    {item.quantity} x {formatCurrency(item.sale_price)}
                                                 </span>
                                                 {item.discount > 0 && (
                                                     <span className="text-emerald-600">

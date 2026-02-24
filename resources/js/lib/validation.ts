@@ -308,7 +308,7 @@ export const VALIDATION_RULES = {
                 return null;
             },
         },
-        unit_price: {
+        sale_price: {
             required: true,
             pattern: PATTERNS.decimal,
             custom: (value: string) => {

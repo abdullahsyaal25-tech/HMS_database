@@ -93,7 +93,7 @@ class PurchaseController extends Controller
         
         $medicines = Medicine::with('category')
             ->orderBy('name')
-            ->get(['id', 'name', 'medicine_id', 'stock_quantity', 'unit_price', 'cost_price', 'sale_price', 'form', 'strength']);
+            ->get(['id', 'name', 'medicine_id', 'stock_quantity', 'sale_price', 'cost_price', 'sale_price', 'form', 'strength']);
         
         $suppliers = Supplier::active()->get();
         

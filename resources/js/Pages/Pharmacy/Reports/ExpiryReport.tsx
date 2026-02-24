@@ -365,7 +365,7 @@ export default function ExpiryReport({ medicines, alerts, filters, summary }: Ex
                             <TableBody>
                                 {medicines.data.map((medicine) => {
                                     const status = getExpiryStatus(medicine);
-                                    const stockValue = medicine.stock_quantity * medicine.unit_price;
+                                    const stockValue = medicine.stock_quantity * medicine.sale_price;
                                     return (
                                         <TableRow key={medicine.id} className="border-b hover:bg-muted/50">
                                             <TableCell className="py-3 px-4">

@@ -57,10 +57,10 @@ export default function MedicineEdit({ medicine, categories }: MedicineEditProps
     strength: medicine.strength || '',
     batch_number: medicine.batch_number || '',
     barcode: medicine.barcode || '',
-    // Send both unit_price (for display) and sale_price/cost_price (for controller validation)
-    unit_price: Number(medicine.unit_price) || 0,
-    sale_price: Number(medicine.sale_price) || Number(medicine.unit_price) || 0,
-    cost_price: Number(medicine.cost_price) || Number(medicine.unit_price) || 0,
+    // Send both sale_price (for display) and sale_price/cost_price (for controller validation)
+    sale_price: Number(medicine.sale_price) || 0,
+    sale_price: Number(medicine.sale_price) || Number(medicine.sale_price) || 0,
+    cost_price: Number(medicine.cost_price) || Number(medicine.sale_price) || 0,
     stock_quantity: medicine.stock_quantity,
     reorder_level: medicine.reorder_level,
     expiry_date: medicine.expiry_date ? new Date(medicine.expiry_date).toISOString().split('T')[0] : '',
@@ -100,10 +100,10 @@ export default function MedicineEdit({ medicine, categories }: MedicineEditProps
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
-    if (name === 'unit_price') {
+    if (name === 'sale_price') {
       const priceValue = parseFloat(value) || 0;
-      // Sync unit_price with sale_price and cost_price for controller compatibility
-      setData('unit_price', priceValue);
+      // Sync sale_price with sale_price and cost_price for controller compatibility
+      setData('sale_price', priceValue);
       setData('sale_price', priceValue);
       setData('cost_price', priceValue);
     } else if (name === 'stock_quantity' || name === 'reorder_level') {
@@ -258,7 +258,7 @@ export default function MedicineEdit({ medicine, categories }: MedicineEditProps
                 <div>
                   <p className="text-sm text-muted-foreground">Unit Price</p>
                   <p className="text-2xl font-bold text-primary">
-                    ${data.unit_price.toFixed(2)}
+                    ${data.sale_price.toFixed(2)}
                   </p>
                 </div>
                 <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
@@ -561,27 +561,27 @@ export default function MedicineEdit({ medicine, categories }: MedicineEditProps
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Unit Price */}
                 <div className="space-y-2">
-                  <Label htmlFor="unit_price">
+                  <Label htmlFor="sale_price">
                     Unit Price <span className="text-destructive">*</span>
                   </Label>
                   <div className="relative">
                     <Currency className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="unit_price"
-                      name="unit_price"
+                      id="sale_price"
+                      name="sale_price"
                       type="number"
                       step="0.01"
                       min="0"
-                      value={data.unit_price}
+                      value={data.sale_price}
                       onChange={handleChange}
                       placeholder="0.00"
-                      className={cn("pl-9", errors.unit_price && "border-destructive")}
+                      className={cn("pl-9", errors.sale_price && "border-destructive")}
                     />
                   </div>
-                  {errors.unit_price && (
+                  {errors.sale_price && (
                     <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
-                      {errors.unit_price}
+                      {errors.sale_price}
                     </p>
                   )}
                 </div>

@@ -87,7 +87,7 @@ class SalesController extends BaseApiController
             'items' => 'required|array|min:1',
             'items.*.medicine_id' => 'required|exists:medicines,id',
             'items.*.quantity' => 'required|integer|min:1',
-            'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.sale_price' => 'required|numeric|min:0',
             'items.*.discount' => 'nullable|numeric|min:0|max:100',
             'discount_amount' => 'nullable|numeric|min:0',
             'tax_amount' => 'nullable|numeric|min:0',
@@ -169,7 +169,7 @@ class SalesController extends BaseApiController
                 return [
                     'medicine' => $item->medicine->name,
                     'quantity' => $item->quantity,
-                    'unit_price' => $item->unit_price,
+                    'sale_price' => $item->sale_price,
                     'total' => $item->total_price,
                     'discount' => $item->discount,
                 ];

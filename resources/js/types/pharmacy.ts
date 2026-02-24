@@ -48,7 +48,7 @@ export interface SalesItem {
     sale_id: number;
     medicine_id: number;
     quantity: number;
-    unit_price: number;
+    sale_price: number;
     total_price: number;
     discount: number;
     created_at: string;
@@ -72,7 +72,7 @@ export interface CartItem {
     medicine_id: number;
     name: string;
     quantity: number;
-    unit_price: number;
+    sale_price: number;
     stock_quantity: number;
     dosage_form?: string | null;
     strength?: string | null;
@@ -283,7 +283,7 @@ export interface TopValuedItem {
     name: string;
     medicine_id: string;
     stock_quantity: number;
-    unit_price: number;
+    sale_price: number;
     total_value: number;
     category?: MedicineCategory;
 }

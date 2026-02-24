@@ -46,7 +46,7 @@ interface Product {
     id: number | null;
     name: string;
     quantity: number;
-    unit_price: number;
+    sale_price: number;
     discount_percentage: number;
     final_price: number;
 }
@@ -594,7 +594,7 @@ export default function SalesDashboard({
                                                                                 </div>
                                                                                 <div className="flex items-center gap-2">
                                                                                     <span className="text-muted-foreground line-through text-xs">
-                                                                                        {formatCurrency(p.unit_price * p.quantity)}
+                                                                                        {formatCurrency(p.sale_price * p.quantity)}
                                                                                     </span>
                                                                                     <span className="font-semibold text-emerald-600">
                                                                                         {formatCurrency(p.final_price)}

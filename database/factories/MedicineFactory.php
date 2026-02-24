@@ -29,7 +29,7 @@ class MedicineFactory extends Factory
             'strength' => $this->faker->randomNumber(2) . $this->faker->randomElement(['mg', 'ml', 'g', 'units']),
             'cost_price' => $this->faker->randomFloat(2, 1, 100),
             'sale_price' => $this->faker->randomFloat(2, 5, 500),
-            'unit_price' => $this->faker->randomFloat(2, 5, 500),
+            'sale_price' => $this->faker->randomFloat(2, 5, 500),
             'quantity' => $this->faker->numberBetween(0, 1000),
             'stock_quantity' => $this->faker->numberBetween(0, 1000),
             'reorder_level' => $this->faker->numberBetween(10, 50),

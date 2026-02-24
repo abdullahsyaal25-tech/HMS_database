@@ -43,7 +43,7 @@ interface Medicine {
     name: string;
     medicine_id: string;
     stock_quantity: number;
-    unit_price: number;
+    sale_price: number;
     cost_price: number;
     sale_price: number;
     form: string | null;
@@ -118,8 +118,8 @@ export default function CreatePurchase({ medicines, suppliers, purchaseNumber }:
                 medicine_id: medicine.id,
                 name: medicine.name,
                 quantity: 1,
-                cost_price: medicine.cost_price || medicine.unit_price,
-                sale_price: medicine.sale_price || medicine.unit_price || '',
+                cost_price: medicine.cost_price || medicine.sale_price,
+                sale_price: medicine.sale_price || medicine.sale_price || '',
                 batch_number: '',
                 expiry_date: '',
                 current_stock: medicine.stock_quantity,
@@ -537,7 +537,7 @@ export default function CreatePurchase({ medicines, suppliers, purchaseNumber }:
                                                     <PriceDisplay
                                                         amount={
                                                             medicine.cost_price ||
-                                                            medicine.unit_price
+                                                            medicine.sale_price
                                                         }
                                                     />
                                                 </TableCell>

@@ -47,7 +47,7 @@ interface ValuationProps {
         name: string;
         medicine_id: string;
         stock_quantity: number;
-        unit_price: number;
+        sale_price: number;
         total_value: number;
         category?: MedicineCategory;
     }[];
@@ -351,7 +351,7 @@ export default function Valuation({
                                                     </span>
                                                 </td>
                                                 <td className="p-3 text-right">
-                                                    <PriceDisplay amount={item.unit_price} size="sm" />
+                                                    <PriceDisplay amount={item.sale_price} size="sm" />
                                                 </td>
                                                 <td className="p-3 text-right">
                                                     <PriceDisplay amount={item.total_value} size="sm" variant="total" />

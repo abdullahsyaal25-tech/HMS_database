@@ -23,7 +23,7 @@ class Medicine extends Model
         'strength',
         'cost_price',
         'sale_price',
-        'unit_price',
+        'sale_price',
         'price',
         'quantity',
         'stock_quantity',
@@ -40,7 +40,7 @@ class Medicine extends Model
     protected $casts = [
         'cost_price' => 'decimal:2',
         'sale_price' => 'decimal:2',
-        'unit_price' => 'decimal:2',
+        'sale_price' => 'decimal:2',
         'price' => 'decimal:2',
         'quantity' => 'integer',
         'stock_quantity' => 'integer',

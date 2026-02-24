@@ -132,7 +132,7 @@ export default function MedicineIndex({
     }).length || 0;
     const lowStock = medicines.data?.filter(m => m.stock_quantity > 0 && m.stock_quantity <= m.reorder_level).length || 0;
     const recentlyAdded = 0;
-    const totalRevenue = medicines.data?.reduce((sum, m) => sum + (m.stock_quantity * m.unit_price), 0) || 0;
+    const totalRevenue = medicines.data?.reduce((sum, m) => sum + (m.stock_quantity * m.sale_price), 0) || 0;
     return { total, expiringSoon, lowStock, recentlyAdded, totalRevenue };
   }, [medicines, backendStats]);
 
@@ -388,7 +388,7 @@ export default function MedicineIndex({
                             <span>•</span>
                             <span>{medicine.category?.name || 'Uncategorized'}</span>
                             <span>•</span>
-                            <span>{formatCurrency(medicine.unit_price)}</span>
+                            <span>{formatCurrency(medicine.sale_price)}</span>
                           </div>
                         </div>
                       </div>

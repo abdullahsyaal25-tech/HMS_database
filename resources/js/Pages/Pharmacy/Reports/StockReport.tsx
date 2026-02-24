@@ -293,7 +293,7 @@ export default function StockReport({ medicines, filters, summary, categories }:
                             <TableBody>
                                 {medicines.data.map((medicine) => {
                                     const status = getStockStatus(medicine);
-                                    const stockValue = Number(medicine.stock_quantity) * Number(medicine.unit_price);
+                                    const stockValue = Number(medicine.stock_quantity) * Number(medicine.sale_price);
                                     return (
                                         <TableRow key={medicine.id}>
                                             <TableCell>
@@ -320,7 +320,7 @@ export default function StockReport({ medicines, filters, summary, categories }:
                                                 {medicine.reorder_level}
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <PriceDisplay amount={Number(medicine.unit_price)} />
+                                                <PriceDisplay amount={Number(medicine.sale_price)} />
                                             </TableCell>
                                             <TableCell className="text-right font-medium">
                                                 <PriceDisplay amount={Number(stockValue)} />

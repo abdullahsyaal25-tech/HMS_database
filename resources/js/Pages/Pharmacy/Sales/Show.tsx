@@ -268,7 +268,7 @@ export default function SaleShow({ sale, timeline = [] }: SaleShowProps) {
                                                                 {item.quantity}
                                                             </td>
                                                             <td className="px-4 py-3 text-right">
-                                                                {formatCurrency(item.unit_price)}
+                                                                {formatCurrency(item.sale_price)}
                                                             </td>
                                                             <td className="px-4 py-3 text-right font-medium">
                                                                 {formatCurrency(item.total_price)}

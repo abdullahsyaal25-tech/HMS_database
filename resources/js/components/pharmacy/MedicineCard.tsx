@@ -255,7 +255,7 @@ const MedicineCard = React.forwardRef<HTMLDivElement, MedicineCardProps>(
                             )}
                             {showPrice && (
                                 <PriceDisplay
-                                    amount={medicine.unit_price}
+                                    amount={medicine.sale_price}
                                     size={compact ? 'sm' : 'md'}
                                     variant="total"
                                 />

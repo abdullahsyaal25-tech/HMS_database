@@ -282,7 +282,7 @@ const MedicineSearch = React.forwardRef<MedicineSearchRef, MedicineSearchProps>(
                                                         )}
                                                         {showPrice && (
                                                             <PriceDisplay
-                                                                amount={medicine.unit_price}
+                                                                amount={medicine.sale_price}
                                                                 size="sm"
                                                             />
                                                         )}
@@ -322,7 +322,7 @@ const MedicineSearch = React.forwardRef<MedicineSearchRef, MedicineSearchProps>(
                                     />
                                 )}
                                 {showPrice && (
-                                    <PriceDisplay amount={value.unit_price} size="sm" />
+                                    <PriceDisplay amount={value.sale_price} size="sm" />
                                 )}
                             </div>
                         </div>
