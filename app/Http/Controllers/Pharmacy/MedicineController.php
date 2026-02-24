@@ -8,6 +8,7 @@ use App\Http\Requests\StoreMedicineRequest;
 use App\Http\Requests\UpdateMedicineRequest;
 use App\Models\Medicine;
 use App\Models\MedicineCategory;
+use App\Models\Sale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -165,6 +166,34 @@ class MedicineController extends Controller
         $medicines = $query->orderBy('name')->paginate(10)->withQueryString();
         $categories = MedicineCategory::orderBy('name')->get();
         
+        // Calculate medicine statistics
+        $today = now();
+        $expiryWarningDays = $this->getExpiryWarningDays();
+        $lowStockThreshold = $this->getLowStockThreshold();
+        
+        // Total medicines count
+        $totalMedicines = Medicine::count();
+        
+        // Expiring soon (within next 30 days)
+        $expiringSoon = Medicine::whereDate('expiry_date', '>=', $today)
+            ->whereDate('expiry_date', '<=', $today->copy()->addDays($expiryWarningDays))
+            ->count();
+        
+        // Low stock (quantity <= reorder level)
+        $lowStock = Medicine::where('quantity', '<=', $lowStockThreshold)
+            ->where('quantity', '>', 0)
+            ->count();
+        
+        // Recently added (last 30 days)
+        $recentlyAdded = Medicine::where('created_at', '>=', $today->copy()->subDays(30))
+            ->count();
+        
+        // Total revenue = (Stock Value using sale_price) - (Revenue from completed sales)
+        $stockValue = Medicine::selectRaw('COALESCE(SUM(quantity * sale_price), 0) as total')
+            ->value('total') ?? 0;
+        $soldRevenue = Sale::where('status', 'completed')->sum('grand_total') ?? 0;
+        $totalRevenue = $stockValue - $soldRevenue;
+        
         return Inertia::render('Pharmacy/Medicines/Index', [
             'medicines' => $medicines,
             'categories' => $categories,
@@ -172,6 +201,13 @@ class MedicineController extends Controller
             'category_id' => $request->query('category_id', ''),
             'stock_status' => $request->query('stock_status', ''),
             'expiry_status' => $request->query('expiry_status', ''),
+            'stats' => [
+                'total' => $totalMedicines,
+                'expiringSoon' => $expiringSoon,
+                'lowStock' => $lowStock,
+                'recentlyAdded' => $recentlyAdded,
+                'totalRevenue' => (float) $totalRevenue,
+            ],
         ]);
     }
 
@@ -209,7 +245,7 @@ class MedicineController extends Controller
             'manufacturer' => 'required|string|max:255',
             'strength' => 'nullable|string|max:100',
             'expiry_date' => 'required|date',
-            'batch_number' => 'required|string|max:100',
+            'batch_number' => 'nullable|string|max:100',
             'barcode' => 'nullable|string|max:100',
         ]);
         
@@ -224,21 +260,21 @@ class MedicineController extends Controller
             Medicine::create([
                 'name' => $sanitized['name'],
                 'medicine_id' => $sanitized['medicine_id'],
-                'medicine_code' => $sanitized['medicine_id'], // Use medicine_id as medicine_code
+                'medicine_code' => $sanitized['medicine_id'],
                 'category_id' => $sanitized['category_id'],
                 'description' => $sanitized['description'],
                 'cost_price' => $sanitized['cost_price'],
                 'sale_price' => $sanitized['sale_price'],
-                'unit_price' => $sanitized['sale_price'], // Map sale_price to unit_price for compatibility
+                'unit_price' => $sanitized['sale_price'],
                 'stock_quantity' => $sanitized['stock_quantity'],
-                'quantity' => $sanitized['stock_quantity'], // Map stock_quantity to quantity for compatibility
+                'quantity' => $sanitized['stock_quantity'],
                 'reorder_level' => $sanitized['reorder_level'],
                 'manufacturer' => $sanitized['manufacturer'],
                 'strength' => $sanitized['strength'],
                 'expiry_date' => $request->input('expiry_date'),
                 'batch_number' => $sanitized['batch_number'],
                 'barcode' => $sanitized['barcode'],
-                'form' => $request->input('dosage_form'), // Map dosage_form to form
+                'form' => $request->input('dosage_form'),
             ]);
         });
         
@@ -252,7 +288,6 @@ class MedicineController extends Controller
     {
         $this->authorizePharmacyAccess();
         
-        // Validate ID is numeric
         $medicineId = filter_var($id, FILTER_VALIDATE_INT);
         if (!$medicineId) {
             abort(404, 'Invalid medicine ID');
@@ -260,7 +295,6 @@ class MedicineController extends Controller
         
         $medicine = Medicine::with('category')->findOrFail($medicineId);
         
-        // Get recent sales (last 30 days) with eager loading to prevent N+1
         $recentSales = \App\Models\SalesItem::where('medicine_id', $medicineId)
             ->whereHas('sale', function ($q) {
                 $q->where('created_at', '>=', now()->subDays(30));
@@ -270,7 +304,6 @@ class MedicineController extends Controller
             ->limit(10)
             ->get();
         
-        // Get stock history
         $stockHistory = \App\Models\StockMovement::forMedicine($medicineId)
             ->with('user')
             ->orderBy('created_at', 'desc')
@@ -291,14 +324,12 @@ class MedicineController extends Controller
     {
         $this->authorizeMedicineModify();
         
-        // Validate ID is numeric
         $medicineId = filter_var($id, FILTER_VALIDATE_INT);
         if (!$medicineId) {
             abort(404, 'Invalid medicine ID');
         }
         
         $medicine = Medicine::findOrFail($medicineId);
-        // Use cached categories
         $categories = $this->getMedicineCategories();
         
         return Inertia::render('Pharmacy/Medicines/Edit', [
@@ -314,7 +345,6 @@ class MedicineController extends Controller
     {
         $this->authorizeMedicineModify();
         
-        // Validate ID is numeric
         $medicineId = filter_var($id, FILTER_VALIDATE_INT);
         if (!$medicineId) {
             abort(404, 'Invalid medicine ID');
@@ -334,7 +364,7 @@ class MedicineController extends Controller
             'manufacturer' => 'required|string|max:255',
             'strength' => 'nullable|string|max:100',
             'expiry_date' => 'required|date',
-            'batch_number' => 'required|string|max:100',
+            'batch_number' => 'nullable|string|max:100',
             'barcode' => 'nullable|string|max:100',
         ]);
         
@@ -342,7 +372,6 @@ class MedicineController extends Controller
             return redirect()->back()->withErrors($validated)->withInput();
         }
         
-        // Sanitize input data
         $sanitized = $this->sanitizeInput($request->all());
         
         DB::transaction(function () use ($medicine, $sanitized, $request) {
@@ -353,16 +382,16 @@ class MedicineController extends Controller
                 'description' => $sanitized['description'],
                 'cost_price' => $sanitized['cost_price'],
                 'sale_price' => $sanitized['sale_price'],
-                'unit_price' => $sanitized['sale_price'], // Map sale_price to unit_price for compatibility
+                'unit_price' => $sanitized['sale_price'],
                 'stock_quantity' => $sanitized['stock_quantity'],
-                'quantity' => $sanitized['stock_quantity'], // Map stock_quantity to quantity for compatibility
+                'quantity' => $sanitized['stock_quantity'],
                 'reorder_level' => $sanitized['reorder_level'],
                 'manufacturer' => $sanitized['manufacturer'],
                 'strength' => $sanitized['strength'],
                 'expiry_date' => $request->input('expiry_date'),
                 'batch_number' => $sanitized['batch_number'],
                 'barcode' => $sanitized['barcode'],
-                'form' => $request->input('dosage_form'), // Map dosage_form to form
+                'form' => $request->input('dosage_form'),
             ]);
         });
         
@@ -376,12 +405,10 @@ class MedicineController extends Controller
     {
         $this->authorizeMedicineModify();
         
-        // Require specific delete permission
         if (!auth()->user()?->hasPermission('delete-medicines')) {
             abort(403, 'Unauthorized access');
         }
         
-        // Validate ID is numeric
         $medicineId = filter_var($id, FILTER_VALIDATE_INT);
         if (!$medicineId) {
             abort(404, 'Invalid medicine ID');
@@ -403,10 +430,7 @@ class MedicineController extends Controller
     {
         $this->authorizePharmacyAccess();
         
-        $query = $request->input('query');
-        
-        // Sanitize search term
-        $searchTerm = $this->sanitizeSearchTerm($query);
+        $searchTerm = $this->sanitizeSearchTerm($request->input('query'));
         
         $medicines = Medicine::where('name', 'like', '%' . $searchTerm . '%')
                     ->orWhere('description', 'like', '%' . $searchTerm . '%')
@@ -416,7 +440,7 @@ class MedicineController extends Controller
         
         return Inertia::render('Pharmacy/Medicines/Index', [
             'medicines' => $medicines,
-            'query' => $query
+            'query' => $request->input('query')
         ]);
     }
 
@@ -427,12 +451,10 @@ class MedicineController extends Controller
     {
         $user = Auth::user();
         
-        // Check if user has appropriate role
         if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin'])) {
             abort(403, 'Unauthorized access');
         }
         
-        // Validate ID is numeric
         $medicineId = filter_var($id, FILTER_VALIDATE_INT);
         if (!$medicineId) {
             abort(404, 'Invalid medicine ID');
@@ -448,7 +470,7 @@ class MedicineController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
         
-       $quantity = filter_var($request->quantity, FILTER_VALIDATE_INT);
+        $quantity = filter_var($request->quantity, FILTER_VALIDATE_INT);
         
         $medicine->update([
             'quantity' => $quantity,
@@ -467,7 +489,6 @@ class MedicineController extends Controller
         
         $lowStockThreshold = $this->getLowStockThreshold();
         
-        // Consider medicines with stock less than threshold as low stock
         $medicines = Medicine::where('quantity', '<=', $lowStockThreshold)
                     ->where('quantity', '>=', 1)
                     ->with('category')
@@ -503,7 +524,6 @@ class MedicineController extends Controller
         
         $expiryWarningDays = $this->getExpiryWarningDays();
         
-        // Get medicines that expire within the next warning days
         $medicines = Medicine::whereDate('expiry_date', '>=', now())
                     ->whereDate('expiry_date', '<=', now()->addDays($expiryWarningDays))
                     ->with('category')

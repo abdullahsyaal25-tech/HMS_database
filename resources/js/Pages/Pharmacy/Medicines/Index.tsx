@@ -11,12 +11,13 @@ import {
   Pill,
   Package,
   AlertTriangle,
-  AlertCircle,
   LayoutGrid,
   List,
   ChevronLeft,
   ChevronRight,
   Search,
+  TrendingUp,
+  Currency,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -61,9 +62,10 @@ interface MedicineIndexProps {
   // Backend-provided stats for accurate counts across all pages
   stats?: {
     total: number;
-    inStock: number;
+    expiringSoon: number;
     lowStock: number;
-    outOfStock: number;
+    recentlyAdded: number;
+    totalRevenue?: number;
   };
 }
 
@@ -74,7 +76,7 @@ export default function MedicineIndex({
   category_id = '',
   stock_status = '',
   expiry_status = '',
-  stats: backendStats
+  stats: backendStats,
 }: MedicineIndexProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filters, setFilters] = useState<FilterState>({
@@ -121,10 +123,17 @@ export default function MedicineIndex({
     }
     // Fallback: compute from current page data (may be inaccurate when paginated)
     const total = medicines.meta?.total || 0;
-    const inStock = medicines.data?.filter(m => m.stock_quantity > m.reorder_level).length || 0;
+    const expiringSoon = medicines.data?.filter(m => {
+      if (!m.expiry_date) return false;
+      const expiry = new Date(m.expiry_date);
+      const today = new Date();
+      const daysUntilExpiry = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      return daysUntilExpiry > 0 && daysUntilExpiry <= 30;
+    }).length || 0;
     const lowStock = medicines.data?.filter(m => m.stock_quantity > 0 && m.stock_quantity <= m.reorder_level).length || 0;
-    const outOfStock = medicines.data?.filter(m => m.stock_quantity <= 0).length || 0;
-    return { total, inStock, lowStock, outOfStock };
+    const recentlyAdded = 0;
+    const totalRevenue = medicines.data?.reduce((sum, m) => sum + (m.stock_quantity * m.unit_price), 0) || 0;
+    return { total, expiringSoon, lowStock, recentlyAdded, totalRevenue };
   }, [medicines, backendStats]);
 
   const handleFilterChange = (newFilters: FilterState) => {
@@ -208,8 +217,9 @@ export default function MedicineIndex({
           </div>
         </div>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Statistics Cards - Updated: Total Medicines, Expiring Soon, Low Stock, Recently Added, Total Revenue */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Total Medicines */}
           <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -224,43 +234,67 @@ export default function MedicineIndex({
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-br from-green-500/5 to-green-500/10 border-green-500/20">
+          {/* Expiring Soon */}
+          <Card className="bg-gradient-to-br from-orange-500/5 to-orange-500/10 border-orange-500/20">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">In Stock</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.inStock}</p>
+                  <p className="text-sm text-muted-foreground">Expiring Soon</p>
+                  <p className="text-2xl font-bold text-orange-600">{stats.expiringSoon}</p>
+                  <p className="text-xs text-muted-foreground">Within 30 days</p>
                 </div>
-                <div className="h-10 w-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                  <Package className="h-5 w-5 text-green-600" />
+                <div className="h-10 w-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                  <AlertTriangle className="h-5 w-5 text-orange-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
           
+          {/* Low Stock */}
           <Card className="bg-gradient-to-br from-amber-500/5 to-amber-500/10 border-amber-500/20">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Low Stock</p>
                   <p className="text-2xl font-bold text-amber-600">{stats.lowStock}</p>
+                  <p className="text-xs text-muted-foreground">Below reorder level</p>
                 </div>
                 <div className="h-10 w-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-                  <AlertTriangle className="h-5 w-5 text-amber-600" />
+                  <Package className="h-5 w-5 text-amber-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-br from-red-500/5 to-red-500/10 border-red-500/20">
+          {/* Recently Added */}
+          <Card className="bg-gradient-to-br from-green-500/5 to-green-500/10 border-green-500/20">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Out of Stock</p>
-                  <p className="text-2xl font-bold text-red-600">{stats.outOfStock}</p>
+                  <p className="text-sm text-muted-foreground">Recently Added</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.recentlyAdded}</p>
+                  <p className="text-xs text-muted-foreground">Last 30 days</p>
                 </div>
-                <div className="h-10 w-10 rounded-full bg-red-500/20 flex items-center justify-center">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
+                <div className="h-10 w-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Total Revenue */}
+          <Card className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 border-blue-500/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Revenue</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {formatCurrency(stats.totalRevenue || 0)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Stock value</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <Currency className="h-5 w-5 text-blue-600" />
                 </div>
               </div>
             </CardContent>
@@ -315,7 +349,6 @@ export default function MedicineIndex({
                 onView={() => router.visit(`/pharmacy/medicines/${medicine.id}`)}
                 onEdit={() => router.visit(`/pharmacy/medicines/${medicine.id}/edit`)}
                 onDuplicate={() => {
-                  // Handle duplicate action - could navigate to create with pre-filled data
                   router.get('/pharmacy/medicines/create', { duplicate: medicine.id });
                 }}
               />
