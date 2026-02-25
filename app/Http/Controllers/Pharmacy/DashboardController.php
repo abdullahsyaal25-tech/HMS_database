@@ -66,7 +66,6 @@ class DashboardController extends Controller
     private function getDashboardStats(): array
     {
         $today = now()->startOfDay();
-        $todayStr = now()->toDateString();
         
         // Valid sale statuses for revenue calculation (exclude voided, cancelled, refunded)
         $validStatuses = ['completed', 'pending'];
@@ -77,27 +76,13 @@ class DashboardController extends Controller
         // Total stock quantity (sum of all medicine stock)
         $totalStockQuantity = Medicine::sum('stock_quantity');
         
-        // Today's sales count (only completed sales)
+        // Today's stats - query database directly for real-time data
         $todaySales = Sale::whereDate('created_at', $today)
-            ->whereIn('status', $validStatuses)
+            ->where('status', 'completed')
             ->count();
-        
-        // Today's revenue - check cache first (from refresh button)
-        $cachedAllHistory = Cache::get('daily_revenue_all_history');
-        $cachedRevenue = Cache::get('daily_revenue_' . $todayStr);
-        
-        if ($cachedAllHistory) {
-            // Use all-history cached revenue data (from refresh button)
-            $todayRevenue = $cachedAllHistory['pharmacy'] ?? 0;
-        } elseif ($cachedRevenue) {
-            // Use today's cached revenue data
-            $todayRevenue = $cachedRevenue['pharmacy'] ?? 0;
-        } else {
-            // Fall back to database calculation
-            $todayRevenue = Sale::whereDate('created_at', $today)
-                ->whereIn('status', $validStatuses)
-                ->sum('grand_total');
-        }
+        $todayRevenue = Sale::whereDate('created_at', $today)
+            ->where('status', 'completed')
+            ->sum('grand_total');
         
         // Total revenue (all time, only completed/pending sales)
         $totalRevenue = Sale::whereIn('status', $validStatuses)

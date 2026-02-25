@@ -8,249 +8,214 @@ use App\Models\Patient;
 use App\Models\Sale;
 use App\Models\LabTestResult;
 use App\Models\DepartmentService;
+use App\Models\DailySnapshot;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class RefreshDataController extends Controller
 {
     /**
-     * Refresh all "today" data across the application.
-     * This clears cached data and recalculates today's statistics.
+     * "End of Day / Start New Day" functionality.
+     * This archives current "today" data to daily_snapshots table, then clears the cache.
+     * Pages will then show fresh data from the database (like starting a new day).
      */
     public function refreshAllTodayData(): JsonResponse
     {
         $today = now()->toDateString();
-        $results = [];
 
         try {
-            // 1. Refresh Wallet Today's Revenue
-            $results['wallet'] = $this->refreshWalletTodayRevenue($today);
+            Log::info('[EndOfDay] Starting end of day process', ['date' => $today]);
 
-            // 2. Refresh Today's Appointments Count
-            $results['appointments'] = $this->refreshAppointmentsToday($today);
+            // Step 1: Archive current "today" data to daily_snapshots (like closing the day)
+            $archivedData = $this->archiveCurrentData($today);
+            Log::info('[EndOfDay] Data archived successfully', ['archived_data' => $archivedData]);
 
-            // 3. Refresh Today's Patients Count
-            $results['patients'] = $this->refreshPatientsToday($today);
+            // Step 2: Clear all relevant caches
+            $this->clearAllCaches($today);
+            Log::info('[EndOfDay] Caches cleared successfully');
 
-            // 4. Refresh Pharmacy Today's Stats
-            $results['pharmacy'] = $this->refreshPharmacyToday($today);
-
-            // 5. Refresh Laboratory Today's Stats
-            $results['laboratory'] = $this->refreshLaboratoryToday($today);
-
-            // 6. Refresh Department Services Today's Stats
-            $results['department_services'] = $this->refreshDepartmentServicesToday($today);
+            // Step 3: Set a cache key to indicate day has ended with the timestamp
+            // This allows showing only transactions AFTER this timestamp (Option B - Running Total After Day-End)
+            Cache::put('day_end_timestamp_' . $today, now()->toIso8601String(), now()->endOfDay());
+            Log::info('[EndOfDay] Day end timestamp set in cache: ' . now()->toIso8601String());
 
             return response()->json([
                 'success' => true,
-                'message' => 'All today data refreshed successfully',
-                'data' => $results,
-                'timestamp' => now()->toIso8601String()
+                'message' => 'Day ended successfully. Revenue archived to snapshot. New transactions will be counted separately.',
+                'timestamp' => now()->toIso8601String(),
+                'day_end_timestamp' => now()->toIso8601String(),
+                'archived_data' => $archivedData
             ]);
         } catch (\Exception $e) {
+            Log::error('[EndOfDay] Failed to end day', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to refresh some data: ' . $e->getMessage(),
-                'data' => $results,
+                'message' => 'Failed to end day: ' . $e->getMessage(),
                 'timestamp' => now()->toIso8601String()
             ], 500);
         }
     }
 
     /**
-     * Refresh wallet today's revenue data
+     * Archive current "today" data to the database (like closing the day).
+     * This fetches current data from database and stores it as a snapshot.
+     *
+     * @param string $today
+     * @return array
      */
-    private function refreshWalletTodayRevenue(string $today): array
+    private function archiveCurrentData(string $today): array
     {
-        // Get appointments revenue (completed/confirmed) - use 'fee' column
-        $appointmentRevenue = Appointment::where(function ($query) use ($today) {
-                $query->whereDate('appointment_date', $today)
-                      ->orWhereNull('appointment_date');
-            })
-            ->whereIn('status', ['completed', 'confirmed'])
-            ->sum('fee') ?? 0;
+        // Fetch current "today" data from database to archive
+        $snapshotData = $this->fetchCurrentDataForArchive($today);
 
-        // Get department services revenue - use correct column names
-        // DepartmentService is a service definition, revenue comes from appointments
-        $departmentRevenue = 0; // Calculated through appointments
+        // Create a snapshot from the current data
+        DailySnapshot::createFromCacheData($today, [
+            'frozen_data' => $snapshotData,
+        ]);
 
-        // Get pharmacy sales revenue (completed) - use 'grand_total' and 'created_at'
+        return $snapshotData;
+    }
+
+    /**
+     * Fetch current data from database for archiving
+     *
+     * @param string $today
+     * @return array
+     */
+    private function fetchCurrentDataForArchive(string $today): array
+    {
+        // Fetch Pharmacy data
+        $pharmacySalesCount = Sale::whereDate('created_at', $today)
+            ->where('status', 'completed')
+            ->count();
         $pharmacyRevenue = Sale::whereDate('created_at', $today)
             ->where('status', 'completed')
             ->sum('grand_total') ?? 0;
 
-        // Get laboratory revenue - lab_test_results doesn't have total_price
-        // Set to 0 for now
-        $labRevenue = 0;
-
-        $total = $appointmentRevenue + $departmentRevenue + $pharmacyRevenue + $labRevenue;
-
-        $revenueData = [
-            'appointments' => (float) $appointmentRevenue,
-            'departments' => (float) $departmentRevenue,
-            'pharmacy' => (float) $pharmacyRevenue,
-            'laboratory' => (float) $labRevenue,
-            'total' => (float) $total,
-        ];
-
-        // For new day / reset scenario, store everything in ALL HISTORY cache
-        // This makes it appear as if starting fresh with all historical data
-        $allHistoryRevenue = $this->calculateAllHistoryRevenue();
-        Cache::put("daily_revenue_all_history", $allHistoryRevenue, now()->addDays(30));
-
-        // Also store today's data (for regular today's view)
-        Cache::put("daily_revenue_{$today}", $revenueData, now()->endOfDay());
-
-        return $revenueData;
-    }
-
-    /**
-     * Calculate all historical revenue
-     */
-    private function calculateAllHistoryRevenue(): array
-    {
-        $startDate = '2000-01-01';
-        $endDate = '3000-12-31';
-
-        // Get all appointments revenue - use 'fee' column
-        $appointmentRevenue = Appointment::where(function ($query) use ($startDate, $endDate) {
-                $query->whereBetween('appointment_date', [$startDate, $endDate])
-                      ->orWhereNull('appointment_date');
-            })
-            ->whereIn('status', ['completed', 'confirmed'])
-            ->sum('fee') ?? 0;
-
-        // Department revenue is calculated through appointments
-        $departmentRevenue = 0;
-
-        // Get all pharmacy sales revenue - use 'grand_total' and 'created_at'
-        $pharmacyRevenue = Sale::whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'completed')
-            ->sum('grand_total') ?? 0;
-
-        // Lab revenue
-        $labRevenue = 0;
-
-        return [
-            'appointments' => (float) $appointmentRevenue,
-            'departments' => (float) $departmentRevenue,
-            'pharmacy' => (float) $pharmacyRevenue,
-            'laboratory' => (float) $labRevenue,
-            'total' => (float) ($appointmentRevenue + $departmentRevenue + $pharmacyRevenue + $labRevenue),
-        ];
-    }
-
-    /**
-     * Refresh today's appointments count
-     */
-    private function refreshAppointmentsToday(string $today): array
-    {
-        $count = Appointment::whereDate('created_at', $today)->count();
-        $completedCount = Appointment::whereDate('created_at', $today)
-            ->whereIn('status', ['completed', 'confirmed'])
-            ->count();
-        // Use 'fee' column instead of 'total_amount'
-        $revenue = Appointment::whereDate('created_at', $today)
-            ->whereIn('status', ['completed', 'confirmed'])
-            ->sum('fee') ?? 0;
-
-        $data = [
-            'total' => $count,
-            'completed' => $completedCount,
-            'revenue' => (float) $revenue,
-        ];
-
-        Cache::put("appointments_today_{$today}", $data, now()->endOfDay());
-
-        return $data;
-    }
-
-    /**
-     * Refresh today's patients count
-     */
-    private function refreshPatientsToday(string $today): array
-    {
-        $count = Patient::whereDate('created_at', $today)->count();
-
-        $data = [
-            'total' => $count,
-        ];
-
-        Cache::put("patients_today_{$today}", $data, now()->endOfDay());
-
-        return $data;
-    }
-
-    /**
-     * Refresh pharmacy today's stats
-     */
-    private function refreshPharmacyToday(string $today): array
-    {
-        // Use 'created_at' instead of 'sale_date'
-        $salesCount = Sale::whereDate('created_at', $today)
-            ->where('status', 'completed')
-            ->count();
+        // Fetch Appointments data (all appointments for count)
+        $appointmentsCount = Appointment::whereDate('appointment_date', $today)->count();
         
-        // Use 'grand_total' and 'created_at'
-        $revenue = Sale::whereDate('created_at', $today)
-            ->where('status', 'completed')
-            ->sum('grand_total') ?? 0;
+        // Calculate appointment revenue - ONLY for completed/confirmed appointments WITHOUT services
+        // and NOT from Laboratory department (matching WalletController logic)
+        $regularRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
+            ->whereDate('appointment_date', $today)
+            ->whereDoesntHave('services')
+            ->where(function ($query) {
+                // Exclude appointments where department is Laboratory
+                $query->whereNull('department_id')
+                      ->orWhereNotIn('department_id', function ($subQuery) {
+                          $subQuery->select('id')
+                                   ->from('departments')
+                                   ->where('name', 'Laboratory');
+                      });
+            })
+            ->get()
+            ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
+        
+        // Service revenue is tracked separately as department revenue, NOT as appointment revenue
+        // This matches WalletController::getDepartmentRevenue() logic
+        $serviceRevenue = DB::table('appointment_services')
+            ->join('appointments', 'appointments.id', '=', 'appointment_services.appointment_id')
+            ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+            ->join('departments', 'department_services.department_id', '=', 'departments.id')
+            ->whereIn('appointments.status', ['completed', 'confirmed'])
+            ->where('departments.name', '!=', 'Laboratory')  // Exclude laboratory services
+            ->whereDate('appointments.appointment_date', $today)
+            ->sum('appointment_services.final_cost') ?? 0;
+        
+        // Total appointments revenue = regular appointments + department services (excluding lab)
+        $appointmentsRevenue = $regularRevenue + $serviceRevenue;
 
-        // Check if 'profit' column exists, if not use 0
-        try {
-            $profit = Sale::whereDate('created_at', $today)
-                ->where('status', 'completed')
-                ->sum('profit') ?? 0;
-        } catch (\Exception $e) {
-            $profit = 0;
-        }
+        // Fetch Patients data
+        $patientsCount = Patient::whereDate('created_at', $today)->count();
 
-        $data = [
-            'sales_count' => $salesCount,
-            'revenue' => (float) $revenue,
-            'profit' => (float) $profit,
+        // Fetch Laboratory data
+        $labTestsCount = LabTestResult::whereDate('performed_at', $today)->count();
+        
+        // Calculate lab revenue (matching WalletController::getLaboratoryRevenue logic)
+        $labTestResultsRevenue = DB::table('lab_test_results')
+            ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
+            ->whereDate('lab_test_results.performed_at', $today)
+            ->sum('lab_tests.cost') ?? 0;
+        
+        // Laboratory services from appointments
+        $appointmentLabServicesRevenue = DB::table('appointment_services')
+            ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+            ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+            ->join('departments', 'department_services.department_id', '=', 'departments.id')
+            ->whereIn('appointments.status', ['completed', 'confirmed'])
+            ->where('departments.name', '=', 'Laboratory')
+            ->whereDate('appointments.appointment_date', $today)
+            ->sum('appointment_services.final_cost') ?? 0;
+        
+        // Laboratory department appointments (without services)
+        $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
+            ->whereDate('appointment_date', $today)
+            ->whereDoesntHave('services')
+            ->where(function ($query) {
+                $query->whereIn('department_id', function ($subQuery) {
+                    $subQuery->select('id')
+                             ->from('departments')
+                             ->where('name', 'Laboratory');
+                });
+            })
+            ->get()
+            ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
+        
+        $labRevenue = $labTestResultsRevenue + $appointmentLabServicesRevenue + $labDepartmentAppointmentsRevenue;
+
+        // Department revenue is the same as serviceRevenue (non-lab department services)
+        $departmentsRevenue = $serviceRevenue;
+
+        // Build the snapshot data structure
+        return [
+            'pharmacy' => [
+                'today_sales' => $pharmacySalesCount,
+                'today_revenue' => (float) $pharmacyRevenue,
+            ],
+            'appointments' => [
+                'today_appointments' => $appointmentsCount,
+                'today_revenue' => (float) $appointmentsRevenue,
+            ],
+            'departments' => [
+                'today_revenue' => (float) $departmentsRevenue,
+            ],
+            'patients' => [
+                'today_patients' => $patientsCount,
+            ],
+            'laboratory' => [
+                'today_tests' => $labTestsCount,
+                'today_revenue' => (float) $labRevenue,
+            ],
+            'last_updated' => now()->toIso8601String(),
+            'snapshot_date' => $today,
         ];
-
-        Cache::put("pharmacy_today_{$today}", $data, now()->endOfDay());
-
-        return $data;
     }
 
     /**
-     * Refresh laboratory today's stats
+     * Clear all relevant caches
+     *
+     * @param string $today
+     * @return void
      */
-    private function refreshLaboratoryToday(string $today): array
+    private function clearAllCaches(string $today): void
     {
-        // Lab test results table columns unknown - return empty for now
-        $data = [
-            'total_tests' => 0,
-            'completed_tests' => 0,
-            'pending_tests' => 0,
-            'revenue' => 0.0,
-        ];
+        // Clear the main frozen data cache
+        Cache::forget('frozen_today_data');
 
-        Cache::put("laboratory_today_{$today}", $data, now()->endOfDay());
-
-        return $data;
-    }
-
-    /**
-     * Refresh department services today's stats
-     */
-    private function refreshDepartmentServicesToday(string $today): array
-    {
-        // DepartmentService is a service definition table, not transactions
-        // We need to check appointment_services or similar for actual revenue
-        // For now, return empty stats
-        $data = [
-            'total' => 0,
-            'completed' => 0,
-            'revenue' => 0.0,
-        ];
-
-        Cache::put("department_services_today_{$today}", $data, now()->endOfDay());
-
-        return $data;
+        // Clear legacy caches for backwards compatibility
+        Cache::forget("daily_revenue_{$today}");
+        Cache::forget("appointments_today_{$today}");
+        Cache::forget("patients_today_{$today}");
+        Cache::forget("pharmacy_today_{$today}");
+        Cache::forget("laboratory_today_{$today}");
+        Cache::forget("department_services_today_{$today}");
+        Cache::forget("daily_revenue_all_history");
     }
 }

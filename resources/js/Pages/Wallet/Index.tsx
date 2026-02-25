@@ -66,15 +66,74 @@ interface RevenueData {
     };
 }
 
+// Default revenue data structure to prevent null errors
+const defaultRevenueData: RevenueData = {
+    today: { appointments: 0, departments: 0, pharmacy: 0, laboratory: 0, total: 0 },
+    this_week: { appointments: 0, departments: 0, pharmacy: 0, laboratory: 0, total: 0 },
+    this_month: { appointments: 0, departments: 0, pharmacy: 0, laboratory: 0, total: 0 },
+    this_year: { appointments: 0, departments: 0, pharmacy: 0, laboratory: 0, total: 0 },
+};
+
+// Helper function to ensure revenue data is never null
+const ensureRevenueData = (data: RevenueData | null | undefined): RevenueData => {
+    if (!data) {
+        console.warn('[Wallet/Index] Revenue data is null/undefined, using default data');
+        return defaultRevenueData;
+    }
+    
+    // Validate that all required properties exist
+    const safeData: RevenueData = {
+        today: data.today || defaultRevenueData.today,
+        this_week: data.this_week || defaultRevenueData.this_week,
+        this_month: data.this_month || defaultRevenueData.this_month,
+        this_year: data.this_year || defaultRevenueData.this_year,
+    };
+    
+    // Ensure all nested objects have required properties
+    Object.keys(safeData).forEach(period => {
+        const periodData = safeData[period as keyof RevenueData];
+        if (!periodData) {
+            safeData[period as keyof RevenueData] = defaultRevenueData[period as keyof RevenueData];
+        } else {
+            safeData[period as keyof RevenueData] = {
+                appointments: periodData.appointments ?? 0,
+                departments: periodData.departments ?? 0,
+                pharmacy: periodData.pharmacy ?? 0,
+                laboratory: periodData.laboratory ?? 0,
+                total: periodData.total ?? 0,
+            };
+        }
+    });
+    
+    return safeData;
+};
+
 interface Props {
     wallet: Wallet;
     displayBalance?: number;
-    revenueData: RevenueData;
+    revenueData?: RevenueData;
 }
 
 export default function Index({ wallet: initialWallet, displayBalance: initialDisplayBalance, revenueData: initialRevenueData }: Props) {
+    // DIAGNOSTIC LOG: Track initial prop values
+    console.log('[Wallet/Index] Initial props received:', { 
+        hasWallet: !!initialWallet, 
+        hasRevenueData: !!initialRevenueData,
+        revenueDataKeys: initialRevenueData ? Object.keys(initialRevenueData) : 'N/A'
+    });
+    
     const [wallet, setWallet] = useState(initialWallet);
-    const [revenueData, setRevenueData] = useState(initialRevenueData);
+    // Use ensureRevenueData helper to guarantee safe data structure
+    const safeRevenueData = ensureRevenueData(initialRevenueData);
+    
+    // DIAGNOSTIC LOG: Track safeRevenueData
+    console.log('[Wallet/Index] safeRevenueData:', { 
+        isDefault: !initialRevenueData,
+        hasToday: !!safeRevenueData?.today,
+        hasThisMonth: !!safeRevenueData?.this_month
+    });
+    
+    const [revenueData, setRevenueData] = useState<RevenueData>(safeRevenueData);
     const [displayBalance, setDisplayBalance] = useState<number | undefined>(initialDisplayBalance);
     const [isLoading, setIsLoading] = useState(false);
     const [lastUpdated, setLastUpdated] = useState(new Date());
@@ -127,7 +186,10 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                 const data = await response.json();
                 setWallet(data.wallet);
                 setDisplayBalance(data.displayBalance);
-                setRevenueData(data.revenueData);
+                // Ensure revenueData is not null before setting
+                if (data.revenueData) {
+                    setRevenueData(data.revenueData);
+                }
                 setLastUpdated(new Date());
             } else {
                 console.error('Failed to fetch real-time data:', response.statusText);
@@ -171,6 +233,15 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
 
             if (response.ok) {
                 const data = await response.json();
+                
+                // Handle null revenue data gracefully
+                if (!data.revenue) {
+                    console.error('API response missing revenue data:', data);
+                    setTodayRevenueCalculated(true);
+                    setIsLoading(false);
+                    return;
+                }
+                
                 const todayTotal = data.revenue.total;
                 setCalculatedTodayRevenue(todayTotal);
                 setTodayRevenueCalculated(true);
@@ -182,16 +253,20 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                 });
                 
                 // Update the main revenueData.today values as well
-                setRevenueData(prev => ({
-                    ...prev,
-                    today: {
-                        appointments: data.revenue.appointments,
-                        departments: data.revenue.departments,
-                        pharmacy: data.revenue.pharmacy,
-                        laboratory: data.revenue.laboratory,
-                        total: todayTotal,
-                    }
-                }));
+                setRevenueData(prev => {
+                    // Ensure we have valid data to work with
+                    const currentData = prev || defaultRevenueData;
+                    return {
+                        ...currentData,
+                        today: {
+                            appointments: data.revenue.appointments ?? 0,
+                            departments: data.revenue.departments ?? 0,
+                            pharmacy: data.revenue.pharmacy ?? 0,
+                            laboratory: data.revenue.laboratory ?? 0,
+                            total: todayTotal ?? 0,
+                        }
+                    };
+                });
                 
                 setLastUpdated(new Date());
             }
@@ -202,8 +277,17 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
         }
     };
 
-    // Current period data
-    const currentData = revenueData.this_month;
+    // Current period data - with null safety
+    // DIAGNOSTIC LOG: Check revenueData before accessing
+    console.log('[Wallet/Index] Before accessing currentData:', {
+        revenueDataNull: revenueData === null,
+        revenueDataUndefined: revenueData === undefined,
+        revenueDataThisMonth: revenueData?.this_month
+    });
+    
+    // Ensure revenueData is never null - use default if needed
+    const safeCurrentData = revenueData || defaultRevenueData;
+    const currentData = safeCurrentData.this_month;
 
     return (
         <HospitalLayout>
@@ -224,22 +308,7 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                             <span>Updated: {lastUpdated.toLocaleTimeString()}</span>
                         </div>
                         <RefreshAllDataButton />
-                        <Button
-                            onClick={calculateTodayRevenue}
-                            disabled={isLoading}
-                            className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all"
-                        >
-                            <Calculator className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                            Today's Revenue
-                        </Button>
-                        <Button
-                            onClick={handleRefresh}
-                            disabled={isLoading}
-                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all"
-                        >
-                            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                            Refresh
-                        </Button>
+
                     </div>
                 </div>
 
@@ -278,7 +347,7 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                             <div className="text-3xl font-bold tracking-tight">
                                 {todayRevenueCalculated && calculatedTodayRevenue !== null
                                     ? formatCurrency(calculatedTodayRevenue)
-                                    : formatCurrency(revenueData.today.total)}
+                                    : formatCurrency(safeCurrentData.today.total)}
                             </div>
                             <p className="text-xs text-emerald-200 mt-1 flex items-center gap-1">
                                 <ArrowUpRight className="h-3 w-3" />
@@ -299,7 +368,7 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold tracking-tight">
-                                {formatCurrency(revenueData.this_month.total)}
+                                {formatCurrency(safeCurrentData.this_month.total)}
                             </div>
                             <p className="text-xs text-blue-200 mt-1 flex items-center gap-1">
                                 <BarChart3 className="h-3 w-3" />
@@ -318,7 +387,7 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold tracking-tight">
-                                {formatCurrency(revenueData.this_year.total)}
+                                {formatCurrency(safeCurrentData.this_year.total)}
                             </div>
                             <p className="text-xs text-amber-200 mt-1 flex items-center gap-1">
                                 <Zap className="h-3 w-3" />
@@ -447,7 +516,7 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-bold text-xl text-blue-600">{formatCurrency(revenueData.today.total)}</p>
+                                        <p className="font-bold text-xl text-blue-600">{formatCurrency(safeCurrentData.today.total)}</p>
                                     </div>
                                 </div>
 
@@ -463,7 +532,7 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-bold text-xl text-emerald-600">{formatCurrency(revenueData.this_week.total)}</p>
+                                        <p className="font-bold text-xl text-emerald-600">{formatCurrency(safeCurrentData.this_week.total)}</p>
                                     </div>
                                 </div>
 
@@ -479,7 +548,7 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-bold text-xl text-violet-600">{formatCurrency(revenueData.this_month.total)}</p>
+                                        <p className="font-bold text-xl text-violet-600">{formatCurrency(safeCurrentData.this_month.total)}</p>
                                     </div>
                                 </div>
 
@@ -495,7 +564,7 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-bold text-xl text-amber-600">{formatCurrency(revenueData.this_year.total)}</p>
+                                        <p className="font-bold text-xl text-amber-600">{formatCurrency(safeCurrentData.this_year.total)}</p>
                                     </div>
                                 </div>
                             </div>
@@ -563,23 +632,23 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                             <TabsContent value="today" className="mt-0">
                                 <div className="text-center py-12">
                                     <h3 className="text-xl font-semibold mb-2">Today's Revenue</h3>
-                                    <p className="text-5xl font-bold text-blue-600 mb-6">{formatCurrency(revenueData.today.total)}</p>
+                                    <p className="text-5xl font-bold text-blue-600 mb-6">{formatCurrency(safeCurrentData.today.total)}</p>
                                     <div className="grid gap-4 md:grid-cols-2 max-w-2xl mx-auto">
                                         <div className="p-4 rounded-xl bg-blue-50">
                                             <p className="text-blue-600 font-semibold">Appointments</p>
-                                            <p className="text-2xl font-bold">{formatCurrency(revenueData.today.appointments)}</p>
+                                            <p className="text-2xl font-bold">{formatCurrency(safeCurrentData.today.appointments)}</p>
                                         </div>
                                         <div className="p-4 rounded-xl bg-emerald-50">
                                             <p className="text-emerald-600 font-semibold">Departments</p>
-                                            <p className="text-2xl font-bold">{formatCurrency(revenueData.today.departments)}</p>
+                                            <p className="text-2xl font-bold">{formatCurrency(safeCurrentData.today.departments)}</p>
                                         </div>
                                         <div className="p-4 rounded-xl bg-violet-50">
                                             <p className="text-violet-600 font-semibold">Pharmacy</p>
-                                            <p className="text-2xl font-bold">{formatCurrency(revenueData.today.pharmacy)}</p>
+                                            <p className="text-2xl font-bold">{formatCurrency(safeCurrentData.today.pharmacy)}</p>
                                         </div>
                                         <div className="p-4 rounded-xl bg-amber-50">
                                             <p className="text-amber-600 font-semibold">Laboratory</p>
-                                            <p className="text-2xl font-bold">{formatCurrency(revenueData.today.laboratory)}</p>
+                                            <p className="text-2xl font-bold">{formatCurrency(safeCurrentData.today.laboratory)}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -588,23 +657,23 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                             <TabsContent value="week" className="mt-0">
                                 <div className="text-center py-12">
                                     <h3 className="text-xl font-semibold mb-2">This Week Revenue</h3>
-                                    <p className="text-5xl font-bold text-emerald-600 mb-6">{formatCurrency(revenueData.this_week.total)}</p>
+                                    <p className="text-5xl font-bold text-emerald-600 mb-6">{formatCurrency(safeCurrentData.this_week.total)}</p>
                                     <div className="grid gap-4 md:grid-cols-2 max-w-2xl mx-auto">
                                         <div className="p-4 rounded-xl bg-blue-50">
                                             <p className="text-blue-600 font-semibold">Appointments</p>
-                                            <p className="text-2xl font-bold">{formatCurrency(revenueData.this_week.appointments)}</p>
+                                            <p className="text-2xl font-bold">{formatCurrency(safeCurrentData.this_week.appointments)}</p>
                                         </div>
                                         <div className="p-4 rounded-xl bg-emerald-50">
                                             <p className="text-emerald-600 font-semibold">Departments</p>
-                                            <p className="text-2xl font-bold">{formatCurrency(revenueData.this_week.departments)}</p>
+                                            <p className="text-2xl font-bold">{formatCurrency(safeCurrentData.this_week.departments)}</p>
                                         </div>
                                         <div className="p-4 rounded-xl bg-violet-50">
                                             <p className="text-violet-600 font-semibold">Pharmacy</p>
-                                            <p className="text-2xl font-bold">{formatCurrency(revenueData.this_week.pharmacy)}</p>
+                                            <p className="text-2xl font-bold">{formatCurrency(safeCurrentData.this_week.pharmacy)}</p>
                                         </div>
                                         <div className="p-4 rounded-xl bg-amber-50">
                                             <p className="text-amber-600 font-semibold">Laboratory</p>
-                                            <p className="text-2xl font-bold">{formatCurrency(revenueData.this_week.laboratory)}</p>
+                                            <p className="text-2xl font-bold">{formatCurrency(safeCurrentData.this_week.laboratory)}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -613,23 +682,23 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                             <TabsContent value="month" className="mt-0">
                                 <div className="text-center py-12">
                                     <h3 className="text-xl font-semibold mb-2">This Month Revenue</h3>
-                                    <p className="text-5xl font-bold text-violet-600 mb-6">{formatCurrency(revenueData.this_month.total)}</p>
+                                    <p className="text-5xl font-bold text-violet-600 mb-6">{formatCurrency(safeCurrentData.this_month.total)}</p>
                                     <div className="grid gap-4 md:grid-cols-2 max-w-2xl mx-auto">
                                         <div className="p-4 rounded-xl bg-blue-50">
                                             <p className="text-blue-600 font-semibold">Appointments</p>
-                                            <p className="text-2xl font-bold">{formatCurrency(revenueData.this_month.appointments)}</p>
+                                            <p className="text-2xl font-bold">{formatCurrency(safeCurrentData.this_month.appointments)}</p>
                                         </div>
                                         <div className="p-4 rounded-xl bg-emerald-50">
                                             <p className="text-emerald-600 font-semibold">Departments</p>
-                                            <p className="text-2xl font-bold">{formatCurrency(revenueData.this_month.departments)}</p>
+                                            <p className="text-2xl font-bold">{formatCurrency(safeCurrentData.this_month.departments)}</p>
                                         </div>
                                         <div className="p-4 rounded-xl bg-violet-50">
                                             <p className="text-violet-600 font-semibold">Pharmacy</p>
-                                            <p className="text-2xl font-bold">{formatCurrency(revenueData.this_month.pharmacy)}</p>
+                                            <p className="text-2xl font-bold">{formatCurrency(safeCurrentData.this_month.pharmacy)}</p>
                                         </div>
                                         <div className="p-4 rounded-xl bg-amber-50">
                                             <p className="text-amber-600 font-semibold">Laboratory</p>
-                                            <p className="text-2xl font-bold">{formatCurrency(revenueData.this_month.laboratory)}</p>
+                                            <p className="text-2xl font-bold">{formatCurrency(safeCurrentData.this_month.laboratory)}</p>
                                         </div>
                                     </div>
                                 </div>

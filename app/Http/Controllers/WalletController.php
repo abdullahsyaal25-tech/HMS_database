@@ -15,6 +15,7 @@ use Inertia\Inertia;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class WalletController extends Controller
 {
@@ -48,6 +49,7 @@ class WalletController extends Controller
 
     /**
      * Get revenue data for different time periods and sources.
+     * Always queries the database directly for real-time data.
      */
     private function getRevenueData()
     {
@@ -55,8 +57,25 @@ class WalletController extends Controller
         $tomorrow = Carbon::tomorrow();
         $todayStr = $today->toDateString();
 
+        // Check if day_end_timestamp exists - Option B: Running Total After Day-End
+        $dayEndTimestamp = Cache::get('day_end_timestamp_' . $todayStr);
+
+        Log::info('WalletController getRevenueData - Start', [
+            'todayStr' => $todayStr,
+            'dayEndTimestamp' => $dayEndTimestamp,
+            'current_time' => now()->toISOString(),
+        ]);
+
+        // Determine the effective start time for today queries
+        // If day_end_timestamp exists, only query transactions AFTER that timestamp
+        $effectiveStartTime = $today;
+        if ($dayEndTimestamp) {
+            $effectiveStartTime = Carbon::parse($dayEndTimestamp);
+            Log::info('WalletController getRevenueData - Day end timestamp found, querying after: ' . $dayEndTimestamp);
+        }
+
         $periods = [
-            'today' => [$today, $tomorrow],
+            'today' => [$effectiveStartTime, $tomorrow],
             'this_week' => [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()],
             'this_month' => [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()],
             'this_year' => [Carbon::now()->startOfYear(), Carbon::now()->endOfYear()],
@@ -65,36 +84,47 @@ class WalletController extends Controller
         $data = [];
 
         foreach ($periods as $period => $dates) {
-            // For 'today' period, check if we have cached revenue from button click
-            if ($period === 'today') {
-                // First check for all-history cached revenue (priority - from refresh button)
-                $cachedAllHistory = Cache::get('daily_revenue_all_history');
-                if ($cachedAllHistory) {
-                    $data[$period] = $cachedAllHistory;
-                    continue;
-                }
+            try {
+                $data[$period] = [
+                    'appointments' => $this->getAppointmentRevenue($dates[0], $dates[1]) ?? 0,
+                    'departments' => $this->getDepartmentRevenue($dates[0], $dates[1]) ?? 0,
+                    'pharmacy' => $this->getPharmacyRevenue($dates[0], $dates[1]) ?? 0,
+                    'laboratory' => $this->getLaboratoryRevenue($dates[0], $dates[1]) ?? 0,
+                    'total' => 0,
+                ];
+
+                $data[$period]['total'] = $data[$period]['appointments'] +
+                                         $data[$period]['departments'] +
+                                         $data[$period]['pharmacy'] +
+                                         $data[$period]['laboratory'];
+                                         
+                Log::info('WalletController getRevenueData - Period result', [
+                    'period' => $period,
+                    'data' => $data[$period],
+                ]);
+            } catch (\Exception $e) {
+                Log::error('WalletController getRevenueData - Exception for period: ' . $period, [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
                 
-                // Then check for today's cached revenue (fallback)
-                $cachedRevenue = Cache::get('daily_revenue_' . $todayStr);
-                if ($cachedRevenue) {
-                    $data[$period] = $cachedRevenue;
-                    continue;
-                }
+                // Return default structure on error
+                $data[$period] = [
+                    'appointments' => 0,
+                    'departments' => 0,
+                    'pharmacy' => 0,
+                    'laboratory' => 0,
+                    'total' => 0,
+                ];
             }
-
-            $data[$period] = [
-                'appointments' => $this->getAppointmentRevenue($dates[0], $dates[1]),
-                'departments' => $this->getDepartmentRevenue($dates[0], $dates[1]),
-                'pharmacy' => $this->getPharmacyRevenue($dates[0], $dates[1]),
-                'laboratory' => $this->getLaboratoryRevenue($dates[0], $dates[1]),
-                'total' => 0,
-            ];
-
-            $data[$period]['total'] = $data[$period]['appointments'] +
-                                     $data[$period]['departments'] +
-                                     $data[$period]['pharmacy'] +
-                                     $data[$period]['laboratory'];
         }
+
+        // Add day_end_timestamp to the result for frontend reference
+        $data['day_end_timestamp'] = $dayEndTimestamp;
+
+        Log::info('WalletController getRevenueData - Complete', [
+            'data' => $data,
+        ]);
 
         return $data;
     }
@@ -265,6 +295,8 @@ class WalletController extends Controller
      * Calculate today's total revenue from all sources.
      * Includes: laboratory services, department services, pharmacy sales, and appointments.
      * 
+     * Option B: If day_end_timestamp exists, only count transactions AFTER that timestamp.
+     *
      * @param bool $includeAllHistory If true, calculates revenue from ALL dates (ignores date filters)
      */
     public function calculateTodayRevenue(Request $request): JsonResponse
@@ -273,6 +305,17 @@ class WalletController extends Controller
         
         $today = Carbon::today();
         $tomorrow = Carbon::tomorrow();
+        $todayStr = $today->toDateString();
+
+        // Check if day_end_timestamp exists - Option B: Running Total After Day-End
+        $dayEndTimestamp = Cache::get('day_end_timestamp_' . $todayStr);
+
+        Log::info('WalletController calculateTodayRevenue - Request params', [
+            'include_all_history' => $includeAllHistory,
+            'todayStr' => $todayStr,
+            'dayEndTimestamp' => $dayEndTimestamp,
+            'current_time' => now()->toISOString(),
+        ]);
 
         // If include_all_history is true, use a very wide date range to include all data
         if ($includeAllHistory) {
@@ -284,24 +327,57 @@ class WalletController extends Controller
             Cache::forget('daily_revenue_all_history');
             Cache::forget('daily_revenue_calculated_at_all_history');
         } else {
-            $startDate = $today;
+            // Determine effective start time for today queries
+            // If day_end_timestamp exists, only query transactions AFTER that timestamp
+            if ($dayEndTimestamp) {
+                $startDate = Carbon::parse($dayEndTimestamp);
+                Log::info('WalletController calculateTodayRevenue - Day end timestamp found, querying after: ' . $dayEndTimestamp);
+            } else {
+                $startDate = $today;
+            }
             $endDate = $tomorrow;
         }
 
+        Log::info('WalletController calculateTodayRevenue - Date range', [
+            'startDate' => $startDate->toISOString(),
+            'endDate' => $endDate->toISOString(),
+        ]);
+
         // Get revenue from all sources
-        $appointmentsRevenue = $this->getAppointmentRevenue($startDate, $endDate);
-        $departmentsRevenue = $this->getDepartmentRevenue($startDate, $endDate);
-        $pharmacyRevenue = $this->getPharmacyRevenue($startDate, $endDate);
-        $laboratoryRevenue = $this->getLaboratoryRevenue($startDate, $endDate);
+        try {
+            $appointmentsRevenue = $this->getAppointmentRevenue($startDate, $endDate);
+            $departmentsRevenue = $this->getDepartmentRevenue($startDate, $endDate);
+            $pharmacyRevenue = $this->getPharmacyRevenue($startDate, $endDate);
+            $laboratoryRevenue = $this->getLaboratoryRevenue($startDate, $endDate);
+
+            Log::info('WalletController calculateTodayRevenue - Revenue results', [
+                'appointmentsRevenue' => $appointmentsRevenue,
+                'departmentsRevenue' => $departmentsRevenue,
+                'pharmacyRevenue' => $pharmacyRevenue,
+                'laboratoryRevenue' => $laboratoryRevenue,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('WalletController calculateTodayRevenue - Exception during revenue calculation', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to calculate revenue: ' . $e->getMessage(),
+                'revenue' => null,
+            ], 500);
+        }
 
         $totalRevenue = $appointmentsRevenue + $departmentsRevenue + $pharmacyRevenue + $laboratoryRevenue;
 
+        // Ensure we always have a valid revenue object, never null
         $revenueData = [
-            'total' => $totalRevenue,
-            'appointments' => $appointmentsRevenue,
-            'departments' => $departmentsRevenue,
-            'pharmacy' => $pharmacyRevenue,
-            'laboratory' => $laboratoryRevenue,
+            'total' => $totalRevenue ?? 0,
+            'appointments' => $appointmentsRevenue ?? 0,
+            'departments' => $departmentsRevenue ?? 0,
+            'pharmacy' => $pharmacyRevenue ?? 0,
+            'laboratory' => $laboratoryRevenue ?? 0,
         ];
 
         // Store revenue in cache
@@ -318,6 +394,7 @@ class WalletController extends Controller
             'date' => $includeAllHistory ? 'all_history' : $today->toDateString(),
             'include_all_history' => $includeAllHistory,
             'revenue' => $revenueData,
+            'day_end_timestamp' => $dayEndTimestamp,
             'breakdown' => [
                 'appointments_percentage' => $totalRevenue > 0 ? round(($appointmentsRevenue / $totalRevenue) * 100, 2) : 0,
                 'departments_percentage' => $totalRevenue > 0 ? round(($departmentsRevenue / $totalRevenue) * 100, 2) : 0,

@@ -13,6 +13,7 @@ use App\Models\LabTestRequest;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class HospitalDashboardService extends BaseService
 {
@@ -33,41 +34,56 @@ class HospitalDashboardService extends BaseService
         $endOfDay = $today->endOfDay();
         $todayStr = $today->toDateString();
 
-        // Today's appointments
+        // Check if day_end_timestamp exists - Option B: Running Total After Day-End
+        $dayEndTimestamp = Cache::get('day_end_timestamp_' . $todayStr);
+        
+        // Initialize variables
+        $cachedAllHistory = null;
+        $cachedRevenue = null;
+        
+        // Today's appointments - always show actual count regardless of day ended status
+        // Only revenue should be affected by day_end_timestamp
         $todayAppointments = Appointment::whereBetween('appointment_date', [$startOfDay, $endOfDay])->count();
         $completedAppointments = Appointment::whereBetween('appointment_date', [$startOfDay, $endOfDay])
             ->whereIn('status', ['completed', 'confirmed'])->count();
 
         // Revenue calculations - try cache first for today
         // Priority: all-history cache (from refresh button) > today's cache > database
-        $cachedAllHistory = Cache::get('daily_revenue_all_history');
-        $cachedRevenue = Cache::get('daily_revenue_' . $todayStr);
+        // Only affect today's revenue when day_end_timestamp exists
         
-        if ($cachedAllHistory) {
-            // Use all-history cached revenue data (from refresh button)
-            $todayRevenue = $cachedAllHistory['total'] ?? 0;
-            $monthlyRevenue = Payment::whereMonth('created_at', Carbon::now()->month)
-                ->whereYear('created_at', Carbon::now()->year)
-                ->where('status', 'completed')
-                ->sum('amount');
-        } elseif ($cachedRevenue) {
-            // Use today's cached revenue data
-            $todayRevenue = $cachedRevenue['total'] ?? 0;
-            $monthlyRevenue = Payment::whereMonth('created_at', Carbon::now()->month)
-                ->whereYear('created_at', Carbon::now()->year)
-                ->where('status', 'completed')
-                ->sum('amount');
+        if ($dayEndTimestamp) {
+            // Day has ended - only show revenue from transactions AFTER the day_end_timestamp
+            $dayEndCarbon = Carbon::parse($dayEndTimestamp);
+            $todayRevenue = $this->calculateTodayAppointmentRevenue($dayEndCarbon, $endOfDay)
+                + $this->calculateTodayDepartmentRevenue($dayEndCarbon, $endOfDay)
+                + $this->calculateTodayPharmacyRevenue($dayEndCarbon, $endOfDay)
+                + $this->calculateTodayLaboratoryRevenue($dayEndCarbon, $endOfDay);
+            Log::info('HospitalDashboard - Day end timestamp found, querying after: ' . $dayEndTimestamp);
         } else {
-            // Fall back to database calculation
-            $todayRevenue = Payment::whereDate('created_at', $today)
-                ->where('status', 'completed')
-                ->sum('amount');
-
-            $monthlyRevenue = Payment::whereMonth('created_at', Carbon::now()->month)
-                ->whereYear('created_at', Carbon::now()->year)
-                ->where('status', 'completed')
-                ->sum('amount');
+            $cachedAllHistory = Cache::get('daily_revenue_all_history');
+            $cachedRevenue = Cache::get('daily_revenue_' . $todayStr);
+            
+            if ($cachedAllHistory) {
+                // Use all-history cached revenue data (from refresh button)
+                $todayRevenue = $cachedAllHistory['total'] ?? 0;
+            } elseif ($cachedRevenue) {
+                // Use today's cached revenue data
+                $todayRevenue = $cachedRevenue['total'] ?? 0;
+            } else {
+                // Fall back to database calculation using all 4 revenue categories
+                // This matches WalletController logic for consistency
+                $todayRevenue = $this->calculateTodayAppointmentRevenue($startOfDay, $endOfDay)
+                    + $this->calculateTodayDepartmentRevenue($startOfDay, $endOfDay)
+                    + $this->calculateTodayPharmacyRevenue($startOfDay, $endOfDay)
+                    + $this->calculateTodayLaboratoryRevenue($startOfDay, $endOfDay);
+            }
         }
+
+        // Monthly revenue - always calculate from database (not affected by day ended)
+        $monthlyRevenue = Payment::whereMonth('created_at', Carbon::now()->month)
+            ->whereYear('created_at', Carbon::now()->year)
+            ->where('status', 'completed')
+            ->sum('amount');
 
         return [
             'totalActivePatients' => Patient::count(),
@@ -75,8 +91,89 @@ class HospitalDashboardService extends BaseService
             'completedAppointments' => $completedAppointments,
             'todayRevenue' => $todayRevenue,
             'monthlyRevenue' => $monthlyRevenue,
+            'day_end_timestamp' => $dayEndTimestamp,
             'lastUpdated' => Carbon::now()->toIso8601String(),
         ];
+    }
+
+    /**
+     * Calculate appointment revenue for today.
+     */
+    private function calculateTodayAppointmentRevenue(Carbon $start, Carbon $end)
+    {
+        return Appointment::whereIn('status', ['completed', 'confirmed'])
+            ->whereBetween('appointment_date', [$start, $end])
+            ->whereDoesntHave('services')
+            ->where(function ($query) {
+                $query->whereNull('department_id')
+                      ->orWhereNotIn('department_id', function ($subQuery) {
+                          $subQuery->select('id')
+                                   ->from('departments')
+                                   ->where('name', 'Laboratory');
+                      });
+            })
+            ->get()
+            ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
+    }
+
+    /**
+     * Calculate department service revenue for today.
+     */
+    private function calculateTodayDepartmentRevenue(Carbon $start, Carbon $end)
+    {
+        return DB::table('appointment_services')
+            ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+            ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+            ->join('departments', 'department_services.department_id', '=', 'departments.id')
+            ->whereIn('appointments.status', ['completed', 'confirmed'])
+            ->where('departments.name', '!=', 'Laboratory')
+            ->whereBetween('appointment_services.created_at', [$start, $end])
+            ->sum('appointment_services.final_cost') ?? 0;
+    }
+
+    /**
+     * Calculate pharmacy revenue for today.
+     */
+    private function calculateTodayPharmacyRevenue(Carbon $start, Carbon $end)
+    {
+        return Sale::whereBetween('created_at', [$start, $end])
+            ->where('status', 'completed')
+            ->sum('grand_total');
+    }
+
+    /**
+     * Calculate laboratory revenue for today.
+     */
+    private function calculateTodayLaboratoryRevenue(Carbon $start, Carbon $end)
+    {
+        $labTestResultsRevenue = DB::table('lab_test_results')
+            ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
+            ->whereBetween('lab_test_results.performed_at', [$start, $end])
+            ->sum('lab_tests.cost') ?? 0;
+            
+        $appointmentLabServicesRevenue = DB::table('appointment_services')
+            ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+            ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+            ->join('departments', 'department_services.department_id', '=', 'departments.id')
+            ->whereIn('appointments.status', ['completed', 'confirmed'])
+            ->where('departments.name', '=', 'Laboratory')
+            ->whereBetween('appointment_services.created_at', [$start, $end])
+            ->sum('appointment_services.final_cost') ?? 0;
+            
+        $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
+            ->whereBetween('appointment_date', [$start, $end])
+            ->whereDoesntHave('services')
+            ->where(function ($query) {
+                $query->whereIn('department_id', function ($subQuery) {
+                    $subQuery->select('id')
+                             ->from('departments')
+                             ->where('name', 'Laboratory');
+                });
+            })
+            ->get()
+            ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
+            
+        return $labTestResultsRevenue + $appointmentLabServicesRevenue + $labDepartmentAppointmentsRevenue;
     }
 
     /**

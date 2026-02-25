@@ -28,9 +28,17 @@ import {
   TrendingUp,
   Printer,
   Copy,
+  TestTube,
+  Dna,
+  Bacteria,
+  Vial,
+  Droplet,
+  CircleDot,
+  type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { LabTest } from '@/types/lab-test';
+import type { LabTest, ReferenceRange, TestParameter } from '@/types/lab-test';
+import { SampleTypeBadge } from '@/components/laboratory/SampleTypeBadge';
 
 interface LabTestShowProps {
   labTest: LabTest;

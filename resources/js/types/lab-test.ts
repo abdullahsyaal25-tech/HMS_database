@@ -236,8 +236,18 @@ export interface LabTestRequestWithRelations extends LabTestRequest {
     results: LabTestResult[];
 }
 
-// Laboratory Category Types
-export type LabCategory = 'hematology' | 'biochemistry' | 'microbiology' | 'immunology' | 'urinalysis';
+// Laboratory Category Types - 10 categories for comprehensive lab test support
+export type LabCategory = 
+  | 'Hematology' 
+  | 'Biochemistry' 
+  | 'Serology' 
+  | 'Coagulation' 
+  | 'Microbiology' 
+  | 'Molecular' 
+  | 'Urine' 
+  | 'Stool' 
+  | 'Semen' 
+  | 'Special';
 
 export interface LabCategoryConfig {
     label: string;

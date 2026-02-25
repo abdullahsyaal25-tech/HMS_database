@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,10 @@ import {
   FileText,
   TrendingUp,
   TrendingDown,
+  Beaker,
+  Info,
+  Flag,
+  Activity,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -58,9 +63,10 @@ interface LabTest {
   unit: string | null;
   normal_values: string | null;
   category: string;
+  sample_type?: string | null;
 }
 
-interface User {
+interface UserInfo {
   id: number;
   name: string;
   signature?: string;
@@ -94,7 +100,7 @@ interface LabTestResult {
   performed_at: string;
   verified_at: string | null;
   verified_by: number | null;
-  results: string | ResultParameter[];
+  results: string;
   status: 'pending' | 'completed' | 'verified';
   notes: string | null;
   abnormal_flags: string | null;
@@ -103,13 +109,14 @@ interface LabTestResult {
   updated_at: string;
   patient: Patient;
   labTest: LabTest;
-  performedBy: User;
-  verifiedBy?: User;
+  performedBy: UserInfo;
+  verifiedBy?: UserInfo;
   relatedResults?: RelatedResult[];
   previousResult?: {
     performed_at: string;
     results: ResultParameter[];
   };
+  sample_collection_time?: string;
 }
 
 interface LabTestResultShowProps {
@@ -130,19 +137,27 @@ export default function LabTestResultShow({
   const [showVerifyDialog, setShowVerifyDialog] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
 
-  // Parse results from JSON string or use as-is if already an array
   const parsedResults = useMemo(() => {
-    if (Array.isArray(labTestResult.results)) {
-      return labTestResult.results;
-    }
     try {
-      return JSON.parse(labTestResult.results) as ResultParameter[];
+      const parsed = JSON.parse(labTestResult.results);
+      return Object.entries(parsed).map(([key, value]: [string, unknown]) => {
+        const val = value as { value: number; unit: string; status: string; notes?: string };
+        return {
+          parameter_id: key,
+          name: key,
+          value: String(val.value),
+          unit: val.unit || '',
+          referenceMin: 0,
+          referenceMax: 0,
+          status: (val.status as 'normal' | 'abnormal' | 'critical') || 'normal',
+          notes: val.notes || '',
+        };
+      });
     } catch {
       return [];
     }
   }, [labTestResult.results]);
 
-  // Parse previous results for trend comparison
   const previousResults = useMemo(() => {
     if (!labTestResult.previousResult) return {};
     const prev = labTestResult.previousResult.results;
@@ -183,6 +198,14 @@ export default function LabTestResultShow({
     });
   };
 
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  };
+
   const handleVerify = () => {
     router.post(`/laboratory/lab-test-results/${labTestResult.id}/verify`);
     setShowVerifyDialog(false);
@@ -209,13 +232,39 @@ export default function LabTestResultShow({
     return diff > 0 ? 'up' : 'down';
   };
 
+  const isValueInRange = (value: number, min: number, max: number): boolean => {
+    return value >= min && value <= max;
+  };
+
+  const getStatusIcon = (status: 'normal' | 'abnormal' | 'critical') => {
+    switch (status) {
+      case 'normal':
+        return <CheckCircle2 className="h-5 w-5 text-green-600" />;
+      case 'abnormal':
+        return <AlertCircle className="h-5 w-5 text-orange-600" />;
+      case 'critical':
+        return <AlertTriangle className="h-5 w-5 text-red-600" />;
+    }
+  };
+
+  const getStatusBgColor = (status: 'normal' | 'abnormal' | 'critical') => {
+    switch (status) {
+      case 'normal':
+        return 'bg-green-50 border-green-200';
+      case 'abnormal':
+        return 'bg-orange-50 border-orange-200';
+      case 'critical':
+        return 'bg-red-50 border-red-200';
+    }
+  };
+
   return (
     <LaboratoryLayout
       header={
         <div>
           <Heading title={`Lab Test Result: ${labTestResult.result_id}`} />
           <p className="text-muted-foreground mt-1">
-            Full laboratory report
+            Full laboratory report with parameter breakdown
           </p>
         </div>
       }
@@ -228,7 +277,7 @@ export default function LabTestResultShow({
           <div>
             <Heading title={`Lab Test Result: ${labTestResult.result_id}`} />
             <p className="text-muted-foreground mt-1">
-              Full laboratory report
+              Full laboratory report with parameter breakdown
             </p>
           </div>
 
@@ -339,22 +388,6 @@ export default function LabTestResultShow({
           </div>
         </div>
 
-        {/* Print Header - Only visible when printing */}
-        <div className="hidden print:block border-b pb-4 mb-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold">Laboratory Report</h1>
-              <p className="text-muted-foreground">Hospital Management System</p>
-            </div>
-            <div className="text-right">
-              <p className="font-mono text-lg">{labTestResult.result_id}</p>
-              <p className="text-sm text-muted-foreground">
-                Generated: {formatDate(new Date().toISOString())}
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Critical Values Alert */}
         {criticalCount > 0 && (
           <Alert className="bg-red-50 border-red-200">
@@ -415,16 +448,6 @@ export default function LabTestResultShow({
                     <p className="font-medium">{labTestResult.patient?.phone || 'N/A'}</p>
                   </div>
                 </div>
-
-                {labTestResult.patient?.address && (
-                  <>
-                    <Separator />
-                    <div>
-                      <span className="text-muted-foreground block text-xs uppercase tracking-wide">Address</span>
-                      <p className="text-sm">{labTestResult.patient.address}</p>
-                    </div>
-                  </>
-                )}
               </CardContent>
             </Card>
 
@@ -440,13 +463,23 @@ export default function LabTestResultShow({
                 <div>
                   <span className="text-muted-foreground block text-xs uppercase tracking-wide">Test Name</span>
                   <p className="font-semibold text-lg">{labTestResult.labTest?.name ?? 'Unknown Test'}</p>
-                  <p className="text-xs text-muted-foreground">Test ID: {labTestResult.labTest?.test_id ?? 'N/A'}</p>
                 </div>
 
-                {labTestResult.labTest?.description && (
+                {labTestResult.labTest?.category && (
                   <div>
-                    <span className="text-muted-foreground block text-xs uppercase tracking-wide">Description</span>
-                    <p className="text-sm">{labTestResult.labTest.description}</p>
+                    <span className="text-muted-foreground block text-xs uppercase tracking-wide">Category</span>
+                    <div className="mt-1">
+                      <span className="inline-block px-2.5 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
+                        {labTestResult.labTest.category}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {labTestResult.labTest?.sample_type && (
+                  <div>
+                    <span className="text-muted-foreground block text-xs uppercase tracking-wide">Sample Type</span>
+                    <p className="text-sm font-medium">{labTestResult.labTest.sample_type}</p>
                   </div>
                 )}
 
@@ -480,9 +513,6 @@ export default function LabTestResultShow({
                       <p className="text-xs text-green-700 mt-1">
                         by {labTestResult.verifiedBy.name}
                       </p>
-                      <p className="text-xs text-green-700">
-                        {labTestResult.verified_at ? formatDate(labTestResult.verified_at) : 'N/A'}
-                      </p>
                     </div>
                   )}
                 </div>
@@ -496,218 +526,171 @@ export default function LabTestResultShow({
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
                     <p className="text-2xl font-bold text-green-600">{normalCount}</p>
-                    <p className="text-xs text-green-700">Normal</p>
+                    <p className="text-xs text-green-700 font-medium">Normal</p>
                   </div>
-                  <div className="text-center p-3 bg-orange-50 rounded-lg">
+                  <div className="text-center p-3 bg-orange-50 rounded-lg border border-orange-200">
                     <p className="text-2xl font-bold text-orange-600">{abnormalCount - criticalCount}</p>
-                    <p className="text-xs text-orange-700">Abnormal</p>
+                    <p className="text-xs text-orange-700 font-medium">Abnormal</p>
                   </div>
-                  <div className="text-center p-3 bg-red-50 rounded-lg">
+                  <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
                     <p className="text-2xl font-bold text-red-600">{criticalCount}</p>
-                    <p className="text-xs text-red-700">Critical</p>
+                    <p className="text-xs text-red-700 font-medium">Critical</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Related Results */}
-            {labTestResult.relatedResults && labTestResult.relatedResults.length > 0 && (
-              <Card className="print:hidden">
-                <CardHeader>
-                  <CardTitle className="text-lg">Related Results</CardTitle>
-                  <CardDescription>Previous results for this patient</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {labTestResult.relatedResults.map((related) => (
-                      <Link
-                        key={related.id}
-                        href={`/laboratory/lab-test-results/${related.id}`}
-                        className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-                      >
-                        <div>
-                          <p className="font-medium text-sm">{related.result_id}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDateShort(related.performed_at)}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {related.hasAbnormal && (
-                            <AlertCircle className="h-4 w-4 text-lab-abnormal" />
-                          )}
-                          <LabStatusBadge
-                            status={related.status === 'pending' ? 'pending' : related.status === 'completed' ? 'in_progress' : 'completed'}
-                            size="sm"
-                          />
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
-          {/* Right Column - Results Table */}
-          <div className="lg:col-span-2">
+          {/* Right Column - Results */}
+          <div className="lg:col-span-2 space-y-6">
             <Card className="print:shadow-none print:border-0">
               <CardHeader className="print:pb-2">
-                <CardTitle className="text-lg">Test Results</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Beaker className="h-5 w-5" />
+                  Test Results
+                </CardTitle>
                 <CardDescription>
                   Detailed results with reference ranges and status indicators
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Results Table */}
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-muted">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-sm font-medium">Parameter</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium">Result</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium hidden md:table-cell">Reference Range</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
-                        {labTestResult.previousResult && (
-                          <th className="px-4 py-3 text-left text-sm font-medium hidden lg:table-cell">Trend</th>
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {parsedResults.map((result, idx) => {
-                        const trend = getTrend(result.parameter_id, result.value);
-                        return (
-                          <tr
-                            key={idx}
-                            className={cn(
-                              result.status === 'critical' && 'bg-red-50',
-                              result.status === 'abnormal' && 'bg-orange-50/50'
-                            )}
-                          >
-                            <td className="px-4 py-3">
-                              <p className="font-medium">{result.name}</p>
-                              {result.notes && (
-                                <p className="text-xs text-muted-foreground mt-1">{result.notes}</p>
+                <Tabs defaultValue="table" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 print:hidden">
+                    <TabsTrigger value="table">Table View</TabsTrigger>
+                    <TabsTrigger value="detailed">Detailed View</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="table" className="mt-4">
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full">
+                        <thead className="bg-muted">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-sm font-medium">Parameter</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium">Result</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {parsedResults.map((result, idx) => (
+                            <tr
+                              key={idx}
+                              className={cn(
+                                result.status === 'critical' && 'bg-red-50',
+                                result.status === 'abnormal' && 'bg-orange-50/50'
                               )}
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <span className={cn(
-                                  'font-semibold',
-                                  result.status === 'normal' && 'text-lab-normal',
-                                  result.status === 'abnormal' && 'text-lab-abnormal',
-                                  result.status === 'critical' && 'text-lab-critical',
-                                )}>
-                                  {result.value}
-                                </span>
-                                <span className="text-sm text-muted-foreground">{result.unit}</span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-sm text-muted-foreground hidden md:table-cell">
-                              {result.referenceMin} - {result.referenceMax} {result.unit}
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                {result.status === 'normal' && <CheckCircle2 className="h-4 w-4 text-lab-normal" />}
-                                {result.status === 'abnormal' && <AlertCircle className="h-4 w-4 text-lab-abnormal" />}
-                                {result.status === 'critical' && <AlertTriangle className="h-4 w-4 text-lab-critical" />}
-                                <span className={cn(
-                                  'text-sm font-medium capitalize',
-                                  result.status === 'normal' && 'text-lab-normal',
-                                  result.status === 'abnormal' && 'text-lab-abnormal',
-                                  result.status === 'critical' && 'text-lab-critical',
-                                )}>
-                                  {result.status}
-                                </span>
-                              </div>
-                            </td>
-                            {labTestResult.previousResult && (
-                              <td className="px-4 py-3 hidden lg:table-cell">
-                                {trend && (
-                                  <div className="flex items-center gap-1">
-                                    {trend === 'up' && (
-                                      <>
-                                        <TrendingUp className="h-4 w-4 text-lab-abnormal" />
-                                        <span className="text-xs text-lab-abnormal">Increased</span>
-                                      </>
-                                    )}
-                                    {trend === 'down' && (
-                                      <>
-                                        <TrendingDown className="h-4 w-4 text-lab-normal" />
-                                        <span className="text-xs text-lab-normal">Decreased</span>
-                                      </>
-                                    )}
-                                    {trend === 'stable' && (
-                                      <span className="text-xs text-muted-foreground">No change</span>
-                                    )}
-                                  </div>
+                            >
+                              <td className="px-4 py-3">
+                                <p className="font-medium">{result.name}</p>
+                                {result.notes && (
+                                  <p className="text-xs text-muted-foreground mt-1">{result.notes}</p>
                                 )}
                               </td>
-                            )}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <span className={cn(
+                                    'font-semibold',
+                                    result.status === 'normal' && 'text-green-600',
+                                    result.status === 'abnormal' && 'text-orange-600',
+                                    result.status === 'critical' && 'text-red-600',
+                                  )}>
+                                    {result.value}
+                                  </span>
+                                  <span className="text-sm text-muted-foreground">{result.unit}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  {result.status === 'normal' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                                  {result.status === 'abnormal' && <AlertCircle className="h-4 w-4 text-orange-600" />}
+                                  {result.status === 'critical' && <AlertTriangle className="h-4 w-4 text-red-600" />}
+                                  <span className={cn(
+                                    'text-sm font-medium capitalize',
+                                    result.status === 'normal' && 'text-green-600',
+                                    result.status === 'abnormal' && 'text-orange-600',
+                                    result.status === 'critical' && 'text-red-600',
+                                  )}>
+                                    {result.status}
+                                  </span>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </TabsContent>
 
-                {/* Interpretation */}
-                {(labTestResult.interpretation || labTestResult.notes) && (
-                  <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                  <TabsContent value="detailed" className="mt-4">
+                    <div className="space-y-4">
+                      {parsedResults.map((result, idx) => (
+                        <div
+                          key={idx}
+                          className={cn(
+                            'p-4 rounded-lg border',
+                            getStatusBgColor(result.status)
+                          )}
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-start gap-3 flex-1">
+                              {getStatusIcon(result.status)}
+                              <div>
+                                <h4 className="font-semibold text-base">{result.name}</h4>
+                              </div>
+                            </div>
+                            <div className={cn(
+                              'px-3 py-1 rounded-full text-sm font-semibold capitalize',
+                              result.status === 'normal' && 'bg-green-100 text-green-700',
+                              result.status === 'abnormal' && 'bg-orange-100 text-orange-700',
+                              result.status === 'critical' && 'bg-red-100 text-red-700',
+                            )}>
+                              {result.status}
+                            </div>
+                          </div>
+
+                          <Separator className="my-3" />
+
+                          <div className="flex items-center gap-4">
+                            <div>
+                              <span className="text-muted-foreground block text-xs uppercase tracking-wide font-medium">Result</span>
+                              <p className={cn(
+                                'text-2xl font-bold mt-1',
+                                result.status === 'normal' && 'text-green-600',
+                                result.status === 'abnormal' && 'text-orange-600',
+                                result.status === 'critical' && 'text-red-600',
+                              )}>
+                                {result.value} <span className="text-lg text-muted-foreground">{result.unit}</span>
+                              </p>
+                            </div>
+                          </div>
+
+                          {result.notes && (
+                            <div className="mt-3 pt-3 border-t">
+                              <div className="flex gap-2">
+                                <Flag className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                                <div>
+                                  <span className="text-muted-foreground text-xs uppercase tracking-wide font-medium block">Notes</span>
+                                  <p className="text-sm mt-1">{result.notes}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+
+                {labTestResult.notes && (
+                  <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
                     <h4 className="font-medium mb-2 flex items-center gap-2">
                       <FileText className="h-4 w-4" />
-                      Interpretation / Notes
+                      Additional Notes
                     </h4>
-                    {labTestResult.interpretation && (
-                      <p className="text-sm mb-2">{labTestResult.interpretation}</p>
-                    )}
-                    {labTestResult.notes && (
-                      <p className="text-sm text-muted-foreground">{labTestResult.notes}</p>
-                    )}
+                    <p className="text-sm text-muted-foreground">{labTestResult.notes}</p>
                   </div>
                 )}
-
-                {/* Legend */}
-                <div className="mt-6 flex flex-wrap gap-4 text-sm print:hidden">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span>Normal</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                    <span>Abnormal</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                    <span>Critical</span>
-                  </div>
-                </div>
-
-                {/* Print Footer - Only visible when printing */}
-                <div className="hidden print:block mt-8 pt-4 border-t">
-                  <div className="flex justify-between items-end">
-                    <div>
-                      <p className="text-sm font-medium">Performed by:</p>
-                      <p className="text-sm">{labTestResult.performedBy?.name || 'Unknown'}</p>
-                      {labTestResult.performedBy?.signature && (
-                        <p className="text-xs text-muted-foreground mt-1">{labTestResult.performedBy.signature}</p>
-                      )}
-                    </div>
-                    {isVerified && labTestResult.verifiedBy && (
-                      <div className="text-right">
-                        <p className="text-sm font-medium">Verified by:</p>
-                        <p className="text-sm">{labTestResult.verifiedBy.name}</p>
-                        {labTestResult.verifiedBy.signature && (
-                          <p className="text-xs text-muted-foreground mt-1">{labTestResult.verifiedBy.signature}</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground text-center mt-8">
-                    This is a computer-generated report and does not require a physical signature.
-                  </p>
-                </div>
               </CardContent>
             </Card>
           </div>

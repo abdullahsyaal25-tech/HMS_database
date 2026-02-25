@@ -120,10 +120,89 @@ class DashboardService
         $todayStr = Carbon::today()->toDateString();
         
         $appointmentRevenue = 0;
+        $departmentRevenue = 0;
         $pharmacyRevenue = 0;
+        $laboratoryRevenue = 0;
         $totalRevenue = 0;
         
-        if ($isToday) {
+        // Check if day_end_timestamp exists - Option B: Running Total After Day-End
+        $dayEndTimestamp = Cache::get('day_end_timestamp_' . $todayStr);
+        
+        // Determine effective start time for today queries
+        $effectiveStart = $start;
+        $effectiveEnd = $end;
+        
+        if ($isToday && $dayEndTimestamp) {
+            // Only query transactions AFTER the day_end_timestamp
+            $effectiveStart = Carbon::parse($dayEndTimestamp);
+            Log::info('Dashboard Summary Stats - Day end timestamp found, querying after: ' . $dayEndTimestamp);
+        }
+        
+        if ($isToday && $dayEndTimestamp) {
+            // Day has ended, only show revenue from transactions AFTER the day_end_timestamp
+            Log::info('Dashboard Summary Stats - Using day_end_timestamp, querying after: ' . $dayEndTimestamp);
+            // Appointment revenue (excluding lab department) - query after day_end_timestamp
+            $appointmentRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
+                ->whereBetween('appointment_date', [$effectiveStart, $effectiveEnd])
+                ->whereDoesntHave('services')
+                ->where(function ($query) {
+                    $query->whereNull('department_id')
+                          ->orWhereNotIn('department_id', function ($subQuery) {
+                              $subQuery->select('id')
+                                       ->from('departments')
+                                       ->where('name', 'Laboratory');
+                          });
+                })
+                ->get()
+                ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
+                
+            // Department revenue (non-Laboratory services) - query after day_end_timestamp
+            $departmentRevenue = DB::table('appointment_services')
+                ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+                ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+                ->join('departments', 'department_services.department_id', '=', 'departments.id')
+                ->whereIn('appointments.status', ['completed', 'confirmed'])
+                ->where('departments.name', '!=', 'Laboratory')
+                ->whereBetween('appointment_services.created_at', [$effectiveStart, $effectiveEnd])
+                ->sum('appointment_services.final_cost') ?? 0;
+                
+            // Pharmacy revenue - query after day_end_timestamp
+            $pharmacyRevenue = Sale::whereBetween('created_at', [$effectiveStart, $effectiveEnd])
+                ->where('status', 'completed')
+                ->sum('grand_total');
+            
+            // Laboratory revenue - query after day_end_timestamp
+            $labTestResultsRevenue = DB::table('lab_test_results')
+                ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
+                ->whereBetween('lab_test_results.performed_at', [$effectiveStart, $effectiveEnd])
+                ->sum('lab_tests.cost') ?? 0;
+                
+            $appointmentLabServicesRevenue = DB::table('appointment_services')
+                ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+                ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+                ->join('departments', 'department_services.department_id', '=', 'departments.id')
+                ->whereIn('appointments.status', ['completed', 'confirmed'])
+                ->where('departments.name', '=', 'Laboratory')
+                ->whereBetween('appointment_services.created_at', [$effectiveStart, $effectiveEnd])
+                ->sum('appointment_services.final_cost') ?? 0;
+                
+            $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
+                ->whereBetween('appointment_date', [$effectiveStart, $effectiveEnd])
+                ->whereDoesntHave('services')
+                ->where(function ($query) {
+                    $query->whereIn('department_id', function ($subQuery) {
+                        $subQuery->select('id')
+                                 ->from('departments')
+                                 ->where('name', 'Laboratory');
+                    });
+                })
+                ->get()
+                ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
+                
+            $laboratoryRevenue = $labTestResultsRevenue + $appointmentLabServicesRevenue + $labDepartmentAppointmentsRevenue;
+            
+            $totalRevenue = $appointmentRevenue + $departmentRevenue + $pharmacyRevenue + $laboratoryRevenue;
+        } elseif ($isToday) {
             // Try to get from cache - check all-history first (for refresh button), then today's cache
             $cachedAllHistory = Cache::get('daily_revenue_all_history');
             $cachedRevenue = Cache::get('daily_revenue_' . $todayStr);
@@ -132,47 +211,159 @@ class DashboardService
             if ($cachedAllHistory) {
                 // Use all-history cached revenue data (from refresh button)
                 $appointmentRevenue = $cachedAllHistory['appointments'] ?? 0;
+                $departmentRevenue = $cachedAllHistory['departments'] ?? 0;
                 $pharmacyRevenue = $cachedAllHistory['pharmacy'] ?? 0;
-                $totalRevenue = $cachedAllHistory['total'] ?? ($appointmentRevenue + $pharmacyRevenue);
+                $laboratoryRevenue = $cachedAllHistory['laboratory'] ?? 0;
+                $totalRevenue = $cachedAllHistory['total'] ?? ($appointmentRevenue + $departmentRevenue + $pharmacyRevenue + $laboratoryRevenue);
                 Log::info('Dashboard Summary Stats - Using all-history cached revenue:', [
                     'appointments' => $appointmentRevenue,
+                    'departments' => $departmentRevenue,
                     'pharmacy' => $pharmacyRevenue,
+                    'laboratory' => $laboratoryRevenue,
                     'total' => $totalRevenue,
                 ]);
             } elseif ($cachedRevenue) {
                 // Use today's cached revenue data
                 $appointmentRevenue = $cachedRevenue['appointments'] ?? 0;
+                $departmentRevenue = $cachedRevenue['departments'] ?? 0;
                 $pharmacyRevenue = $cachedRevenue['pharmacy'] ?? 0;
-                $totalRevenue = $cachedRevenue['total'] ?? ($appointmentRevenue + $pharmacyRevenue);
+                $laboratoryRevenue = $cachedRevenue['laboratory'] ?? 0;
+                $totalRevenue = $cachedRevenue['total'] ?? ($appointmentRevenue + $departmentRevenue + $pharmacyRevenue + $laboratoryRevenue);
                 Log::info('Dashboard Summary Stats - Using cached revenue:', [
                     'appointments' => $appointmentRevenue,
+                    'departments' => $departmentRevenue,
                     'pharmacy' => $pharmacyRevenue,
+                    'laboratory' => $laboratoryRevenue,
                     'total' => $totalRevenue,
                 ]);
             } else {
                 // Fall back to database query if cache is empty
                 Log::info('Dashboard Summary Stats - Cache miss, calculating from database');
-                $appointmentRevenue = Appointment::whereBetween('appointment_date', $dateRange)
-                    ->whereIn('status', ['completed', 'confirmed'])
-                    ->sum('fee');
+                // Appointment revenue (excluding lab department)
+                $appointmentRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
+                    ->whereBetween('appointment_date', $dateRange)
+                    ->whereDoesntHave('services')
+                    ->where(function ($query) {
+                        $query->whereNull('department_id')
+                              ->orWhereNotIn('department_id', function ($subQuery) {
+                                  $subQuery->select('id')
+                                           ->from('departments')
+                                           ->where('name', 'Laboratory');
+                              });
+                    })
+                    ->get()
+                    ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
                     
+                // Department revenue (non-Laboratory services)
+                $departmentRevenue = DB::table('appointment_services')
+                    ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+                    ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+                    ->join('departments', 'department_services.department_id', '=', 'departments.id')
+                    ->whereIn('appointments.status', ['completed', 'confirmed'])
+                    ->where('departments.name', '!=', 'Laboratory')
+                    ->whereBetween('appointment_services.created_at', $dateRange)
+                    ->sum('appointment_services.final_cost') ?? 0;
+                    
+                // Pharmacy revenue
                 $pharmacyRevenue = Sale::whereBetween('created_at', $dateRange)
                     ->where('status', 'completed')
                     ->sum('grand_total');
                 
-                $totalRevenue = $appointmentRevenue + $pharmacyRevenue;
+                // Laboratory revenue
+                $labTestResultsRevenue = DB::table('lab_test_results')
+                    ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
+                    ->whereBetween('lab_test_results.performed_at', $dateRange)
+                    ->sum('lab_tests.cost') ?? 0;
+                    
+                $appointmentLabServicesRevenue = DB::table('appointment_services')
+                    ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+                    ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+                    ->join('departments', 'department_services.department_id', '=', 'departments.id')
+                    ->whereIn('appointments.status', ['completed', 'confirmed'])
+                    ->where('departments.name', '=', 'Laboratory')
+                    ->whereBetween('appointment_services.created_at', $dateRange)
+                    ->sum('appointment_services.final_cost') ?? 0;
+                    
+                $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
+                    ->whereBetween('appointment_date', $dateRange)
+                    ->whereDoesntHave('services')
+                    ->where(function ($query) {
+                        $query->whereIn('department_id', function ($subQuery) {
+                            $subQuery->select('id')
+                                     ->from('departments')
+                                     ->where('name', 'Laboratory');
+                        });
+                    })
+                    ->get()
+                    ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
+                    
+                $laboratoryRevenue = $labTestResultsRevenue + $appointmentLabServicesRevenue + $labDepartmentAppointmentsRevenue;
+                
+                $totalRevenue = $appointmentRevenue + $departmentRevenue + $pharmacyRevenue + $laboratoryRevenue;
             }
         } else {
             // For non-today periods, calculate from database
-            $appointmentRevenue = Appointment::whereBetween('appointment_date', $dateRange)
-                ->whereIn('status', ['completed', 'confirmed'])
-                ->sum('fee');
+            // Appointment revenue (excluding lab department)
+            $appointmentRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
+                ->whereBetween('appointment_date', $dateRange)
+                ->whereDoesntHave('services')
+                ->where(function ($query) {
+                    $query->whereNull('department_id')
+                          ->orWhereNotIn('department_id', function ($subQuery) {
+                              $subQuery->select('id')
+                                       ->from('departments')
+                                       ->where('name', 'Laboratory');
+                          });
+                })
+                ->get()
+                ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
                 
+            // Department revenue (non-Laboratory services)
+            $departmentRevenue = DB::table('appointment_services')
+                ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+                ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+                ->join('departments', 'department_services.department_id', '=', 'departments.id')
+                ->whereIn('appointments.status', ['completed', 'confirmed'])
+                ->where('departments.name', '!=', 'Laboratory')
+                ->whereBetween('appointment_services.created_at', $dateRange)
+                ->sum('appointment_services.final_cost') ?? 0;
+                
+            // Pharmacy revenue
             $pharmacyRevenue = Sale::whereBetween('created_at', $dateRange)
                 ->where('status', 'completed')
                 ->sum('grand_total');
             
-            $totalRevenue = $appointmentRevenue + $pharmacyRevenue;
+            // Laboratory revenue
+            $labTestResultsRevenue = DB::table('lab_test_results')
+                ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
+                ->whereBetween('lab_test_results.performed_at', $dateRange)
+                ->sum('lab_tests.cost') ?? 0;
+                
+            $appointmentLabServicesRevenue = DB::table('appointment_services')
+                ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+                ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+                ->join('departments', 'department_services.department_id', '=', 'departments.id')
+                ->whereIn('appointments.status', ['completed', 'confirmed'])
+                ->where('departments.name', '=', 'Laboratory')
+                ->whereBetween('appointment_services.created_at', $dateRange)
+                ->sum('appointment_services.final_cost') ?? 0;
+                
+            $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
+                ->whereBetween('appointment_date', $dateRange)
+                ->whereDoesntHave('services')
+                ->where(function ($query) {
+                    $query->whereIn('department_id', function ($subQuery) {
+                        $subQuery->select('id')
+                                 ->from('departments')
+                                 ->where('name', 'Laboratory');
+                    });
+                })
+                ->get()
+                ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
+                
+            $laboratoryRevenue = $labTestResultsRevenue + $appointmentLabServicesRevenue + $labDepartmentAppointmentsRevenue;
+            
+            $totalRevenue = $appointmentRevenue + $departmentRevenue + $pharmacyRevenue + $laboratoryRevenue;
         }
         
         return [
@@ -186,7 +377,9 @@ class DashboardService
                 ->count(),
             'total_revenue' => $totalRevenue,
             'appointment_revenue' => $appointmentRevenue,
+            'department_revenue' => $departmentRevenue,
             'pharmacy_revenue' => $pharmacyRevenue,
+            'laboratory_revenue' => $laboratoryRevenue,
         ];
     }
 
@@ -298,14 +491,147 @@ class DashboardService
     {
         [$start, $end] = $dateRange;
         
-        // Revenue breakdown - use consistent column names (grand_total)
-        $appointmentRevenue = Appointment::whereBetween('appointment_date', $dateRange)
-            ->whereIn('status', ['completed', 'confirmed'])
-            ->sum('fee');
+        // Check if this is "today" period and day_end_timestamp exists
+        $isToday = $start->isToday() && $end->isToday();
+        $todayStr = Carbon::today()->toDateString();
+        $dayEndTimestamp = Cache::get('day_end_timestamp_' . $todayStr);
+        
+        // Determine effective start time for today queries
+        $effectiveStart = $start;
+        $effectiveEnd = $end;
+        
+        if ($isToday && $dayEndTimestamp) {
+            // Only query transactions AFTER the day_end_timestamp
+            $effectiveStart = Carbon::parse($dayEndTimestamp);
+            Log::info('Dashboard Financial Stats - Day end timestamp found, querying after: ' . $dayEndTimestamp);
+        }
+        
+        // If today and day_end_timestamp exists, show revenue from transactions AFTER that timestamp
+        if ($isToday && $dayEndTimestamp) {
+            Log::info('Dashboard Financial Stats - Using day_end_timestamp, querying after: ' . $dayEndTimestamp);
+            // Revenue breakdown - use consistent column names (grand_total)
+            // Appointment revenue (doctor consultation fees, excluding lab dept)
+            $appointmentRevenue = Appointment::whereBetween('appointment_date', [$effectiveStart, $effectiveEnd])
+                ->whereIn('status', ['completed', 'confirmed'])
+                ->whereDoesntHave('services')
+                ->where(function ($query) {
+                    $query->whereNull('department_id')
+                          ->orWhereNotIn('department_id', function ($subQuery) {
+                              $subQuery->select('id')
+                                       ->from('departments')
+                                       ->where('name', 'Laboratory');
+                          });
+                })
+                ->get()
+                ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
+                
+            // Department revenue (non-Laboratory department services)
+            $departmentRevenue = DB::table('appointment_services')
+                ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+                ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+                ->join('departments', 'department_services.department_id', '=', 'departments.id')
+                ->whereIn('appointments.status', ['completed', 'confirmed'])
+                ->where('departments.name', '!=', 'Laboratory')
+                ->whereBetween('appointment_services.created_at', [$effectiveStart, $effectiveEnd])
+                ->sum('appointment_services.final_cost') ?? 0;
+                
+            // Pharmacy revenue
+            $pharmacyRevenue = Sale::whereBetween('created_at', [$effectiveStart, $effectiveEnd])
+                ->where('status', 'completed')
+                ->sum('grand_total');
             
-        $pharmacyRevenue = Sale::whereBetween('created_at', $dateRange)
-            ->where('status', 'completed')
-            ->sum('grand_total');
+            // Laboratory revenue (lab tests + lab department services + lab appointments)
+            $labTestResultsRevenue = DB::table('lab_test_results')
+                ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
+                ->whereBetween('lab_test_results.performed_at', [$effectiveStart, $effectiveEnd])
+                ->sum('lab_tests.cost') ?? 0;
+                
+            $appointmentLabServicesRevenue = DB::table('appointment_services')
+                ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+                ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+                ->join('departments', 'department_services.department_id', '=', 'departments.id')
+                ->whereIn('appointments.status', ['completed', 'confirmed'])
+                ->where('departments.name', '=', 'Laboratory')
+                ->whereBetween('appointment_services.created_at', [$effectiveStart, $effectiveEnd])
+                ->sum('appointment_services.final_cost') ?? 0;
+                
+            $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
+                ->whereBetween('appointment_date', [$effectiveStart, $effectiveEnd])
+                ->whereDoesntHave('services')
+                ->where(function ($query) {
+                    $query->whereIn('department_id', function ($subQuery) {
+                        $subQuery->select('id')
+                                 ->from('departments')
+                                 ->where('name', 'Laboratory');
+                    });
+                })
+                ->get()
+                ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
+            
+            $laboratoryRevenue = $labTestResultsRevenue + $appointmentLabServicesRevenue + $labDepartmentAppointmentsRevenue;
+        } else {
+            // For normal queries (no day_end_timestamp), use the full date range
+            // Revenue breakdown - use consistent column names (grand_total)
+            // Appointment revenue (doctor consultation fees, excluding lab dept)
+            $appointmentRevenue = Appointment::whereBetween('appointment_date', $dateRange)
+                ->whereIn('status', ['completed', 'confirmed'])
+                ->whereDoesntHave('services')
+                ->where(function ($query) {
+                    $query->whereNull('department_id')
+                          ->orWhereNotIn('department_id', function ($subQuery) {
+                              $subQuery->select('id')
+                                       ->from('departments')
+                                       ->where('name', 'Laboratory');
+                          });
+                })
+                ->get()
+                ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
+            
+            // Department revenue (non-Laboratory department services)
+            $departmentRevenue = DB::table('appointment_services')
+                ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+                ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+                ->join('departments', 'department_services.department_id', '=', 'departments.id')
+                ->whereIn('appointments.status', ['completed', 'confirmed'])
+                ->where('departments.name', '!=', 'Laboratory')
+                ->whereBetween('appointment_services.created_at', $dateRange)
+                ->sum('appointment_services.final_cost') ?? 0;
+                
+            // Pharmacy revenue
+            $pharmacyRevenue = Sale::whereBetween('created_at', $dateRange)
+                ->where('status', 'completed')
+                ->sum('grand_total');
+            
+            // Laboratory revenue (lab tests + lab department services + lab appointments)
+            $labTestResultsRevenue = DB::table('lab_test_results')
+                ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
+                ->whereBetween('lab_test_results.performed_at', $dateRange)
+                ->sum('lab_tests.cost') ?? 0;
+                
+            $appointmentLabServicesRevenue = DB::table('appointment_services')
+                ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+                ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+                ->join('departments', 'department_services.department_id', '=', 'departments.id')
+                ->whereIn('appointments.status', ['completed', 'confirmed'])
+                ->where('departments.name', '=', 'Laboratory')
+                ->whereBetween('appointment_services.created_at', $dateRange)
+                ->sum('appointment_services.final_cost') ?? 0;
+                
+            $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
+                ->whereBetween('appointment_date', $dateRange)
+                ->whereDoesntHave('services')
+                ->where(function ($query) {
+                    $query->whereIn('department_id', function ($subQuery) {
+                        $subQuery->select('id')
+                                 ->from('departments')
+                                 ->where('name', 'Laboratory');
+                    });
+                })
+                ->get()
+                ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
+                
+            $laboratoryRevenue = $labTestResultsRevenue + $appointmentLabServicesRevenue + $labDepartmentAppointmentsRevenue;
+        }
         
         // Payment methods
         $paymentMethods = Payment::whereBetween('created_at', $dateRange)
@@ -322,9 +648,11 @@ class DashboardService
             ->toArray();
         
         return [
-            'total_revenue' => $appointmentRevenue + $pharmacyRevenue,
+            'total_revenue' => $appointmentRevenue + $departmentRevenue + $pharmacyRevenue + $laboratoryRevenue,
             'appointment_revenue' => $appointmentRevenue,
+            'department_revenue' => $departmentRevenue,
             'pharmacy_revenue' => $pharmacyRevenue,
+            'laboratory_revenue' => $laboratoryRevenue,
             'payment_methods' => $paymentMethods,
         ];
     }

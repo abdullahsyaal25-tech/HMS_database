@@ -95,33 +95,7 @@ const laboratoryNavItems: (NavItem & { permission?: string })[] = [
         href: '/laboratory',
         icon: LayoutGrid,
     },
-    {
-        title: 'Work Queue',
-        href: '/laboratory/lab-test-requests?status=pending',
-        icon: ClipboardList,
-        items: [
-            {
-                title: 'Pending',
-                href: '/laboratory/lab-test-requests?status=pending',
-                icon: Clock,
-            },
-            {
-                title: 'In Progress',
-                href: '/laboratory/lab-test-requests?status=in_progress',
-                icon: Activity,
-            },
-            {
-                title: 'STAT Requests',
-                href: '/laboratory/lab-test-requests?test_type=stat',
-                icon: Zap,
-            },
-            {
-                title: 'All Requests',
-                href: '/laboratory/lab-test-requests',
-                icon: ClipboardList,
-            },
-        ],
-    },
+ 
     {
         title: 'Test Requests',
         href: '/laboratory/lab-test-requests',
@@ -154,16 +128,6 @@ const laboratoryNavItems: (NavItem & { permission?: string })[] = [
                 href: '/laboratory/lab-test-results/create',
                 icon: Plus,
             },
-            {
-                title: 'Critical Results',
-                href: '/laboratory/lab-test-results?status=critical',
-                icon: AlertTriangle,
-            },
-            {
-                title: 'Abnormal Results',
-                href: '/laboratory/lab-test-results?status=abnormal',
-                icon: AlertCircle,
-            },
         ],
     },
     {
@@ -181,28 +145,7 @@ const laboratoryNavItems: (NavItem & { permission?: string })[] = [
                 href: '/laboratory/lab-tests/create',
                 icon: Plus,
             },
-            {
-                title: 'Hematology',
-                href: '/laboratory/lab-tests?category=hematology',
-                icon: Droplets,
-            },
-            {
-                title: 'Biochemistry',
-                href: '/laboratory/lab-tests?category=biochemistry',
-                icon: Beaker,
-            },
-            {
-                title: 'Microbiology',
-                href: '/laboratory/lab-tests?category=microbiology',
-                icon: Microscope,
-            },
         ],
-    },
-    {
-        title: 'Quality Control',
-        href: '/laboratory/quality-control',
-        icon: CheckCircle2,
-        permission: 'laboratory.quality.view',
     },
     {
         title: 'Reports',

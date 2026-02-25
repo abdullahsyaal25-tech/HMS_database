@@ -20,9 +20,13 @@ import {
   CheckCircle2,
   AlertTriangle,
   Clock,
+  Droplet,
+  Beaker,
+  Info,
 } from 'lucide-react';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import type { LabTest } from '@/types/lab-test';
 
 interface Patient {
   id: number;
@@ -34,15 +38,23 @@ interface Patient {
   blood_group: string | null;
 }
 
-interface LabTest {
-  id: number;
-  test_id: string;
+interface TestParameter {
   name: string;
-  category: string;
-  unit: string | null;
-  normal_values: string | null;
-  parameters?: TestParameter[];
+  unit: string;
+  description?: string;
 }
+
+interface ReferenceRange {
+  min?: number;
+  max?: number;
+  unit?: string;
+  values?: string[];
+  male?: { min?: number; max?: number; };
+  female?: { min?: number; max?: number; };
+  critical_low?: number;
+  critical_high?: number;
+}
+
 interface LabTestRequest {
   id: number;
   request_id: string;
@@ -51,16 +63,6 @@ interface LabTestRequest {
   status: string;
   patient: Patient;
 }
-interface TestParameter {
-  id: string;
-  name: string;
-  unit: string;
-  referenceMin: number;
-  referenceMax: number;
-  isCriticalLow?: number;
-  isCriticalHigh?: number;
-}
-
 
 interface PatientTestRequest {
   test_name: string;
@@ -80,56 +82,19 @@ interface ResultParameter {
   name: string;
   value: string;
   unit: string;
-  referenceMin: number;
-  referenceMax: number;
+  referenceMin?: number;
+  referenceMax?: number;
+  genderSpecific?: boolean;
   status: 'normal' | 'abnormal' | 'critical' | 'pending';
   notes: string;
 }
 
-// Predefined test templates with parameters
-const testTemplates: Record<string, TestParameter[]> = {
-  'CBC': [
-    { id: 'wbc', name: 'WBC', unit: '10³/μL', referenceMin: 4.5, referenceMax: 11.0, isCriticalLow: 2.0, isCriticalHigh: 30.0 },
-    { id: 'rbc', name: 'RBC', unit: '10⁶/μL', referenceMin: 4.5, referenceMax: 5.5, isCriticalLow: 2.0, isCriticalHigh: 8.0 },
-    { id: 'hgb', name: 'Hemoglobin', unit: 'g/dL', referenceMin: 13.5, referenceMax: 17.5, isCriticalLow: 7.0, isCriticalHigh: 20.0 },
-    { id: 'hct', name: 'Hematocrit', unit: '%', referenceMin: 38.0, referenceMax: 50.0, isCriticalLow: 20.0, isCriticalHigh: 60.0 },
-    { id: 'plt', name: 'Platelets', unit: '10³/μL', referenceMin: 150, referenceMax: 400, isCriticalLow: 50, isCriticalHigh: 1000 },
-    { id: 'mcv', name: 'MCV', unit: 'fL', referenceMin: 80, referenceMax: 100 },
-    { id: 'mch', name: 'MCH', unit: 'pg', referenceMin: 27, referenceMax: 33 },
-    { id: 'mchc', name: 'MCHC', unit: 'g/dL', referenceMin: 32, referenceMax: 36 },
-  ],
-  'BMP': [
-    { id: 'glucose', name: 'Glucose', unit: 'mg/dL', referenceMin: 70, referenceMax: 100, isCriticalLow: 40, isCriticalHigh: 400 },
-    { id: 'bun', name: 'BUN', unit: 'mg/dL', referenceMin: 7, referenceMax: 20 },
-    { id: 'creatinine', name: 'Creatinine', unit: 'mg/dL', referenceMin: 0.6, referenceMax: 1.2, isCriticalHigh: 10 },
-    { id: 'sodium', name: 'Sodium', unit: 'mEq/L', referenceMin: 135, referenceMax: 145, isCriticalLow: 120, isCriticalHigh: 160 },
-    { id: 'potassium', name: 'Potassium', unit: 'mEq/L', referenceMin: 3.5, referenceMax: 5.0, isCriticalLow: 2.5, isCriticalHigh: 6.5 },
-    { id: 'chloride', name: 'Chloride', unit: 'mEq/L', referenceMin: 98, referenceMax: 106 },
-    { id: 'co2', name: 'CO2', unit: 'mEq/L', referenceMin: 23, referenceMax: 29 },
-    { id: 'calcium', name: 'Calcium', unit: 'mg/dL', referenceMin: 8.5, referenceMax: 10.5 },
-  ],
-  'Lipid': [
-    { id: 'total_chol', name: 'Total Cholesterol', unit: 'mg/dL', referenceMin: 0, referenceMax: 200 },
-    { id: 'ldl', name: 'LDL Cholesterol', unit: 'mg/dL', referenceMin: 0, referenceMax: 100 },
-    { id: 'hdl', name: 'HDL Cholesterol', unit: 'mg/dL', referenceMin: 40, referenceMax: 200 },
-    { id: 'triglycerides', name: 'Triglycerides', unit: 'mg/dL', referenceMin: 0, referenceMax: 150 },
-  ],
-  'LFT': [
-    { id: 'alt', name: 'ALT', unit: 'U/L', referenceMin: 7, referenceMax: 56 },
-    { id: 'ast', name: 'AST', unit: 'U/L', referenceMin: 10, referenceMax: 40 },
-    { id: 'alp', name: 'ALP', unit: 'U/L', referenceMin: 44, referenceMax: 147 },
-    { id: 'bilirubin_total', name: 'Total Bilirubin', unit: 'mg/dL', referenceMin: 0.1, referenceMax: 1.2, isCriticalHigh: 15 },
-    { id: 'bilirubin_direct', name: 'Direct Bilirubin', unit: 'mg/dL', referenceMin: 0, referenceMax: 0.3 },
-    { id: 'albumin', name: 'Albumin', unit: 'g/dL', referenceMin: 3.5, referenceMax: 5.0 },
-    { id: 'total_protein', name: 'Total Protein', unit: 'g/dL', referenceMin: 6.0, referenceMax: 8.3 },
-  ],
-  'TSH': [
-    { id: 'tsh', name: 'TSH', unit: 'μIU/mL', referenceMin: 0.4, referenceMax: 4.0 },
-  ],
-  'HbA1c': [
-    { id: 'hba1c', name: 'HbA1c', unit: '%', referenceMin: 4.0, referenceMax: 5.7 },
-  ],
-};
+interface ParsedReferenceRange {
+  min?: number;
+  max?: number;
+  criticalLow?: number;
+  criticalHigh?: number;
+}
 
 export default function LabTestResultCreate({ patients, labTests, requests, patientTestRequests }: LabTestResultCreateProps) {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
@@ -143,13 +108,14 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
     request_id: '',
     performed_at: new Date().toISOString().split('T')[0],
     performed_time: new Date().toTimeString().slice(0, 5),
-    results: [] as ResultParameter[],
+    results: '{}',
     status: 'pending' as 'pending' | 'completed' | 'verified',
     notes: '',
     abnormal_flags: '',
   });
 
-  // Filter patients based on search
+  const [resultParameters, setResultParameters] = useState<ResultParameter[]>([]);
+
   const filteredPatients = useMemo(() => {
     if (!patientSearch) return patients.slice(0, 10);
     const search = patientSearch.toLowerCase();
@@ -160,11 +126,9 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
     ).slice(0, 10);
   }, [patients, patientSearch]);
 
-  // Get lab tests specific to the selected patient
   const patientSpecificTests = useMemo(() => {
     if (!selectedPatient) return labTests;
     
-    // Ensure patientTestRequests[selectedPatient.id] is an array
     const patientTests = Array.isArray(patientTestRequests[selectedPatient.id]) 
       ? patientTestRequests[selectedPatient.id] 
       : [];
@@ -173,42 +137,82 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
     return labTests.filter(test => patientTestNames.includes(test.name));
   }, [selectedPatient, labTests, patientTestRequests]);
 
-  // Get test parameters based on selected test
-  const testParameters = useMemo(() => {
-    if (!selectedTest) return [];
-    // Check if we have a template for this test
-    const testName = selectedTest.name.toUpperCase();
-    for (const [key, params] of Object.entries(testTemplates)) {
-      if (testName.includes(key)) {
-        return params;
-      }
-    }
-    // Return single parameter for simple tests
-    return [{
-      id: 'result',
-      name: selectedTest.name,
-      unit: selectedTest.unit || '',
-      referenceMin: 0,
-      referenceMax: 0,
-    }];
-  }, [selectedTest]);
+  const parseReferenceRange = (refRange: ReferenceRange | undefined, patientGender: string | null): ParsedReferenceRange => {
+    if (!refRange) return {};
 
-  // Initialize result parameters when test changes
-  useEffect(() => {
-    if (testParameters.length > 0 && data.results.length === 0) {
-      const initialResults = testParameters.map(param => ({
-        parameter_id: param.id,
+    if (patientGender && patientGender.toLowerCase() === 'male' && refRange.male) {
+      return {
+        min: refRange.male.min,
+        max: refRange.male.max,
+        criticalLow: refRange.critical_low,
+        criticalHigh: refRange.critical_high,
+      };
+    }
+
+    if (patientGender && patientGender.toLowerCase() === 'female' && refRange.female) {
+      return {
+        min: refRange.female.min,
+        max: refRange.female.max,
+        criticalLow: refRange.critical_low,
+        criticalHigh: refRange.critical_high,
+      };
+    }
+
+    return {
+      min: refRange.min,
+      max: refRange.max,
+      criticalLow: refRange.critical_low,
+      criticalHigh: refRange.critical_high,
+    };
+  };
+
+  const getTestParameters = (test: LabTest): ResultParameter[] => {
+    if (!test.parameters || Object.keys(test.parameters).length === 0) {
+      return [];
+    }
+
+    return Object.entries(test.parameters).map(([paramKey, param]) => {
+      const refRange = test.reference_ranges?.[paramKey] as ReferenceRange | undefined;
+      const parsedRange = parseReferenceRange(refRange, selectedPatient?.gender || null);
+
+      return {
+        parameter_id: paramKey,
         name: param.name,
         value: '',
         unit: param.unit,
-        referenceMin: param.referenceMin,
-        referenceMax: param.referenceMax,
+        referenceMin: parsedRange.min,
+        referenceMax: parsedRange.max,
+        genderSpecific: !!(refRange?.male || refRange?.female),
         status: 'pending' as const,
         notes: '',
-      }));
-      setData('results', initialResults);
+      };
+    });
+  };
+
+  const determineStatus = (value: string, refRange: ReferenceRange | undefined, patientGender: string | null): 'normal' | 'abnormal' | 'critical' | 'pending' => {
+    if (value === '') return 'pending';
+
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return 'pending';
+
+    const parsed = parseReferenceRange(refRange, patientGender);
+
+    if (parsed.criticalLow !== undefined && numValue < parsed.criticalLow) {
+      return 'critical';
     }
-  }, [testParameters]);
+    if (parsed.criticalHigh !== undefined && numValue > parsed.criticalHigh) {
+      return 'critical';
+    }
+
+    if (parsed.min !== undefined && parsed.max !== undefined) {
+      if (numValue >= parsed.min && numValue <= parsed.max) {
+        return 'normal';
+      }
+      return 'abnormal';
+    }
+
+    return 'pending';
+  };
 
   const handlePatientSelect = (patientId: string) => {
     const patient = patients.find(p => p.id.toString() === patientId);
@@ -220,48 +224,75 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
     const test = labTests.find(t => t.id.toString() === testId);
     setSelectedTest(test || null);
     setData('lab_test_id', testId);
-    setData('results', []);
-  };
-
-  const handleParameterChange = (index: number, value: string) => {
-    const newResults = [...data.results];
-    const param = testParameters[index];
-    const numValue = parseFloat(value);
-
-    let status: 'normal' | 'abnormal' | 'critical' | 'pending' = 'pending';
-    if (value !== '') {
-      status = 'normal';
-      if (param.isCriticalLow !== undefined && numValue < param.isCriticalLow) {
-        status = 'critical';
-      } else if (param.isCriticalHigh !== undefined && numValue > param.isCriticalHigh) {
-        status = 'critical';
-      } else if (numValue < param.referenceMin || numValue > param.referenceMax) {
-        status = 'abnormal';
-      }
+    
+    if (test) {
+      const params = getTestParameters(test);
+      setResultParameters(params);
+    } else {
+      setResultParameters([]);
     }
-
-    newResults[index] = {
-      ...newResults[index],
-      value,
-      status,
-    };
-    setData('results', newResults);
   };
 
-  const handleParameterNotesChange = (index: number, notes: string) => {
-    const newResults = [...data.results];
-    newResults[index] = { ...newResults[index], notes };
-    setData('results', newResults);
+  const handleParameterChange = (paramId: string, value: string) => {
+    const updatedParams = resultParameters.map(param => {
+      if (param.parameter_id === paramId) {
+        const refRange = selectedTest?.reference_ranges?.[paramId] as ReferenceRange | undefined;
+        const status = determineStatus(value, refRange, selectedPatient?.gender || null);
+        
+        return { ...param, value, status };
+      }
+      return param;
+    });
+    
+    setResultParameters(updatedParams);
+
+    const resultsObj = updatedParams.reduce((acc, param) => {
+      if (param.value !== '') {
+        acc[param.parameter_id] = {
+          value: parseFloat(param.value),
+          unit: param.unit,
+          status: param.status,
+          notes: param.notes,
+        };
+      }
+      return acc;
+    }, {} as Record<string, unknown>);
+
+    setData('results', JSON.stringify(resultsObj));
+  };
+
+  const handleParameterNotesChange = (paramId: string, notes: string) => {
+    const updatedParams = resultParameters.map(param => {
+      if (param.parameter_id === paramId) {
+        return { ...param, notes };
+      }
+      return param;
+    });
+    setResultParameters(updatedParams);
+
+    const resultsObj = updatedParams.reduce((acc, param) => {
+      if (param.value !== '') {
+        acc[param.parameter_id] = {
+          value: parseFloat(param.value),
+          unit: param.unit,
+          status: param.status,
+          notes: param.notes,
+        };
+      }
+      return acc;
+    }, {} as Record<string, unknown>);
+
+    setData('results', JSON.stringify(resultsObj));
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'normal':
-        return <CheckCircle2 className="h-4 w-4 text-lab-normal" />;
+        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
       case 'abnormal':
-        return <AlertCircle className="h-4 w-4 text-lab-abnormal" />;
+        return <AlertCircle className="h-4 w-4 text-orange-600" />;
       case 'critical':
-        return <AlertTriangle className="h-4 w-4 text-lab-critical" />;
+        return <AlertTriangle className="h-4 w-4 text-red-600" />;
       default:
         return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
@@ -270,26 +301,44 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
   const getStatusClass = (status: string) => {
     switch (status) {
       case 'normal':
-        return 'border-lab-normal/30 bg-lab-normal/5';
+        return 'border-l-green-600 bg-green-50/50';
       case 'abnormal':
-        return 'border-lab-abnormal/30 bg-lab-abnormal/5';
+        return 'border-l-orange-600 bg-orange-50/50';
       case 'critical':
-        return 'border-lab-critical/30 bg-lab-critical/5 animate-pulse';
+        return 'border-l-red-600 bg-red-50/50 animate-pulse';
       default:
-        return 'border-muted';
+        return 'border-l-gray-300 bg-gray-50/50';
     }
   };
 
-  const abnormalCount = data.results.filter(r => r.status === 'abnormal' || r.status === 'critical').length;
-  const criticalCount = data.results.filter(r => r.status === 'critical').length;
+  const abnormalCount = resultParameters.filter(r => r.status === 'abnormal' || r.status === 'critical').length;
+  const criticalCount = resultParameters.filter(r => r.status === 'critical').length;
+  const normalCount = resultParameters.filter(r => r.status === 'normal').length;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const performedDateTime = `${data.performed_at}T${data.performed_time}`;
-    post('/laboratory/lab-test-results', {
-      ...data,
+    
+    const abnormalParamNames = resultParameters
+      .filter(r => r.status === 'abnormal' || r.status === 'critical')
+      .map(r => r.name)
+      .join(', ');
+
+    const formData = {
+      lab_test_id: data.lab_test_id,
+      patient_id: data.patient_id,
       performed_at: performedDateTime,
-    } as Record<string, unknown>);
+      results: data.results,
+      status: data.status,
+      notes: data.notes,
+      abnormal_flags: abnormalParamNames,
+    };
+    
+    Object.entries(formData).forEach(([key, value]) => {
+      setData(key as keyof typeof data, value);
+    });
+    
+    post('/laboratory/lab-test-results');
   };
 
   const getInitials = (firstName: string | null, lastName: string | null) => {
@@ -298,13 +347,38 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
     return `${first}${last}`.toUpperCase();
   };
 
+  const getReferenceRangeText = (param: ResultParameter, test: LabTest | null): string => {
+    if (!test) return '';
+    
+    const refRange = test.reference_ranges?.[param.parameter_id] as ReferenceRange | undefined;
+    if (!refRange) return 'No reference range';
+
+    const parsed = parseReferenceRange(refRange, selectedPatient?.gender || null);
+    
+    if (refRange.values && refRange.values.length > 0) {
+      return `Values: ${refRange.values.join(', ')}`;
+    }
+
+    const rangeText: string[] = [];
+    if (parsed.min !== undefined) rangeText.push(`${parsed.min}`);
+    if (parsed.max !== undefined) rangeText.push(`${parsed.max}`);
+    
+    const range = rangeText.length > 0 ? rangeText.join(' - ') : 'N/A';
+    
+    if (param.genderSpecific) {
+      return `${range} ${param.unit} (Gender-specific)`;
+    }
+    
+    return `${range} ${param.unit}`;
+  };
+
   return (
     <LaboratoryLayout
       header={
         <div>
           <Heading title="Add New Lab Test Result" />
           <p className="text-muted-foreground mt-1">
-            Enter test results with automatic flagging
+            Enter test results with automatic flagging and dynamic parameter loading
           </p>
         </div>
       }
@@ -312,7 +386,6 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
       <Head title="Add New Lab Test Result" />
 
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <Heading title="Add New Lab Test Result" />
@@ -337,7 +410,6 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
               <TabsTrigger value="review">Review</TabsTrigger>
             </TabsList>
 
-            {/* Patient Selection Tab */}
             <TabsContent value="patient" className="space-y-6">
               <Card>
                 <CardHeader>
@@ -345,7 +417,6 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                   <CardDescription>Search and select the patient for this test result</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Patient Search */}
                   <div className="space-y-2">
                     <Label>Search Patient</Label>
                     <div className="relative">
@@ -359,7 +430,6 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                     </div>
                   </div>
 
-                  {/* Patient List */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto">
                     {filteredPatients.map((patient) => (
                       <button
@@ -403,7 +473,6 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                     <p className="text-sm text-red-600">{errors.patient_id}</p>
                   )}
 
-                  {/* Selected Patient Info */}
                   {selectedPatient && (
                     <div className="p-4 bg-muted/50 rounded-lg">
                       <h4 className="font-medium mb-2">Selected Patient</h4>
@@ -441,17 +510,14 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
               </Card>
             </TabsContent>
 
-            {/* Test Selection & Results Tab */}
             <TabsContent value="test" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column - Test Selection */}
                 <div className="lg:col-span-1 space-y-6">
                   <Card>
                     <CardHeader>
                       <CardTitle>Test Information</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {/* Lab Test Selection */}
                       <div className="space-y-2">
                         <Label htmlFor="lab_test_id">Lab Test *</Label>
                         {!selectedPatient ? (
@@ -484,8 +550,25 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                         )}
                       </div>
 
+                      {selectedTest && selectedTest.sample_type && (
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <Droplet className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                            <div className="text-sm">
+                              <p className="font-medium text-blue-900">Sample Type</p>
+                              <p className="text-blue-700">{selectedTest.sample_type}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
-                      {/* Performed Date/Time */}
+                      {selectedTest && selectedTest.category && (
+                        <div className="space-y-2">
+                          <Label className="text-xs">Category</Label>
+                          <Badge variant="outline">{selectedTest.category}</Badge>
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-2">
                           <Label htmlFor="performed_at">Date *</Label>
@@ -507,7 +590,6 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                         </div>
                       </div>
 
-                      {/* Status */}
                       <div className="space-y-2">
                         <Label htmlFor="status">Status *</Label>
                         <Select
@@ -525,17 +607,18 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                         </Select>
                       </div>
 
-                      {/* Result Summary */}
-                      {data.results.length > 0 && (
+                      {resultParameters.length > 0 && (
                         <div className="p-3 bg-muted/50 rounded-lg space-y-2">
                           <p className="text-sm font-medium">Result Summary</p>
                           <div className="flex gap-2 flex-wrap">
-                            <Badge variant="outline" className="bg-lab-normal/10 text-lab-normal">
-                              {data.results.filter(r => r.status === 'normal').length} Normal
-                            </Badge>
+                            {normalCount > 0 && (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                {normalCount} Normal
+                              </Badge>
+                            )}
                             {abnormalCount > 0 && (
-                              <Badge variant="outline" className="bg-lab-abnormal/10 text-lab-abnormal">
-                                {abnormalCount} Abnormal
+                              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                                {abnormalCount - criticalCount} Abnormal
                               </Badge>
                             )}
                             {criticalCount > 0 && (
@@ -546,11 +629,21 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                           </div>
                         </div>
                       )}
+
+                      {resultParameters.length > 0 && (
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Beaker className="h-4 w-4 text-blue-600" />
+                            <span className="text-blue-700">
+                              <strong>{resultParameters.length}</strong> parameters to enter
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
 
-                {/* Right Column - Result Entry */}
                 <div className="lg:col-span-2">
                   <Card>
                     <CardHeader>
@@ -567,78 +660,71 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                           <FlaskConical className="h-12 w-12 mx-auto mb-4 opacity-50" />
                           <p>Select a lab test to begin entering results</p>
                         </div>
+                      ) : resultParameters.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground">
+                          <Info className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>This test has no parameters configured</p>
+                        </div>
                       ) : (
                         <div className="space-y-4">
-                          {data.results.map((result, index) => {
-                            const param = testParameters[index];
-                            return (
-                              <div
-                                key={result.parameter_id}
-                                className={cn(
-                                  'p-4 rounded-lg border-l-4 transition-all',
-                                  getStatusClass(result.status)
-                                )}
-                              >
-                                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-                                  {/* Parameter Name */}
-                                  <div className="md:col-span-3">
-                                    <Label className="font-medium">{result.name}</Label>
-                                    <p className="text-xs text-muted-foreground">
-                                      Ref: {param?.referenceMin} - {param?.referenceMax} {result.unit}
-                                    </p>
-                                  </div>
+                          {resultParameters.map((result) => (
+                            <div
+                              key={result.parameter_id}
+                              className={cn(
+                                'p-4 rounded-lg border-l-4 transition-all',
+                                getStatusClass(result.status)
+                              )}
+                            >
+                              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                                <div className="md:col-span-3">
+                                  <Label className="font-medium">{result.name}</Label>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {getReferenceRangeText(result, selectedTest)}
+                                  </p>
+                                </div>
 
-                                  {/* Value Input */}
-                                  <div className="md:col-span-3">
-                                    <div className="relative">
-                                      <Input
-                                        type="number"
-                                        step="0.01"
-                                        value={result.value}
-                                        onChange={(e) => handleParameterChange(index, e.target.value)}
-                                        placeholder="Enter value"
-                                        className={cn(
-                                          'pr-12',
-                                          result.status === 'critical' && 'border-lab-critical'
-                                        )}
-                                      />
-                                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                                        {result.unit}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {/* Status Indicator */}
-                                  <div className="md:col-span-2 flex items-center gap-2">
-                                    {getStatusIcon(result.status)}
-                                    <span className={cn(
-                                      'text-sm font-medium capitalize',
-                                      result.status === 'normal' && 'text-lab-normal',
-                                      result.status === 'abnormal' && 'text-lab-abnormal',
-                                      result.status === 'critical' && 'text-lab-critical',
-                                    )}>
-                                      {result.status}
+                                <div className="md:col-span-3">
+                                  <div className="relative">
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      value={result.value}
+                                      onChange={(e) => handleParameterChange(result.parameter_id, e.target.value)}
+                                      placeholder="Enter value"
+                                      className={cn(
+                                        'pr-12',
+                                        result.status === 'critical' && 'border-red-600 focus:border-red-600'
+                                      )}
+                                    />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                                      {result.unit}
                                     </span>
                                   </div>
+                                </div>
 
-                                  {/* Notes */}
-                                  <div className="md:col-span-4">
-                                    <Input
-                                      placeholder="Notes (optional)"
-                                      value={result.notes}
-                                      onChange={(e) => handleParameterNotesChange(index, e.target.value)}
-                                    />
-                                  </div>
+                                <div className="md:col-span-2 flex items-center gap-2">
+                                  {getStatusIcon(result.status)}
+                                  <span className={cn(
+                                    'text-sm font-medium capitalize',
+                                    result.status === 'normal' && 'text-green-600',
+                                    result.status === 'abnormal' && 'text-orange-600',
+                                    result.status === 'critical' && 'text-red-600',
+                                    result.status === 'pending' && 'text-gray-500',
+                                  )}>
+                                    {result.status}
+                                  </span>
+                                </div>
+
+                                <div className="md:col-span-4">
+                                  <Input
+                                    placeholder="Notes (optional)"
+                                    value={result.notes}
+                                    onChange={(e) => handleParameterNotesChange(result.parameter_id, e.target.value)}
+                                  />
                                 </div>
                               </div>
-                            );
-                          })}
-
-                          {data.results.length === 0 && (
-                            <div className="text-center py-8 text-muted-foreground">
-                              <p>No parameters available for this test</p>
                             </div>
-                          )}
+                          ))}
                         </div>
                       )}
                     </CardContent>
@@ -653,14 +739,13 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                 <Button
                   type="button"
                   onClick={() => setActiveTab('review')}
-                  disabled={!data.lab_test_id || data.results.length === 0}
+                  disabled={!data.lab_test_id || resultParameters.length === 0}
                 >
                   Review Results
                 </Button>
               </div>
             </TabsContent>
 
-            {/* Review Tab */}
             <TabsContent value="review" className="space-y-6">
               <Card>
                 <CardHeader>
@@ -668,7 +753,6 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                   <CardDescription>Review all entered values before saving</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Patient Summary */}
                   {selectedPatient && (
                     <div className="p-4 bg-muted/50 rounded-lg">
                       <h4 className="font-medium mb-3 flex items-center gap-2">
@@ -696,7 +780,6 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                     </div>
                   )}
 
-                  {/* Test Summary */}
                   {selectedTest && (
                     <div className="p-4 bg-muted/50 rounded-lg">
                       <h4 className="font-medium mb-3 flex items-center gap-2">
@@ -716,65 +799,67 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                           <span className="text-muted-foreground">Status:</span>
                           <p className="font-medium capitalize">{data.status}</p>
                         </div>
-                        <div>
-                          <span className="text-muted-foreground">Result ID:</span>
-                          <p className="font-medium">Auto-generated</p>
-                        </div>
+                        {selectedTest.sample_type && (
+                          <div>
+                            <span className="text-muted-foreground">Sample:</span>
+                            <p className="font-medium">{selectedTest.sample_type}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
 
-                  {/* Results Summary */}
-                  <div>
-                    <h4 className="font-medium mb-3">Test Results</h4>
-                    <div className="border rounded-lg overflow-hidden">
-                      <table className="w-full">
-                        <thead className="bg-muted">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-sm font-medium">Parameter</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium">Value</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium">Reference Range</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium">Notes</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                          {data.results.map((result, idx) => (
-                            <tr key={idx} className={cn(
-                              result.status === 'critical' && 'bg-red-50',
-                              result.status === 'abnormal' && 'bg-orange-50'
-                            )}>
-                              <td className="px-4 py-3 text-sm font-medium">{result.name}</td>
-                              <td className="px-4 py-3 text-sm">
-                                {result.value ? `${result.value} ${result.unit}` : '-'}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-muted-foreground">
-                                {result.referenceMin} - {result.referenceMax} {result.unit}
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  {getStatusIcon(result.status)}
-                                  <span className={cn(
-                                    'text-sm capitalize',
-                                    result.status === 'normal' && 'text-lab-normal',
-                                    result.status === 'abnormal' && 'text-lab-abnormal',
-                                    result.status === 'critical' && 'text-lab-critical',
-                                  )}>
-                                    {result.status}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 text-sm text-muted-foreground">
-                                {result.notes || '-'}
-                              </td>
+                  {resultParameters.length > 0 && (
+                    <div>
+                      <h4 className="font-medium mb-3">Test Results</h4>
+                      <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="px-4 py-3 text-left font-medium">Parameter</th>
+                              <th className="px-4 py-3 text-left font-medium">Value</th>
+                              <th className="px-4 py-3 text-left font-medium">Reference Range</th>
+                              <th className="px-4 py-3 text-left font-medium">Status</th>
+                              <th className="px-4 py-3 text-left font-medium">Notes</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y">
+                            {resultParameters.map((result, idx) => (
+                              <tr key={idx} className={cn(
+                                result.status === 'critical' && 'bg-red-50',
+                                result.status === 'abnormal' && 'bg-orange-50'
+                              )}>
+                                <td className="px-4 py-3 font-medium">{result.name}</td>
+                                <td className="px-4 py-3">
+                                  {result.value ? `${result.value} ${result.unit}` : '-'}
+                                </td>
+                                <td className="px-4 py-3 text-muted-foreground">
+                                  {getReferenceRangeText(result, selectedTest)}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-2">
+                                    {getStatusIcon(result.status)}
+                                    <span className={cn(
+                                      'capitalize font-medium',
+                                      result.status === 'normal' && 'text-green-600',
+                                      result.status === 'abnormal' && 'text-orange-600',
+                                      result.status === 'critical' && 'text-red-600',
+                                    )}>
+                                      {result.status}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 text-muted-foreground">
+                                  {result.notes || '-'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Warning for critical values */}
                   {criticalCount > 0 && (
                     <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                       <div className="flex items-start gap-3">
@@ -790,15 +875,17 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                     </div>
                   )}
 
-                  {/* Notes */}
-                  {data.notes && (
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <h4 className="font-medium mb-2">Additional Notes</h4>
-                      <p className="text-sm text-muted-foreground">{data.notes}</p>
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Additional Notes</Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="Add any additional notes about the test results..."
+                      value={data.notes}
+                      onChange={(e) => setData('notes', e.target.value)}
+                      rows={4}
+                    />
+                  </div>
 
-                  {/* Action Buttons */}
                   <div className="flex justify-between pt-4 border-t">
                     <Button type="button" variant="outline" onClick={() => setActiveTab('test')}>
                       Back to Edit
@@ -811,7 +898,7 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                       </Link>
                       <Button
                         type="submit"
-                        disabled={processing || data.results.length === 0}
+                        disabled={processing || resultParameters.length === 0}
                         className="bg-primary hover:bg-primary/90"
                       >
                         <Save className="mr-2 h-4 w-4" />
