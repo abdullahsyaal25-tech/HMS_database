@@ -24,6 +24,8 @@ class LabTest extends Model
 
     protected $casts = [
         'cost' => 'decimal:2',
+        'reference_ranges' => 'array',
+        'parameters' => 'array',
     ];
 
     /**

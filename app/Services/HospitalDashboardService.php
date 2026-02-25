@@ -11,6 +11,7 @@ use App\Models\Medicine;
 use App\Models\Sale;
 use App\Models\LabTestRequest;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class HospitalDashboardService extends BaseService
@@ -30,21 +31,43 @@ class HospitalDashboardService extends BaseService
         $today = Carbon::today();
         $startOfDay = $today->startOfDay();
         $endOfDay = $today->endOfDay();
+        $todayStr = $today->toDateString();
 
         // Today's appointments
         $todayAppointments = Appointment::whereBetween('appointment_date', [$startOfDay, $endOfDay])->count();
         $completedAppointments = Appointment::whereBetween('appointment_date', [$startOfDay, $endOfDay])
             ->whereIn('status', ['completed', 'confirmed'])->count();
 
-        // Revenue calculations
-        $todayRevenue = Payment::whereDate('created_at', $today)
-            ->where('status', 'completed')
-            ->sum('amount');
+        // Revenue calculations - try cache first for today
+        // Priority: all-history cache (from refresh button) > today's cache > database
+        $cachedAllHistory = Cache::get('daily_revenue_all_history');
+        $cachedRevenue = Cache::get('daily_revenue_' . $todayStr);
+        
+        if ($cachedAllHistory) {
+            // Use all-history cached revenue data (from refresh button)
+            $todayRevenue = $cachedAllHistory['total'] ?? 0;
+            $monthlyRevenue = Payment::whereMonth('created_at', Carbon::now()->month)
+                ->whereYear('created_at', Carbon::now()->year)
+                ->where('status', 'completed')
+                ->sum('amount');
+        } elseif ($cachedRevenue) {
+            // Use today's cached revenue data
+            $todayRevenue = $cachedRevenue['total'] ?? 0;
+            $monthlyRevenue = Payment::whereMonth('created_at', Carbon::now()->month)
+                ->whereYear('created_at', Carbon::now()->year)
+                ->where('status', 'completed')
+                ->sum('amount');
+        } else {
+            // Fall back to database calculation
+            $todayRevenue = Payment::whereDate('created_at', $today)
+                ->where('status', 'completed')
+                ->sum('amount');
 
-        $monthlyRevenue = Payment::whereMonth('created_at', Carbon::now()->month)
-            ->whereYear('created_at', Carbon::now()->year)
-            ->where('status', 'completed')
-            ->sum('amount');
+            $monthlyRevenue = Payment::whereMonth('created_at', Carbon::now()->month)
+                ->whereYear('created_at', Carbon::now()->year)
+                ->where('status', 'completed')
+                ->sum('amount');
+        }
 
         return [
             'totalActivePatients' => Patient::count(),
@@ -114,13 +137,26 @@ class HospitalDashboardService extends BaseService
     public function getPharmacyMetrics(): array
     {
         $today = Carbon::today();
+        $todayStr = $today->toDateString();
+
+        // Check cache for today's revenue (from refresh button)
+        $cachedAllHistory = Cache::get('daily_revenue_all_history');
+        $cachedRevenue = Cache::get('daily_revenue_' . $todayStr);
+        
+        if ($cachedAllHistory) {
+            $todayRevenue = $cachedAllHistory['pharmacy'] ?? 0;
+        } elseif ($cachedRevenue) {
+            $todayRevenue = $cachedRevenue['pharmacy'] ?? 0;
+        } else {
+            $todayRevenue = Sale::whereDate('created_at', $today)
+                ->where('status', '!=', 'voided')
+                ->sum('grand_total');
+        }
 
         return [
             'totalMedicines' => Medicine::count(),
             'todaySales' => Sale::whereDate('created_at', $today)->count(),
-            'todayRevenue' => Sale::whereDate('created_at', $today)
-                ->where('status', '!=', 'voided')
-                ->sum('total_amount'),
+            'todayRevenue' => $todayRevenue,
             'lowStockCount' => Medicine::where('quantity', '>', 0)
                 ->where('quantity', '<=', 10)->count(),
             'outOfStockCount' => Medicine::where('quantity', '<=', 0)->count(),

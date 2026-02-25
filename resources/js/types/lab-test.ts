@@ -1,13 +1,40 @@
+// New interfaces for structured data
+export interface ReferenceRange {
+    min?: number;
+    max?: number;
+    unit?: string;
+    values?: string[];
+}
+
+export interface TestParameter {
+    name: string;
+    unit: string;
+    description?: string;
+}
+
+export interface ReferenceRanges {
+    [key: string]: ReferenceRange;
+}
+
+export interface TestParameters {
+    [key: string]: TestParameter;
+}
+
 export interface LabTest {
     id: number;
     test_id: string;
+    test_code: string;
     name: string;
+    category: LabCategory;
     description: string | null;
     procedure: string | null;
+    sample_type: string | null;
     cost: number;
     turnaround_time: number;
     unit: string | null;
     normal_values: string | null;
+    reference_ranges: ReferenceRanges | null;
+    parameters: TestParameters | null;
     status: string;
     created_at: string;
     updated_at: string;

@@ -15,5 +15,6 @@ class VerifyCsrfToken extends Middleware
         'api/v1/admin/*',
         'api/*', // Exclude all API routes from CSRF verification
         'api/v1/*', // Explicitly exclude v1 API routes
+        'api/v1/refresh/*', // Exclude refresh endpoints from CSRF verification
     ];
 }

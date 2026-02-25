@@ -25,6 +25,7 @@ import HospitalLayout from '@/layouts/HospitalLayout';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import RefreshAllDataButton from '@/components/RefreshAllDataButton';
 
 interface Wallet {
     id: number;
@@ -109,11 +110,17 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
     const fetchRealtimeData = async () => {
         try {
             setIsLoading(true);
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
             const response = await fetch('/api/v1/wallet/realtime', {
+                method: 'GET',
                 headers: {
                     'Accept': 'application/json',
+                    'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken || '',
                 },
+                credentials: 'same-origin',
             });
 
             if (response.ok) {
@@ -122,6 +129,8 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                 setDisplayBalance(data.displayBalance);
                 setRevenueData(data.revenueData);
                 setLastUpdated(new Date());
+            } else {
+                console.error('Failed to fetch real-time data:', response.statusText);
             }
         } catch (error) {
             console.error('Failed to fetch real-time data:', error);
@@ -147,11 +156,17 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
     const calculateTodayRevenue = async () => {
         try {
             setIsLoading(true);
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
             const response = await fetch('/api/v1/wallet/today-revenue', {
+                method: 'GET',
                 headers: {
                     'Accept': 'application/json',
+                    'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken || '',
                 },
+                credentials: 'same-origin',
             });
 
             if (response.ok) {
@@ -208,6 +223,7 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                             <Clock className="h-4 w-4" />
                             <span>Updated: {lastUpdated.toLocaleTimeString()}</span>
                         </div>
+                        <RefreshAllDataButton />
                         <Button
                             onClick={calculateTodayRevenue}
                             disabled={isLoading}

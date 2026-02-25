@@ -73,6 +73,8 @@ interface AppointmentService {
     custom_cost: number;
     discount_percentage: number;
     final_cost: number;
+    doctor_percentage: number;
+    doctor_amount: number;
 }
 
 interface AppointmentItem {
@@ -194,7 +196,12 @@ export default function DoctorPercentagePage({
     };
 
     const renderAppointmentTable = (appointmentList: AppointmentItem[]) => {
-        if (appointmentList.length === 0) {
+        // Filter to only show appointments where at least one service has a doctor percentage or amount
+        const filteredAppointments = appointmentList.filter(appt => 
+            appt.services.some(svc => svc.doctor_percentage > 0 || svc.doctor_amount > 0)
+        );
+
+        if (filteredAppointments.length === 0) {
             return (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                     <Calendar className="h-12 w-12 mb-4 text-muted-foreground/50" />
@@ -219,7 +226,7 @@ export default function DoctorPercentagePage({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {appointmentList.map((appt) => (
+                        {filteredAppointments.map((appt) => (
                             <TableRow key={appt.id} className="hover:bg-muted/50 transition-colors align-top">
                                 <TableCell className="font-medium pt-3">
                                     <Badge variant="outline" className="font-mono text-xs">

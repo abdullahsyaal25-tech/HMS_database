@@ -8,6 +8,7 @@ use App\Models\Medicine;
 use App\Models\MedicineAlert;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends BaseApiController
@@ -29,6 +30,21 @@ class DashboardController extends BaseApiController
     {
         $this->authorizePharmacyAccess();
 
+        // Check cache for today's revenue (from refresh button)
+        $todayStr = now()->toDateString();
+        $cachedAllHistory = Cache::get('daily_revenue_all_history');
+        $cachedRevenue = Cache::get('daily_revenue_' . $todayStr);
+        
+        if ($cachedAllHistory) {
+            $todayRevenue = $cachedAllHistory['pharmacy'] ?? 0;
+        } elseif ($cachedRevenue) {
+            $todayRevenue = $cachedRevenue['pharmacy'] ?? 0;
+        } else {
+            $todayRevenue = Sale::whereDate('created_at', today())
+                ->where('status', 'completed')
+                ->sum('grand_total');
+        }
+
         // Calculate key metrics
         $stats = [
             'total_medicines' => Medicine::count(),
@@ -39,9 +55,7 @@ class DashboardController extends BaseApiController
             'expired_medicines' => Medicine::expired()->count(),
             'total_stock_value' => Medicine::sum(DB::raw('stock_quantity * cost_price')),
             'today_sales' => Sale::whereDate('created_at', today())->count(),
-            'today_revenue' => Sale::whereDate('created_at', today())
-                ->where('status', 'completed')
-                ->sum('grand_total'),
+            'today_revenue' => $todayRevenue,
             'month_sales' => Sale::whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
                 ->count(),

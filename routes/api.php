@@ -17,6 +17,7 @@ use App\Http\Controllers\API\v1\PurchaseController as ApiPurchaseController;
 use App\Http\Controllers\API\v1\MedicineCategoryController as ApiMedicineCategoryController;
 use App\Http\Controllers\API\v1\ReportController as ApiReportController;
 use App\Http\Controllers\API\v1\DashboardController as ApiDashboardController;
+use App\Http\Controllers\API\v1\RefreshDataController;
 use App\Http\Controllers\WalletController;
 
 /*
@@ -135,12 +136,20 @@ Route::prefix('v1')->group(function () {
             Route::get('dashboard/stats', [ApiDashboardController::class, 'stats']);
             Route::get('dashboard/activities', [ApiDashboardController::class, 'recentActivities']);
         });
+    });
 
-        // Wallet routes
-        Route::prefix('wallet')->group(function () {
-            Route::get('/realtime', [WalletController::class, 'realtime']);
-            Route::get('/today-revenue', [WalletController::class, 'calculateTodayRevenue']);
-        });
+    // Wallet routes outside sanctum group - using session-based auth (web guard)
+    // Note: API routes need 'web' middleware to enable session authentication
+    Route::prefix('wallet')->middleware(['web', 'auth'])->group(function () {
+        Route::get('/realtime', [WalletController::class, 'realtime']);
+        Route::get('/today-revenue', [WalletController::class, 'calculateTodayRevenue']);
+        Route::get('/reset-all-revenue', [WalletController::class, 'resetAllRevenueData']);
+    });
+
+    // Refresh All Data route - updates all "today" data across the application
+    // Using GET to avoid CSRF issues
+    Route::prefix('refresh')->middleware(['web', 'auth'])->group(function () {
+        Route::get('/all-today-data', [RefreshDataController::class, 'refreshAllTodayData']);
     });
 });
 

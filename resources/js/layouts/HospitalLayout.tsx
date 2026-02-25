@@ -33,6 +33,7 @@ import {
 import { usePage } from '@inertiajs/react';
 import { type NavItem } from '@/types';
 import { ReactNode, useMemo, useCallback } from 'react';
+import { TodayRevenueButton } from '@/components/TodayRevenueButton';
 
 interface HospitalLayoutProps {
     header?: ReactNode;
@@ -326,6 +327,9 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                         <SidebarTrigger />
                         {header}
                     </div>
+                    <div className="flex items-center gap-3">
+                            <TodayRevenueButton />
+                        </div>
                 </header>
                 <main className="flex-1 overflow-auto p-6">
                     {children}

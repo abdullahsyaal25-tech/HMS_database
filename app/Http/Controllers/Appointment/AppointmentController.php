@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -79,20 +80,33 @@ class AppointmentController extends Controller
         // Today's total appointments (both regular and service-based)
         $todayAppointmentsCount = Appointment::whereDate('appointment_date', today())->count();
 
-        // Today's total revenue:
-        // - Regular appointments: fee - discount (no services)
-        $todayRegularRevenue = Appointment::whereDate('appointment_date', today())
-            ->doesntHave('services')
-            ->get()
-            ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
+        // Today's total revenue - check cache first (from refresh button)
+        $todayStr = now()->toDateString();
+        $cachedAllHistory = Cache::get('daily_revenue_all_history');
+        $cachedRevenue = Cache::get('daily_revenue_' . $todayStr);
+        
+        if ($cachedAllHistory) {
+            // Use all-history cached revenue data (from refresh button)
+            $todayRevenue = $cachedAllHistory['appointments'] ?? 0;
+        } elseif ($cachedRevenue) {
+            // Use today's cached revenue data
+            $todayRevenue = $cachedRevenue['appointments'] ?? 0;
+        } else {
+            // Fall back to database calculation
+            // - Regular appointments: fee - discount (no services)
+            $todayRegularRevenue = Appointment::whereDate('appointment_date', today())
+                ->doesntHave('services')
+                ->get()
+                ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
 
-        // - Service-based appointments: sum of final_cost from pivot
-        $todayServiceRevenue = \Illuminate\Support\Facades\DB::table('appointment_services')
-            ->join('appointments', 'appointments.id', '=', 'appointment_services.appointment_id')
-            ->whereDate('appointments.appointment_date', today())
-            ->sum('appointment_services.final_cost');
+            // - Service-based appointments: sum of final_cost from pivot
+            $todayServiceRevenue = \Illuminate\Support\Facades\DB::table('appointment_services')
+                ->join('appointments', 'appointments.id', '=', 'appointment_services.appointment_id')
+                ->whereDate('appointments.appointment_date', today())
+                ->sum('appointment_services.final_cost');
 
-        $todayRevenue = $todayRegularRevenue + $todayServiceRevenue;
+            $todayRevenue = $todayRegularRevenue + $todayServiceRevenue;
+        }
 
         // For sub-admins: show today's counts; for super admin: show all-time counts
         if ($isSuperAdmin) {

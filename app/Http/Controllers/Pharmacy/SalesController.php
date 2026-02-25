@@ -15,6 +15,7 @@ use App\Services\AuditLogService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -297,7 +298,18 @@ class SalesController extends Controller
                 'total_sales' => Sale::count(),
                 'total_revenue' => Sale::where('status', 'completed')->sum('grand_total'),
                 'today_sales' => Sale::whereDate('created_at', today())->count(),
-                'today_revenue' => Sale::whereDate('created_at', today())->where('status', 'completed')->sum('grand_total'),
+                'today_revenue' => (function() {
+                    $todayStr = now()->toDateString();
+                    $cachedAllHistory = Cache::get('daily_revenue_all_history');
+                    $cachedRevenue = Cache::get('daily_revenue_' . $todayStr);
+                    
+                    if ($cachedAllHistory) {
+                        return $cachedAllHistory['pharmacy'] ?? 0;
+                    } elseif ($cachedRevenue) {
+                        return $cachedRevenue['pharmacy'] ?? 0;
+                    }
+                    return Sale::whereDate('created_at', today())->where('status', 'completed')->sum('grand_total');
+                })(),
             ],
         ]);
     }

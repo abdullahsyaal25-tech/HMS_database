@@ -8,6 +8,7 @@ use App\Models\Sale;
 use App\Models\StockMovement;
 use App\Models\MedicineAlert;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -65,6 +66,7 @@ class DashboardController extends Controller
     private function getDashboardStats(): array
     {
         $today = now()->startOfDay();
+        $todayStr = now()->toDateString();
         
         // Valid sale statuses for revenue calculation (exclude voided, cancelled, refunded)
         $validStatuses = ['completed', 'pending'];
@@ -80,10 +82,22 @@ class DashboardController extends Controller
             ->whereIn('status', $validStatuses)
             ->count();
         
-        // Today's revenue (only completed/pending sales)
-        $todayRevenue = Sale::whereDate('created_at', $today)
-            ->whereIn('status', $validStatuses)
-            ->sum('grand_total');
+        // Today's revenue - check cache first (from refresh button)
+        $cachedAllHistory = Cache::get('daily_revenue_all_history');
+        $cachedRevenue = Cache::get('daily_revenue_' . $todayStr);
+        
+        if ($cachedAllHistory) {
+            // Use all-history cached revenue data (from refresh button)
+            $todayRevenue = $cachedAllHistory['pharmacy'] ?? 0;
+        } elseif ($cachedRevenue) {
+            // Use today's cached revenue data
+            $todayRevenue = $cachedRevenue['pharmacy'] ?? 0;
+        } else {
+            // Fall back to database calculation
+            $todayRevenue = Sale::whereDate('created_at', $today)
+                ->whereIn('status', $validStatuses)
+                ->sum('grand_total');
+        }
         
         // Total revenue (all time, only completed/pending sales)
         $totalRevenue = Sale::whereIn('status', $validStatuses)

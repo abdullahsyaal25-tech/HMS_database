@@ -13,6 +13,7 @@ use App\Models\LabTestRequest;
 use App\Models\AuditLog;
 use App\Models\Prescription;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -114,16 +115,65 @@ class DashboardService
             'total_departments' => $totalDepartments,
         ]);
         
-        // Today's revenue from appointments + pharmacy sales
-        $appointmentRevenue = Appointment::whereBetween('appointment_date', $dateRange)
-            ->where('status', 'completed')
-            ->sum('fee');
-            
-        $pharmacyRevenue = Sale::whereBetween('created_at', $dateRange)
-            ->where('status', 'completed')
-            ->sum('total_amount');
+        // Check if this is "today" period and try to get from cache first
+        $isToday = $start->isToday() && $end->isToday();
+        $todayStr = Carbon::today()->toDateString();
         
-        $totalRevenue = $appointmentRevenue + $pharmacyRevenue;
+        $appointmentRevenue = 0;
+        $pharmacyRevenue = 0;
+        $totalRevenue = 0;
+        
+        if ($isToday) {
+            // Try to get from cache - check all-history first (for refresh button), then today's cache
+            $cachedAllHistory = Cache::get('daily_revenue_all_history');
+            $cachedRevenue = Cache::get('daily_revenue_' . $todayStr);
+            
+            // Priority: all-history cache (set by refresh button) > today's cache > database
+            if ($cachedAllHistory) {
+                // Use all-history cached revenue data (from refresh button)
+                $appointmentRevenue = $cachedAllHistory['appointments'] ?? 0;
+                $pharmacyRevenue = $cachedAllHistory['pharmacy'] ?? 0;
+                $totalRevenue = $cachedAllHistory['total'] ?? ($appointmentRevenue + $pharmacyRevenue);
+                Log::info('Dashboard Summary Stats - Using all-history cached revenue:', [
+                    'appointments' => $appointmentRevenue,
+                    'pharmacy' => $pharmacyRevenue,
+                    'total' => $totalRevenue,
+                ]);
+            } elseif ($cachedRevenue) {
+                // Use today's cached revenue data
+                $appointmentRevenue = $cachedRevenue['appointments'] ?? 0;
+                $pharmacyRevenue = $cachedRevenue['pharmacy'] ?? 0;
+                $totalRevenue = $cachedRevenue['total'] ?? ($appointmentRevenue + $pharmacyRevenue);
+                Log::info('Dashboard Summary Stats - Using cached revenue:', [
+                    'appointments' => $appointmentRevenue,
+                    'pharmacy' => $pharmacyRevenue,
+                    'total' => $totalRevenue,
+                ]);
+            } else {
+                // Fall back to database query if cache is empty
+                Log::info('Dashboard Summary Stats - Cache miss, calculating from database');
+                $appointmentRevenue = Appointment::whereBetween('appointment_date', $dateRange)
+                    ->whereIn('status', ['completed', 'confirmed'])
+                    ->sum('fee');
+                    
+                $pharmacyRevenue = Sale::whereBetween('created_at', $dateRange)
+                    ->where('status', 'completed')
+                    ->sum('grand_total');
+                
+                $totalRevenue = $appointmentRevenue + $pharmacyRevenue;
+            }
+        } else {
+            // For non-today periods, calculate from database
+            $appointmentRevenue = Appointment::whereBetween('appointment_date', $dateRange)
+                ->whereIn('status', ['completed', 'confirmed'])
+                ->sum('fee');
+                
+            $pharmacyRevenue = Sale::whereBetween('created_at', $dateRange)
+                ->where('status', 'completed')
+                ->sum('grand_total');
+            
+            $totalRevenue = $appointmentRevenue + $pharmacyRevenue;
+        }
         
         return [
             'total_patients' => $totalPatients,
@@ -248,14 +298,14 @@ class DashboardService
     {
         [$start, $end] = $dateRange;
         
-        // Revenue breakdown
+        // Revenue breakdown - use consistent column names (grand_total)
         $appointmentRevenue = Appointment::whereBetween('appointment_date', $dateRange)
-            ->where('status', 'completed')
+            ->whereIn('status', ['completed', 'confirmed'])
             ->sum('fee');
             
         $pharmacyRevenue = Sale::whereBetween('created_at', $dateRange)
             ->where('status', 'completed')
-            ->sum('total_amount');
+            ->sum('grand_total');
         
         // Payment methods
         $paymentMethods = Payment::whereBetween('created_at', $dateRange)
@@ -308,10 +358,23 @@ class DashboardService
             ->pluck('total_sold', 'name')
             ->toArray();
         
+        // Check cache for today's revenue (from refresh button)
+        $todayStr = Carbon::today()->toDateString();
+        $cachedAllHistory = Cache::get('daily_revenue_all_history');
+        $cachedRevenue = Cache::get('daily_revenue_' . $todayStr);
+        
+        if ($cachedAllHistory) {
+            $todayRevenue = $cachedAllHistory['pharmacy'] ?? 0;
+        } elseif ($cachedRevenue) {
+            $todayRevenue = $cachedRevenue['pharmacy'] ?? 0;
+        } else {
+            $todayRevenue = Sale::whereDate('created_at', today())->where('status', 'completed')->sum('grand_total');
+        }
+        
         return [
             'today_sales' => Sale::whereDate('created_at', today())->where('status', 'completed')->count(),
-            'today_revenue' => Sale::whereDate('created_at', today())->where('status', 'completed')->sum('total_amount'),
-            'period_revenue' => Sale::whereBetween('created_at', $dateRange)->where('status', 'completed')->sum('total_amount'),
+            'today_revenue' => $todayRevenue,
+            'period_revenue' => Sale::whereBetween('created_at', $dateRange)->where('status', 'completed')->sum('grand_total'),
             'low_stock_count' => $lowStockCount,
             'expiring_count' => $expiringCount,
             'expired_count' => $expiredCount,
