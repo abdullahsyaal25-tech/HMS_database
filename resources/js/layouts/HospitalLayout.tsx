@@ -261,11 +261,11 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                     },
                 ],
             },
-             {
-                title: 'Reports',
-                href: '/reports',
-                icon: FileBarChart,
-            },
+            //  {
+            //     title: 'Reports',
+            //     href: '/reports',
+            //     icon: FileBarChart,
+            // },
             {
                 title: 'Settings',
                 href: '/settings',

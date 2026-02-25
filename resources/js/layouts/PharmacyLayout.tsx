@@ -159,11 +159,11 @@ const pharmacyNavItems: (NavItem & { permission?: string })[] = [
                 href: '/pharmacy/stock/adjustments',
                 icon: AlertCircle,
             },
-            {
-                title: 'Valuation',
-                href: '/pharmacy/stock/valuation',
-                icon: BarChart3,
-            },
+            // {
+            //     title: 'Valuation',
+            //     href: '/pharmacy/stock/valuation',
+            //     icon: BarChart3,
+            // },
         ],
     },
     {
