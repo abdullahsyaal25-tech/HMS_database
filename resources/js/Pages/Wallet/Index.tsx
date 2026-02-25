@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Head } from '@inertiajs/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-    Wallet as WalletIcon, 
-    TrendingUp, 
-    Calendar, 
-    DollarSign, 
-    Activity, 
+import {
+    Wallet as WalletIcon,
+    TrendingUp,
+    Calendar,
+    DollarSign,
+    Activity,
     RefreshCw,
     FlaskConical,
     Pill,
     Stethoscope,
     ArrowUpRight,
-    ArrowDownRight,
     Clock,
     PieChart,
     BarChart3,
     Target,
-    Zap
+    Zap,
+    Calculator
 } from 'lucide-react';
 import HospitalLayout from '@/layouts/HospitalLayout';
 import Heading from '@/components/heading';
@@ -32,17 +32,6 @@ interface Wallet {
     balance: number;
     created_at: string;
     updated_at: string;
-}
-
-interface Transaction {
-    id: number;
-    type: 'credit' | 'debit';
-    amount: number;
-    description: string;
-    transaction_date: string;
-    created_by: {
-        name: string;
-    } | null;
 }
 
 interface RevenueData {
@@ -80,17 +69,17 @@ interface Props {
     wallet: Wallet;
     displayBalance?: number;
     revenueData: RevenueData;
-    transactions: Transaction[];
 }
 
-export default function Index({ wallet: initialWallet, displayBalance: initialDisplayBalance, revenueData: initialRevenueData, transactions: initialTransactions }: Props) {
+export default function Index({ wallet: initialWallet, displayBalance: initialDisplayBalance, revenueData: initialRevenueData }: Props) {
     const [wallet, setWallet] = useState(initialWallet);
     const [revenueData, setRevenueData] = useState(initialRevenueData);
-    const [transactions, setTransactions] = useState(initialTransactions);
     const [displayBalance, setDisplayBalance] = useState<number | undefined>(initialDisplayBalance);
     const [isLoading, setIsLoading] = useState(false);
     const [lastUpdated, setLastUpdated] = useState(new Date());
     const [activeTab, setActiveTab] = useState('overview');
+    const [todayRevenueCalculated, setTodayRevenueCalculated] = useState(false);
+    const [calculatedTodayRevenue, setCalculatedTodayRevenue] = useState<number | null>(null);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-US', {
@@ -98,16 +87,6 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
             currency: 'AFN',
             minimumFractionDigits: 2,
         }).format(amount);
-    };
-
-    const formatDate = (date: string) => {
-        return new Date(date).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
     };
 
     const getPeriodLabel = (period: string) => {
@@ -142,7 +121,6 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                 setWallet(data.wallet);
                 setDisplayBalance(data.displayBalance);
                 setRevenueData(data.revenueData);
-                setTransactions(data.transactions);
                 setLastUpdated(new Date());
             }
         } catch (error) {
@@ -152,15 +130,48 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
         }
     };
 
-    // Auto-refresh every 30 seconds
-    useEffect(() => {
-        const interval = setInterval(fetchRealtimeData, 30000);
-        return () => clearInterval(interval);
-    }, []);
-
     // Manual refresh
     const handleRefresh = () => {
         fetchRealtimeData();
+    };
+
+    // State for today's services breakdown
+    const [todayServicesData, setTodayServicesData] = useState({
+        appointments: 0,
+        departments: 0,
+        pharmacy: 0,
+        laboratory: 0,
+    });
+
+    // Calculate Today's Revenue from all sources
+    const calculateTodayRevenue = async () => {
+        try {
+            setIsLoading(true);
+            const response = await fetch('/api/v1/wallet/today-revenue', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const todayTotal = data.revenue.total;
+                setCalculatedTodayRevenue(todayTotal);
+                setTodayRevenueCalculated(true);
+                setTodayServicesData({
+                    appointments: data.revenue.appointments,
+                    departments: data.revenue.departments,
+                    pharmacy: data.revenue.pharmacy,
+                    laboratory: data.revenue.laboratory,
+                });
+                setLastUpdated(new Date());
+            }
+        } catch (error) {
+            console.error('Failed to calculate today\'s revenue:', error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     // Current period data
@@ -184,6 +195,14 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                             <Clock className="h-4 w-4" />
                             <span>Updated: {lastUpdated.toLocaleTimeString()}</span>
                         </div>
+                        <Button
+                            onClick={calculateTodayRevenue}
+                            disabled={isLoading}
+                            className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all"
+                        >
+                            <Calculator className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                            Today's Revenue
+                        </Button>
                         <Button
                             onClick={handleRefresh}
                             disabled={isLoading}
@@ -217,20 +236,26 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                     </Card>
 
                     {/* Today's Revenue */}
-                    <Card className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-0 shadow-xl">
+                    <Card className={`bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-0 shadow-xl ${todayRevenueCalculated ? 'ring-4 ring-emerald-300' : ''}`}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-emerald-100">Today's Revenue</CardTitle>
+                            <CardTitle className="text-sm font-medium text-emerald-100">
+                                {todayRevenueCalculated ? "Today's Revenue (Calculated)" : "Today's Revenue"}
+                            </CardTitle>
                             <div className="bg-white/20 p-2 rounded-full">
                                 <TrendingUp className="h-5 w-5 text-white" />
                             </div>
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold tracking-tight">
-                                {formatCurrency(revenueData.today.total)}
+                                {todayRevenueCalculated && calculatedTodayRevenue !== null
+                                    ? formatCurrency(calculatedTodayRevenue)
+                                    : formatCurrency(revenueData.today.total)}
                             </div>
                             <p className="text-xs text-emerald-200 mt-1 flex items-center gap-1">
                                 <ArrowUpRight className="h-3 w-3" />
-                                From all sources
+                                {todayRevenueCalculated
+                                    ? 'All sources included - Lab, Dept, Pharmacy, Appointments'
+                                    : 'From all sources'}
                             </p>
                         </CardContent>
                     </Card>
@@ -584,73 +609,98 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                     </Tabs>
                 </Card>
 
-                {/* Transaction History */}
-                <Card className="border-0 shadow-xl mt-8">
-                    <CardHeader className="border-b">
+                {/* Today's Services Breakdown */}
+                <Card className={`border-0 shadow-xl mt-8 ${todayRevenueCalculated ? 'ring-4 ring-emerald-300' : ''}`}>
+                    <CardHeader className="border-b bg-gradient-to-r from-emerald-50 to-white">
                         <div className="flex items-center justify-between">
                             <div>
                                 <CardTitle className="flex items-center gap-2 text-xl">
-                                    <Activity className="h-5 w-5 text-green-600" />
-                                    Recent Transactions
+                                    <Calculator className="h-5 w-5 text-emerald-600" />
+                                    {todayRevenueCalculated ? "Today's Revenue Breakdown (Calculated)" : "Today's Revenue Breakdown"}
                                 </CardTitle>
-                                <CardDescription>Latest wallet activities and balance changes</CardDescription>
+                                <CardDescription>
+                                    {todayRevenueCalculated
+                                        ? 'Click "Today\'s Revenue" button above to refresh data'
+                                        : 'Click the "Today\'s Revenue" button above to calculate'}
+                                </CardDescription>
                             </div>
-                            <Badge variant="outline" className="text-sm">
-                                {transactions.length} transactions
-                            </Badge>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <div className="divide-y">
-                            {transactions.length > 0 ? (
-                                transactions.slice(0, 10).map((transaction) => (
-                                    <div key={transaction.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                                                transaction.type === 'credit' 
-                                                    ? 'bg-emerald-100' 
-                                                    : 'bg-red-100'
-                                            }`}>
-                                                {transaction.type === 'credit' ? (
-                                                    <ArrowUpRight className="h-6 w-6 text-emerald-600" />
-                                                ) : (
-                                                    <ArrowDownRight className="h-6 w-6 text-red-600" />
-                                                )}
-                                            </div>
-                                            <div>
-                                                <p className="font-semibold text-gray-900">{transaction.description}</p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {formatDate(transaction.transaction_date)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className={`font-bold text-lg ${
-                                                transaction.type === 'credit' 
-                                                    ? 'text-emerald-600' 
-                                                    : 'text-red-600'
-                                            }`}>
-                                                {transaction.type === 'credit' ? '+' : '-'}
-                                                {formatCurrency(transaction.amount)}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                by {transaction.created_by?.name || 'System'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="text-center py-16">
-                                    <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                                        <Activity className="h-10 w-10 text-slate-400" />
-                                    </div>
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-1">No Transactions Yet</h3>
-                                    <p className="text-muted-foreground max-w-sm mx-auto">
-                                        Transaction history will appear here as revenue is recorded and processed.
-                                    </p>
-                                </div>
+                            {todayRevenueCalculated && (
+                                <Badge variant="outline" className="text-sm bg-emerald-100 text-emerald-700 border-emerald-300">
+                                    Total: {formatCurrency(calculatedTodayRevenue ?? 0)}
+                                </Badge>
                             )}
                         </div>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        {todayRevenueCalculated ? (
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                                {/* Appointments */}
+                                <div className="p-4 rounded-xl bg-blue-50 border border-blue-100">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
+                                            <Stethoscope className="h-5 w-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-blue-600 font-medium">Appointments</p>
+                                            <p className="text-xs text-blue-400">Doctor consultations</p>
+                                        </div>
+                                    </div>
+                                    <p className="text-2xl font-bold text-blue-700">{formatCurrency(todayServicesData.appointments)}</p>
+                                </div>
+
+                                {/* Department Services */}
+                                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center">
+                                            <Activity className="h-5 w-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-emerald-600 font-medium">Department Services</p>
+                                            <p className="text-xs text-emerald-400">Medical services</p>
+                                        </div>
+                                    </div>
+                                    <p className="text-2xl font-bold text-emerald-700">{formatCurrency(todayServicesData.departments)}</p>
+                                </div>
+
+                                {/* Pharmacy */}
+                                <div className="p-4 rounded-xl bg-violet-50 border border-violet-100">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-lg bg-violet-500 flex items-center justify-center">
+                                            <Pill className="h-5 w-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-violet-600 font-medium">Pharmacy</p>
+                                            <p className="text-xs text-violet-400">Medicine sales</p>
+                                        </div>
+                                    </div>
+                                    <p className="text-2xl font-bold text-violet-700">{formatCurrency(todayServicesData.pharmacy)}</p>
+                                </div>
+
+                                {/* Laboratory */}
+                                <div className="p-4 rounded-xl bg-amber-50 border border-amber-100">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center">
+                                            <FlaskConical className="h-5 w-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-amber-600 font-medium">Laboratory</p>
+                                            <p className="text-xs text-amber-400">Lab tests & services</p>
+                                        </div>
+                                    </div>
+                                    <p className="text-2xl font-bold text-amber-700">{formatCurrency(todayServicesData.laboratory)}</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-12">
+                                <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                                    <Calculator className="h-10 w-10 text-slate-400" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-1">No Data Calculated Yet</h3>
+                                <p className="text-muted-foreground max-w-sm mx-auto">
+                                    Click the "Today's Revenue" button above to calculate and display today's revenue from all services.
+                                </p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

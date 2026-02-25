@@ -212,4 +212,41 @@ class WalletController extends Controller
             'timestamp' => now()->toISOString(),
         ]);
     }
+
+    /**
+     * Calculate today's total revenue from all sources.
+     * Includes: laboratory services, department services, pharmacy sales, and appointments.
+     */
+    public function calculateTodayRevenue(): JsonResponse
+    {
+        $today = Carbon::today();
+        $tomorrow = Carbon::tomorrow();
+
+        // Get today's revenue from all sources
+        $appointmentsRevenue = $this->getAppointmentRevenue($today, $tomorrow);
+        $departmentsRevenue = $this->getDepartmentRevenue($today, $tomorrow);
+        $pharmacyRevenue = $this->getPharmacyRevenue($today, $tomorrow);
+        $laboratoryRevenue = $this->getLaboratoryRevenue($today, $tomorrow);
+
+        $totalRevenue = $appointmentsRevenue + $departmentsRevenue + $pharmacyRevenue + $laboratoryRevenue;
+
+        return response()->json([
+            'success' => true,
+            'date' => $today->toDateString(),
+            'revenue' => [
+                'total' => $totalRevenue,
+                'appointments' => $appointmentsRevenue,
+                'departments' => $departmentsRevenue,
+                'pharmacy' => $pharmacyRevenue,
+                'laboratory' => $laboratoryRevenue,
+            ],
+            'breakdown' => [
+                'appointments_percentage' => $totalRevenue > 0 ? round(($appointmentsRevenue / $totalRevenue) * 100, 2) : 0,
+                'departments_percentage' => $totalRevenue > 0 ? round(($departmentsRevenue / $totalRevenue) * 100, 2) : 0,
+                'pharmacy_percentage' => $totalRevenue > 0 ? round(($pharmacyRevenue / $totalRevenue) * 100, 2) : 0,
+                'laboratory_percentage' => $totalRevenue > 0 ? round(($laboratoryRevenue / $totalRevenue) * 100, 2) : 0,
+            ],
+            'timestamp' => now()->toISOString(),
+        ]);
+    }
 }

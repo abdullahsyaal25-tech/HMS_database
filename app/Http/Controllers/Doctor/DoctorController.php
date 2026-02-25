@@ -304,10 +304,15 @@ class DoctorController extends Controller
     {
         $this->authorizeDoctorAccess();
         
+        // Get the Laboratory department ID to exclude
+        $labDepartmentId = \App\Models\Department::where('name', 'Laboratory')->first()?->id;
+        
         // Get today's appointments (without services — service-based appointments are on the Doctor % page)
+        // Also exclude Laboratory department appointments as they are tracked via LabTestRequest
         $todayAppointments = Appointment::with('patient')
             ->where('doctor_id', $doctor->id)
             ->doesntHave('services')
+            ->when($labDepartmentId, fn($query) => $query->where('department_id', '!=', $labDepartmentId))
             ->whereDate('appointment_date', today())
             ->orderBy('appointment_date', 'asc')
             ->get();
@@ -316,6 +321,7 @@ class DoctorController extends Controller
         $monthlyAppointments = Appointment::with('patient')
             ->where('doctor_id', $doctor->id)
             ->doesntHave('services')
+            ->when($labDepartmentId, fn($query) => $query->where('department_id', '!=', $labDepartmentId))
             ->whereMonth('appointment_date', now()->month)
             ->whereYear('appointment_date', now()->year)
             ->orderBy('appointment_date', 'desc')
@@ -325,6 +331,7 @@ class DoctorController extends Controller
         $yearlyAppointments = Appointment::with('patient')
             ->where('doctor_id', $doctor->id)
             ->doesntHave('services')
+            ->when($labDepartmentId, fn($query) => $query->where('department_id', '!=', $labDepartmentId))
             ->whereYear('appointment_date', now()->year)
             ->orderBy('appointment_date', 'desc')
             ->get();
@@ -332,6 +339,7 @@ class DoctorController extends Controller
         // Calculate total fees and discounts from completed appointments (without services)
         $completedAppointments = Appointment::where('doctor_id', $doctor->id)
             ->doesntHave('services')
+            ->when($labDepartmentId, fn($query) => $query->where('department_id', '!=', $labDepartmentId))
             ->where('status', 'completed')
             ->get();
 

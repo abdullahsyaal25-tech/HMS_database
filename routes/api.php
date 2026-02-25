@@ -139,6 +139,7 @@ Route::prefix('v1')->group(function () {
         // Wallet routes
         Route::prefix('wallet')->group(function () {
             Route::get('/realtime', [WalletController::class, 'realtime']);
+            Route::get('/today-revenue', [WalletController::class, 'calculateTodayRevenue']);
         });
     });
 });
