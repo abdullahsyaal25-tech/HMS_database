@@ -165,6 +165,19 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                     pharmacy: data.revenue.pharmacy,
                     laboratory: data.revenue.laboratory,
                 });
+                
+                // Update the main revenueData.today values as well
+                setRevenueData(prev => ({
+                    ...prev,
+                    today: {
+                        appointments: data.revenue.appointments,
+                        departments: data.revenue.departments,
+                        pharmacy: data.revenue.pharmacy,
+                        laboratory: data.revenue.laboratory,
+                        total: todayTotal,
+                    }
+                }));
+                
                 setLastUpdated(new Date());
             }
         } catch (error) {

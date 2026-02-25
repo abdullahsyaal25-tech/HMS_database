@@ -133,9 +133,13 @@ class DepartmentServiceController extends Controller
         if ($doctorFilter) {
             $doctorInfo = Doctor::with('department')->find($doctorFilter);
 
+            // Get the Laboratory department ID to exclude
+            $labDepartmentId = Department::where('name', 'Laboratory')->first()?->id;
+
             $baseQuery = fn() => Appointment::with(['patient', 'services'])
                 ->where('doctor_id', $doctorFilter)
                 ->has('services')
+                ->when($labDepartmentId, fn($query) => $query->where('department_id', '!=', $labDepartmentId))
                 ->orderBy('appointment_date', 'desc');
 
             $todayAppts = $baseQuery()->whereDate('appointment_date', today())->get();
