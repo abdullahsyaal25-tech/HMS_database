@@ -26,6 +26,8 @@ import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import RefreshAllDataButton from '@/components/RefreshAllDataButton';
+import { DayStatusBanner } from '@/components/DayStatusBanner';
+import { useDayStatus } from '@/hooks/useDayStatus';
 
 interface Wallet {
     id: number;
@@ -140,6 +142,9 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
     const [activeTab, setActiveTab] = useState('overview');
     const [todayRevenueCalculated, setTodayRevenueCalculated] = useState(false);
     const [calculatedTodayRevenue, setCalculatedTodayRevenue] = useState<number | null>(null);
+
+    // Smart Day Detection
+    const { dayStatus, yesterdaySummary, isLoading: isDayStatusLoading, archiveDay } = useDayStatus();
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-US', {
@@ -311,6 +316,14 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
 
                     </div>
                 </div>
+
+                {/* Smart Day Detection Banner */}
+                <DayStatusBanner 
+                    dayStatus={dayStatus} 
+                    yesterdaySummary={yesterdaySummary} 
+                    onArchiveDay={archiveDay} 
+                    isLoading={isDayStatusLoading} 
+                />
 
                 {/* Main Stats Cards */}
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">

@@ -19,6 +19,13 @@ import {
   Ban,
   Play,
   CheckCircle2,
+  Droplets,
+  Activity,
+  Timer,
+  Microscope,
+  Dna,
+  Beaker,
+  Star,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -32,18 +39,19 @@ export interface LabTest {
   id: string | number;
   name: string;
   code: string;
-  category: 'hematology' | 'biochemistry' | 'microbiology' | 'immunology' | 'urinalysis';
+  category: 'Hematology' | 'Biochemistry' | 'Serology' | 'Coagulation' | 'Microbiology' | 'Molecular' | 'Urine' | 'Stool' | 'Semen' | 'Special';
   status: 'active' | 'inactive';
   cost?: number;
   turnaroundTime?: string;
   description?: string;
+  sample_type?: string;
 }
 
 export interface LabTestRequest {
   id: string | number;
   testName: string;
   testCode: string;
-  category: 'hematology' | 'biochemistry' | 'microbiology' | 'immunology' | 'urinalysis';
+  category: 'Hematology' | 'Biochemistry' | 'Serology' | 'Coagulation' | 'Microbiology' | 'Molecular' | 'Urine' | 'Stool' | 'Semen' | 'Special';
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   priority: 'routine' | 'urgent' | 'stat';
   patientName?: string;
@@ -51,9 +59,10 @@ export interface LabTestRequest {
   doctorName?: string;
   scheduledAt?: string;
   requestedAt?: string;
+  sample_type?: string;
 }
 
-type Action = {
+export type Action = {
   label: string;
   icon: LucideIcon;
   onClick: () => void;
@@ -74,12 +83,73 @@ export interface LabTestCardProps extends React.HTMLAttributes<HTMLDivElement> {
   onCancel?: () => void;
 }
 
-const categoryConfig: Record<string, { label: string; color: string; icon: LucideIcon }> = {
-  hematology: { label: 'Hematology', color: 'text-lab-hematology bg-lab-hematology/10 border-lab-hematology/30', icon: FlaskConical },
-  biochemistry: { label: 'Biochemistry', color: 'text-lab-biochemistry bg-lab-biochemistry/10 border-lab-biochemistry/30', icon: FlaskConical },
-  microbiology: { label: 'Microbiology', color: 'text-lab-microbiology bg-lab-microbiology/10 border-lab-microbiology/30', icon: FlaskConical },
-  immunology: { label: 'Immunology', color: 'text-lab-immunology bg-lab-immunology/10 border-lab-immunology/30', icon: FlaskConical },
-  urinalysis: { label: 'Urinalysis', color: 'text-lab-urinalysis bg-lab-urinalysis/10 border-lab-urinalysis/30', icon: FlaskConical },
+// Category configuration with icons and colors for all 10 categories
+const categoryConfig: Record<string, { 
+  label: string; 
+  color: string; 
+  icon: LucideIcon;
+  bgColor: string;
+}> = {
+  Hematology: { 
+    label: 'Hematology', 
+    color: 'text-red-600 bg-red-50 border-red-200', 
+    bgColor: 'bg-red-50',
+    icon: Droplets 
+  },
+  Biochemistry: { 
+    label: 'Biochemistry', 
+    color: 'text-blue-600 bg-blue-50 border-blue-200', 
+    bgColor: 'bg-blue-50',
+    icon: FlaskConical 
+  },
+  Serology: { 
+    label: 'Serology', 
+    color: 'text-purple-600 bg-purple-50 border-purple-200', 
+    bgColor: 'bg-purple-50',
+    icon: Activity 
+  },
+  Coagulation: { 
+    label: 'Coagulation', 
+    color: 'text-orange-600 bg-orange-50 border-orange-200', 
+    bgColor: 'bg-orange-50',
+    icon: Timer 
+  },
+  Microbiology: { 
+    label: 'Microbiology', 
+    color: 'text-green-600 bg-green-50 border-green-200', 
+    bgColor: 'bg-green-50',
+    icon: Microscope 
+  },
+  Molecular: { 
+    label: 'Molecular/PCR', 
+    color: 'text-indigo-600 bg-indigo-50 border-indigo-200', 
+    bgColor: 'bg-indigo-50',
+    icon: Dna 
+  },
+  Urine: { 
+    label: 'Urine Tests', 
+    color: 'text-yellow-600 bg-yellow-50 border-yellow-200', 
+    bgColor: 'bg-yellow-50',
+    icon: Beaker 
+  },
+  Stool: { 
+    label: 'Stool Tests', 
+    color: 'text-amber-700 bg-amber-50 border-amber-200', 
+    bgColor: 'bg-amber-50',
+    icon: Beaker 
+  },
+  Semen: { 
+    label: 'Semen Analysis', 
+    color: 'text-cyan-600 bg-cyan-50 border-cyan-200', 
+    bgColor: 'bg-cyan-50',
+    icon: FlaskConical 
+  },
+  Special: { 
+    label: 'Special Tests', 
+    color: 'text-pink-600 bg-pink-50 border-pink-200', 
+    bgColor: 'bg-pink-50',
+    icon: Star 
+  },
 };
 
 const LabTestCard = React.forwardRef<HTMLDivElement, LabTestCardProps>(
@@ -105,7 +175,7 @@ const LabTestCard = React.forwardRef<HTMLDivElement, LabTestCardProps>(
     const request = test as LabTestRequest;
 
     const category = isTest ? labTest.category : request.category;
-    const categoryInfo = categoryConfig[category] || categoryConfig.hematology;
+    const categoryInfo = categoryConfig[category] || categoryConfig.Hematology;
     const CategoryIcon = categoryInfo.icon;
 
     // Default actions based on type and status
@@ -299,4 +369,3 @@ const LabTestCard = React.forwardRef<HTMLDivElement, LabTestCardProps>(
 LabTestCard.displayName = 'LabTestCard';
 
 export { LabTestCard };
-export type { Action };

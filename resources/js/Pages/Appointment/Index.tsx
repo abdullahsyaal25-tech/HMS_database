@@ -12,7 +12,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Heading from '@/components/heading';
 import { AppointmentPrintModal } from '@/components/appointment/AppointmentPrintModal';
-import { Calendar, User, Stethoscope, PlusCircle, Search, Clock, Eye, Edit, CalendarDays, DollarSign } from 'lucide-react';
+import { Calendar, User, Stethoscope, PlusCircle, Search, Clock, Eye, Edit, CalendarDays, DollarSign, AlertTriangle, Clock as ClockIcon } from 'lucide-react';
+import { DayStatusBanner } from '@/components/DayStatusBanner';
+import { useDayStatus } from '@/hooks/useDayStatus';
 import { useState, useEffect } from 'react';
 import HospitalLayout from '@/layouts/HospitalLayout';
 
@@ -90,6 +92,9 @@ export default function AppointmentIndex({ appointments, stats }: AppointmentInd
     const [searchTerm, setSearchTerm] = useState('');
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [printAppointment, setPrintAppointment] = useState<unknown>(null);
+    
+    // Smart Day Detection
+    const { dayStatus, yesterdaySummary, isLoading: isDayStatusLoading, archiveDay } = useDayStatus();
     
     const { props } = usePage();
 
@@ -178,6 +183,14 @@ export default function AppointmentIndex({ appointments, stats }: AppointmentInd
                         </Button>
                     </Link>
                 </div>
+
+                {/* Smart Day Detection Banner */}
+                <DayStatusBanner 
+                    dayStatus={dayStatus} 
+                    yesterdaySummary={yesterdaySummary} 
+                    onArchiveDay={archiveDay} 
+                    isLoading={isDayStatusLoading} 
+                />
 
                 {/* Stats Cards - Row 1 */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">

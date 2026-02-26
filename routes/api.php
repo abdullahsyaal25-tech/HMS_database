@@ -18,6 +18,7 @@ use App\Http\Controllers\API\v1\MedicineCategoryController as ApiMedicineCategor
 use App\Http\Controllers\API\v1\ReportController as ApiReportController;
 use App\Http\Controllers\API\v1\DashboardController as ApiDashboardController;
 use App\Http\Controllers\API\v1\RefreshDataController;
+use App\Http\Controllers\API\v1\DayStatusController;
 use App\Http\Controllers\WalletController;
 
 /*
@@ -150,6 +151,13 @@ Route::prefix('v1')->group(function () {
     // Using GET to avoid CSRF issues
     Route::prefix('refresh')->middleware(['web', 'auth'])->group(function () {
         Route::get('/all-today-data', [RefreshDataController::class, 'refreshAllTodayData']);
+    });
+
+    // Day Status routes - for smart day detection system
+    Route::prefix('day-status')->middleware(['web', 'auth'])->group(function () {
+        Route::get('/status', [DayStatusController::class, 'getStatus']);
+        Route::post('/archive', [DayStatusController::class, 'archiveDay']);
+        Route::get('/yesterday-summary', [DayStatusController::class, 'getYesterdaySummary']);
     });
 });
 

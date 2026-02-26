@@ -24,3 +24,9 @@ export type {
   FilterType,
   FilterBarProps,
 } from './FilterBar';
+
+// New components for 81 lab tests support
+export { ParameterBuilder } from './ParameterBuilder';
+export { ReferenceRangeBuilder } from './ReferenceRangeBuilder';
+export { SampleTypeBadge, SampleTypeSelect, sampleTypes } from './SampleTypeBadge';
+export type { SampleType, SampleTypeConfig, SampleTypeBadgeProps } from './SampleTypeBadge';

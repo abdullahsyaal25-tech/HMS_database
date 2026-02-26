@@ -27,7 +27,9 @@ import {
     TrendingUp,
     CreditCard,
     Wallet,
-    Landmark
+    Landmark,
+    AlertTriangle,
+    Clock as ClockIcon
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -42,6 +44,8 @@ import {
     DialogFooter,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { DayStatusBanner } from '@/components/DayStatusBanner';
+import { useDayStatus } from '@/hooks/useDayStatus';
 
 // Helper function to decode HTML entities safely
 const decodeHtmlEntity = (html: string): string => {
@@ -122,6 +126,9 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
     const [voidDialogOpen, setVoidDialogOpen] = useState(false);
     const [voidReason, setVoidReason] = useState('');
     const [saleToVoid, setSaleToVoid] = useState<number | null>(null);
+    
+    // Smart Day Detection
+    const { dayStatus, yesterdaySummary, isLoading: isDayStatusLoading, archiveDay } = useDayStatus();
 
     // Filter configurations
     const filterConfigs: FilterConfig[] = useMemo(() => [
@@ -309,6 +316,14 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
                         </Link>
                     </div>
                 </div>
+
+                {/* Smart Day Detection Banner */}
+                <DayStatusBanner 
+                    dayStatus={dayStatus} 
+                    yesterdaySummary={yesterdaySummary} 
+                    onArchiveDay={archiveDay} 
+                    isLoading={isDayStatusLoading} 
+                />
 
                 {/* Statistics Cards */}
                 {stats && (
