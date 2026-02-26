@@ -35,7 +35,7 @@ interface DayStatusBannerProps {
         total_revenue: number;
         source: string;
     } | null;
-    onArchiveDay: () => void;
+    onArchiveDay: () => Promise<boolean> | void;
     isLoading: boolean;
 }
 

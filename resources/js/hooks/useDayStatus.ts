@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { router } from '@inertiajs/react';
 
 interface DayStatus {
     status: 'day_started' | 'new_day_available' | 'processing' | 'error';
@@ -119,6 +120,10 @@ export function useDayStatus(): UseDayStatusReturn {
                 // Refresh status after archiving
                 await fetchDayStatus();
                 await fetchYesterdaySummary();
+                
+                // Reload Inertia props to refresh page data (appointments, stats, etc.)
+                router.reload({ only: [] });
+                
                 return true;
             } else {
                 throw new Error(data.message || 'Failed to archive day');

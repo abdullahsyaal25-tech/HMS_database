@@ -189,7 +189,7 @@ class SalesController extends Controller
         // Get categories for filter
         $categories = MedicineCategory::select('id', 'name')
             ->whereHas('medicines', function ($q) {
-                $q->where('quantity', '>', 0);
+                $q->where('stock_quantity', '>', 0);
             })
             ->get()
             ->map(function ($category) {
@@ -445,7 +445,7 @@ class SalesController extends Controller
         // Get categories for filter
         $categories = MedicineCategory::select('id', 'name')
             ->whereHas('medicines', function ($q) {
-                $q->where('quantity', '>', 0);
+                $q->where('stock_quantity', '>', 0);
             })
             ->get()
             ->map(function ($category) {
@@ -540,7 +540,7 @@ class SalesController extends Controller
             abort(403, 'Unauthorized access');
         }
         
-        $medicines = Medicine::where('quantity', '>', 0)
+        $medicines = Medicine::where('stock_quantity', '>', 0)
             ->with('category')
             ->get();
         
@@ -570,7 +570,7 @@ class SalesController extends Controller
             abort(403, 'Unauthorized access');
         }
         
-        $medicines = Medicine::where('quantity', '>', 0)
+        $medicines = Medicine::where('stock_quantity', '>', 0)
             ->with('category')
             ->get();
         
@@ -647,8 +647,10 @@ class SalesController extends Controller
             
             Log::info('Sale transaction committed', ['sale_id' => $sale->id]);
             
-            return redirect()->route('pharmacy.sales.receipt', $sale->id)
-                ->with('success', 'Sale completed successfully.');
+            // Return success response with sale data for the frontend
+            return redirect()->route('pharmacy.sales.create')
+                ->with('success', 'Sale completed successfully.')
+                ->with('saleId', $sale->id);
                 
         } catch (\Exception $e) {
             DB::rollBack();

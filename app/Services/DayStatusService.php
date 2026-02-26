@@ -42,8 +42,11 @@ class DayStatusService
             ];
         }
         
+        // Check if today has been acknowledged by the user
+        $todayAcknowledged = Cache::get('day_acknowledged_' . $todayStr, false);
+        
         // Compare today with last archived date
-        if ($today->gt($lastArchivedDate)) {
+        if ($today->gt($lastArchivedDate) && !$todayAcknowledged) {
             // New day detected - previous day needs to be archived
             return [
                 'status' => 'new_day_available',
@@ -54,7 +57,7 @@ class DayStatusService
                 'day_end_timestamp' => $dayEndTimestamp,
                 'days_behind' => $today->diffInDays($lastArchivedDate),
             ];
-        } elseif ($today->eq($lastArchivedDate)) {
+        } elseif ($today->eq($lastArchivedDate) || ($today->gt($lastArchivedDate) && $todayAcknowledged)) {
             // Same day as last archived - day is already started
             return [
                 'status' => 'day_started',
@@ -78,25 +81,52 @@ class DayStatusService
     }
     
     /**
-     * Archive current day's data and start new day
+     * Archive previous day's data and start new day
      */
     public function archiveCurrentDay()
     {
         $today = Carbon::today();
+        $yesterday = Carbon::yesterday();
+        $yesterdayStr = $yesterday->toDateString();
         $todayStr = $today->toDateString();
         
-        // Get current day's data from cache or calculate it
-        $todayData = $this->getTodayData();
+        // Check if yesterday has already been archived
+        $existingSnapshot = DailySnapshot::where('date', $yesterdayStr)->first();
+        if ($existingSnapshot) {
+            // Yesterday already archived, just reset today's counters
+            Cache::forget('daily_revenue_' . $todayStr);
+            Cache::forget('daily_revenue_calculated_at_' . $todayStr);
+            
+            // Mark today as acknowledged
+            Cache::put('day_acknowledged_' . $todayStr, true, now()->addDays(1));
+            
+            // Set day_end_timestamp for TODAY to reset today's counters to 0
+            // This makes all revenue queries return 0 for today
+            Cache::put('day_end_timestamp_' . $todayStr, now()->toISOString(), now()->addDays(1));
+            
+            return [
+                'success' => true,
+                'message' => 'Day already archived - today reset to 0',
+                'snapshot_id' => $existingSnapshot->id,
+                'date_archived' => $yesterdayStr,
+                'data' => null,
+            ];
+        }
         
-        // Archive to daily_snapshots table
+        // Get yesterday's data for archiving (from the beginning of yesterday to end of yesterday)
+        $yesterdayStart = $yesterday->copy()->startOfDay();
+        $yesterdayEnd = $yesterday->copy()->endOfDay();
+        $yesterdayData = $this->getDataForDateRange($yesterdayStart, $yesterdayEnd);
+        
+        // Archive yesterday's data to daily_snapshots table
         $snapshot = DailySnapshot::create([
-            'date' => $todayStr,
-            'appointments_count' => $todayData['appointments_count'],
-            'appointments_revenue' => $todayData['appointments_revenue'],
-            'departments_revenue' => $todayData['departments_revenue'],
-            'pharmacy_revenue' => $todayData['pharmacy_revenue'],
-            'laboratory_revenue' => $todayData['laboratory_revenue'],
-            'total_revenue' => $todayData['total_revenue'],
+            'date' => $yesterdayStr,
+            'appointments_count' => $yesterdayData['appointments_count'],
+            'appointments_revenue' => $yesterdayData['appointments_revenue'],
+            'departments_revenue' => $yesterdayData['departments_revenue'],
+            'pharmacy_revenue' => $yesterdayData['pharmacy_revenue'],
+            'laboratory_revenue' => $yesterdayData['laboratory_revenue'],
+            'total_revenue' => $yesterdayData['total_revenue'],
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -105,18 +135,48 @@ class DayStatusService
         Cache::forget('daily_revenue_' . $todayStr);
         Cache::forget('daily_revenue_calculated_at_' . $todayStr);
         
-        // Set day_end_timestamp for today to mark it as archived
-        Cache::put('day_end_timestamp_' . $todayStr, now()->toISOString(), now()->addDays(30));
+        // Set day_end_timestamp for yesterday to mark it as archived
+        Cache::put('day_end_timestamp_' . $yesterdayStr, $yesterdayEnd->toISOString(), now()->addDays(30));
+        
+        // Mark today as acknowledged (user has clicked "Start New Day")
+        Cache::put('day_acknowledged_' . $todayStr, true, now()->addDays(1));
+        
+        // Set day_end_timestamp for TODAY to reset today's counters to 0
+        // This makes all revenue queries return 0 for today
+        Cache::put('day_end_timestamp_' . $todayStr, now()->toISOString(), now()->addDays(1));
         
         return [
             'success' => true,
             'message' => 'Day archived successfully',
             'snapshot_id' => $snapshot->id,
-            'date_archived' => $todayStr,
-            'data' => $todayData,
+            'date_archived' => $yesterdayStr,
+            'data' => $yesterdayData,
         ];
     }
     
+    /**
+     * Get data for a specific date range
+     */
+    private function getDataForDateRange($start, $end)
+    {
+        // Calculate revenue from all sources for the given date range
+        $appointmentsRevenue = $this->getAppointmentRevenue($start, $end);
+        $departmentsRevenue = $this->getDepartmentRevenue($start, $end);
+        $pharmacyRevenue = $this->getPharmacyRevenue($start, $end);
+        $laboratoryRevenue = $this->getLaboratoryRevenue($start, $end);
+
+        $totalRevenue = $appointmentsRevenue + $departmentsRevenue + $pharmacyRevenue + $laboratoryRevenue;
+
+        return [
+            'appointments_count' => 0, // Would need separate calculation
+            'appointments_revenue' => $appointmentsRevenue,
+            'departments_revenue' => $departmentsRevenue,
+            'pharmacy_revenue' => $pharmacyRevenue,
+            'laboratory_revenue' => $laboratoryRevenue,
+            'total_revenue' => $totalRevenue,
+        ];
+    }
+
     /**
      * Get today's data for archiving
      */

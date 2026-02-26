@@ -271,7 +271,29 @@ export default function LabTestResultShow({
     >
       <Head title={`Lab Test Result - ${labTestResult.result_id}`} />
 
+      <style>{`
+        @media print {
+          @page {
+            size: A4;
+            margin: 15mm;
+          }
+          body {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+        }
+      `}</style>
+
       <div className="space-y-6 print:space-y-4">
+        {/* Print Header - Only visible when printing */}
+        <div className="hidden print:block print:mb-6">
+          <div className="text-center border-b-2 border-primary pb-4 mb-4">
+            <h1 className="text-2xl font-bold text-primary">HOSPITAL MANAGEMENT SYSTEM</h1>
+            <p className="text-lg font-semibold mt-1">Laboratory Report</p>
+            <p className="text-sm text-gray-600 mt-1">Result ID: {labTestResult.result_id}</p>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
           <div>
@@ -400,9 +422,27 @@ export default function LabTestResultShow({
           </Alert>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:grid-cols-1">
+          {/* Patient & Test Info - Print Layout */}
+          <div className="hidden print:grid print:grid-cols-2 print:gap-4 print:mb-6">
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold text-sm text-gray-600 mb-2">Patient Information</h3>
+              <p className="font-bold">{labTestResult.patient?.first_name} {labTestResult.patient?.father_name}</p>
+              <p className="text-sm">ID: {labTestResult.patient?.patient_id}</p>
+              <p className="text-sm">Age: {labTestResult.patient?.age} years | Gender: {labTestResult.patient?.gender}</p>
+              <p className="text-sm">Blood Group: {labTestResult.patient?.blood_group || 'N/A'}</p>
+            </div>
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold text-sm text-gray-600 mb-2">Test Information</h3>
+              <p className="font-bold">{labTestResult.labTest?.name}</p>
+              <p className="text-sm">Category: {labTestResult.labTest?.category}</p>
+              <p className="text-sm">Sample: {labTestResult.labTest?.sample_type || 'N/A'}</p>
+              <p className="text-sm">Performed: {formatDateShort(labTestResult.performed_at)}</p>
+            </div>
+          </div>
+
           {/* Left Column - Patient & Test Info */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className="lg:col-span-1 space-y-6 print:hidden">
             {/* Patient Information Card */}
             <Card className="print:shadow-none print:border-0">
               <CardHeader className="print:pb-2">
@@ -544,7 +584,7 @@ export default function LabTestResultShow({
           </div>
 
           {/* Right Column - Results */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6 print:col-span-1">
             <Card className="print:shadow-none print:border-0">
               <CardHeader className="print:pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -562,7 +602,7 @@ export default function LabTestResultShow({
                     <TabsTrigger value="detailed">Detailed View</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="table" className="mt-4">
+                  <TabsContent value="table" className="mt-4 print:mt-0">
                     <div className="border rounded-lg overflow-hidden">
                       <table className="w-full">
                         <thead className="bg-muted">
@@ -622,7 +662,7 @@ export default function LabTestResultShow({
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="detailed" className="mt-4">
+                  <TabsContent value="detailed" className="mt-4 print:hidden">
                     <div className="space-y-4">
                       {parsedResults.map((result, idx) => (
                         <div
@@ -693,6 +733,34 @@ export default function LabTestResultShow({
                 )}
               </CardContent>
             </Card>
+          </div>
+        </div>
+
+        {/* Print Footer - Only visible when printing */}
+        <div className="hidden print:block print:mt-8 print:pt-6 print:border-t">
+          <div className="grid grid-cols-2 gap-8">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-8">Performed By:</p>
+              <div className="border-t border-gray-400 pt-2">
+                <p className="font-semibold">{labTestResult.performedBy?.name || 'Unknown'}</p>
+                <p className="text-sm text-gray-600">Laboratory Technician</p>
+                <p className="text-xs text-gray-500 mt-1">Date: {formatDateShort(labTestResult.performed_at)}</p>
+              </div>
+            </div>
+            {isVerified && labTestResult.verifiedBy && (
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-8">Verified By:</p>
+                <div className="border-t border-gray-400 pt-2">
+                  <p className="font-semibold">{labTestResult.verifiedBy.name}</p>
+                  <p className="text-sm text-gray-600">Laboratory Pathologist</p>
+                  <p className="text-xs text-gray-500 mt-1">Date: {labTestResult.verified_at ? formatDateShort(labTestResult.verified_at) : 'N/A'}</p>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="mt-8 text-center text-xs text-gray-500">
+            <p>This is a computer-generated report. For any queries, please contact the laboratory.</p>
+            <p className="mt-1">Printed on: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
           </div>
         </div>
       </div>

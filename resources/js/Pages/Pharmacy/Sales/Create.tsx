@@ -257,7 +257,24 @@ export default function SaleCreate({ medicines, patients: patientsProp }: SaleCr
 
     const handleCompleteSale = () => {
         post('/pharmacy/sales', {
-            onSuccess: () => setShowCheckoutDialog(false),
+            onSuccess: (page: any) => {
+                setShowCheckoutDialog(false);
+                // Get sale ID from the response
+                const props = page.props as any;
+                // Try to get from flash data or props
+                const saleId = props.sale?.id || props.flash?.saleId;
+                if (saleId) {
+                    setCompletedSaleId(saleId);
+                    setSaleComplete(true);
+                } else {
+                    // Fallback: navigate to sales list
+                    window.location.href = '/pharmacy/sales';
+                }
+            },
+            onError: (errors: any) => {
+                console.error('Sale creation failed:', errors);
+                alert('Failed to create sale: ' + Object.values(errors).join(', '));
+            },
         });
     };
 
