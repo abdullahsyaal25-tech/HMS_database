@@ -188,7 +188,7 @@ if (!$user->isSuperAdmin() && !$user->hasPermission('create-lab-tests')) {
             'unit' => 'nullable|string|max:100',
             'normal_values' => 'nullable|string',
             'procedure' => 'nullable|string',
-            'status' => 'required|string|in:active,inactive',
+            'status' => 'nullable|string|in:active,inactive',
         ]);
 
         if ($validator->fails()) {

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\DailySnapshot;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class DayStatusService
 {
@@ -20,10 +21,10 @@ class DayStatusService
         $dayEndTimestamp = Cache::get('day_end_timestamp_' . $todayStr);
         
         // Get the last archived date from daily_snapshots table
-        $lastSnapshot = DailySnapshot::orderBy('date', 'desc')->first();
+        $lastSnapshot = DailySnapshot::orderBy('snapshot_date', 'desc')->first();
         
         if ($lastSnapshot) {
-            $lastArchivedDate = Carbon::parse($lastSnapshot->date);
+            $lastArchivedDate = Carbon::parse($lastSnapshot->snapshot_date);
         } else {
             // If no snapshots exist, check if we have any day_end_timestamp
             $lastArchivedDate = $dayEndTimestamp ? Carbon::parse($dayEndTimestamp) : null;
@@ -120,7 +121,7 @@ class DayStatusService
         
         // Archive yesterday's data to daily_snapshots table
         $snapshot = DailySnapshot::create([
-            'date' => $yesterdayStr,
+            'snapshot_date' => $yesterdayStr,
             'appointments_count' => $yesterdayData['appointments_count'],
             'appointments_revenue' => $yesterdayData['appointments_revenue'],
             'departments_revenue' => $yesterdayData['departments_revenue'],
@@ -222,10 +223,7 @@ class DayStatusService
     private function getAppointmentRevenue($start, $end)
     {
         $appointments = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->where(function ($query) use ($start, $end) {
-                $query->whereBetween('appointment_date', [$start, $end])
-                      ->orWhereNull('appointment_date');
-            })
+            ->whereBetween('appointment_date', [$start, $end])
             ->whereDoesntHave('services')
             ->where(function ($query) {
                 $query->whereNull('department_id')
@@ -253,10 +251,7 @@ class DayStatusService
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '!=', 'Laboratory')
-            ->where(function ($query) use ($start, $end) {
-                $query->whereBetween('appointment_services.created_at', [$start, $end])
-                      ->orWhereNull('appointment_services.created_at');
-            })
+            ->whereBetween('appointments.appointment_date', [$start, $end])
             ->sum('appointment_services.final_cost');
     }
 
@@ -266,10 +261,7 @@ class DayStatusService
     private function getPharmacyRevenue($start, $end)
     {
         return \App\Models\Sale::where('status', 'completed')
-            ->where(function ($query) use ($start, $end) {
-                $query->whereBetween('created_at', [$start, $end])
-                      ->orWhereNull('created_at');
-            })
+            ->whereBetween('created_at', [$start, $end])
             ->sum('grand_total');
     }
 
@@ -297,18 +289,12 @@ class DayStatusService
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '=', 'Laboratory')
-            ->where(function ($query) use ($start, $end) {
-                $query->whereBetween('appointment_services.created_at', [$start, $end])
-                      ->orWhereNull('appointment_services.created_at');
-            })
+            ->whereBetween('appointments.appointment_date', [$start, $end])
             ->sum('appointment_services.final_cost');
 
         // Get laboratory department appointments
         $labDepartmentAppointmentsRevenue = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->where(function ($query) use ($start, $end) {
-                $query->whereBetween('appointment_date', [$start, $end])
-                      ->orWhereNull('appointment_date');
-            })
+            ->whereBetween('appointment_date', [$start, $end])
             ->whereDoesntHave('services')
             ->where(function ($query) {
                 $query->whereIn('department_id', function ($subQuery) {
@@ -334,7 +320,7 @@ class DayStatusService
         $yesterdayStr = $yesterday->toDateString();
         
         // Try to get from daily_snapshots first
-        $snapshot = DailySnapshot::where('date', $yesterdayStr)->first();
+        $snapshot = DailySnapshot::where('snapshot_date', $yesterdayStr)->first();
         
         if ($snapshot) {
             return [

@@ -140,12 +140,9 @@ class WalletController extends Controller
         // Get completed appointments WITHOUT services AND NOT from Laboratory department
         // Appointments with services are tracked in department revenue instead
         // Laboratory appointments (even without services attached) are tracked in laboratory revenue
+        // Uses created_at to track when the appointment was actually created in the system
         $appointments = Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->where(function ($query) use ($start, $end) {
-                // Include records within date range OR records with NULL dates (historical data)
-                $query->whereBetween('appointment_date', [$start, $end])
-                      ->orWhereNull('appointment_date');
-            })
+            ->whereBetween('created_at', [$start, $end])
             ->whereDoesntHave('services')  // Only appointments without services
             ->where(function ($query) {
                 // Exclude appointments where department is Laboratory
@@ -172,17 +169,14 @@ class WalletController extends Controller
     {
         // Sum the final_cost from appointment_services for completed appointments
         // Exclude laboratory department services (those are tracked in laboratory revenue)
+        // Uses created_at to track when the service was actually created in the system
         return DB::table('appointment_services')
             ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
             ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '!=', 'Laboratory')  // Exclude laboratory services
-            ->where(function ($query) use ($start, $end) {
-                // Include records within date range OR records with NULL created_at (historical data)
-                $query->whereBetween('appointment_services.created_at', [$start, $end])
-                      ->orWhereNull('appointment_services.created_at');
-            })
+            ->whereBetween('appointment_services.created_at', [$start, $end])
             ->sum('appointment_services.final_cost');
     }
 
@@ -192,12 +186,9 @@ class WalletController extends Controller
     private function getPharmacyRevenue(Carbon $start, Carbon $end)
     {
         // Count completed sales as revenue
+        // Uses created_at to track when the sale was actually created in the system
         return Sale::where('status', 'completed')
-            ->where(function ($query) use ($start, $end) {
-                // Include records within date range OR records with NULL created_at (historical data)
-                $query->whereBetween('created_at', [$start, $end])
-                      ->orWhereNull('created_at');
-            })
+            ->whereBetween('created_at', [$start, $end])
             ->sum('grand_total');
     }
 
@@ -211,43 +202,28 @@ class WalletController extends Controller
     private function getLaboratoryRevenue(Carbon $start, Carbon $end)
     {
         // Get lab test results that are completed OR have been performed
-        // FIXED: Include records with NULL performed_at when status is 'completed'
+        // Uses created_at to track when the result was actually created in the system
         $labTestResultsRevenue = DB::table('lab_test_results')
             ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
-            ->where(function ($query) use ($start, $end) {
-                // Include records:
-                // 1. With performed_at within date range
-                // 2. With NULL performed_at but status is 'completed' (historical data)
-                $query->whereBetween('lab_test_results.performed_at', [$start, $end])
-                      ->orWhere(function ($q) {
-                          $q->whereNull('lab_test_results.performed_at')
-                            ->where('lab_test_results.status', 'completed');
-                      });
-            })
+            ->whereBetween('lab_test_results.created_at', [$start, $end])
             ->sum('lab_tests.cost');
 
         // Get laboratory services from appointments (department services)
+        // Uses created_at to track when the service was actually created in the system
         $appointmentLabServicesRevenue = DB::table('appointment_services')
             ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
             ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '=', 'Laboratory')  // Only laboratory department services
-            ->where(function ($query) use ($start, $end) {
-                // Include records within date range OR records with NULL created_at (historical data)
-                $query->whereBetween('appointment_services.created_at', [$start, $end])
-                      ->orWhereNull('appointment_services.created_at');
-            })
+            ->whereBetween('appointment_services.created_at', [$start, $end])
             ->sum('appointment_services.final_cost');
 
         // Get laboratory department appointments (appointments where department=Laboratory and no services attached)
         // These are standalone lab appointments created through the department selection
+        // Uses created_at to track when the appointment was actually created in the system
         $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->where(function ($query) use ($start, $end) {
-                // Include records within date range OR records with NULL appointment_date (historical data)
-                $query->whereBetween('appointment_date', [$start, $end])
-                      ->orWhereNull('appointment_date');
-            })
+            ->whereBetween('created_at', [$start, $end])
             ->whereDoesntHave('services')  // Only appointments without attached services
             ->where(function ($query) {
                 // Include only Laboratory department appointments
