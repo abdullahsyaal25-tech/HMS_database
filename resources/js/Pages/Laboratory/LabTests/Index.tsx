@@ -158,11 +158,17 @@ export default function LabTestIndex({ labTests, query = '', status = '', catego
     id: test.id,
     name: test.name,
     code: test.test_id,
-    category: (filters.category || 'hematology') as 'hematology' | 'biochemistry' | 'microbiology' | 'immunology' | 'urinalysis',
+    category: (filters.category === 'hematology' ? 'Hematology' : 
+              filters.category === 'biochemistry' ? 'Biochemistry' : 
+              filters.category === 'microbiology' ? 'Microbiology' : 
+              filters.category === 'immunology' ? 'Immunology' : 
+              filters.category === 'urinalysis' ? 'Urine' : 
+              'Hematology') as 'Hematology' | 'Biochemistry' | 'Microbiology' | 'Immunology' | 'Urine',
     status: test.status as 'active' | 'inactive',
     cost: test.cost,
     turnaroundTime: formatTime(test.turnaround_time),
     description: test.description || undefined,
+    parameters: test.parameters || undefined,
   });
 
   return (

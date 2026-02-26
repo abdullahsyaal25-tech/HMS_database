@@ -39,7 +39,7 @@ export function ParameterBuilder({ parameters, onChange }: ParameterBuilderProps
   const generateParamId = (name: string): string => {
     return name
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/[^a-z0-9#%]+/g, '_')
       .replace(/^_+|_+$/g, '');
   };
 

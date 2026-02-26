@@ -180,15 +180,17 @@ if (!$user->isSuperAdmin() && !$user->hasPermission('create-lab-tests')) {
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:255',
+            'test_code' => 'required|string|max:255',
             'description' => 'nullable|string',
             'cost' => 'required|numeric|min:0',
             'category' => 'required|string|max:100',
-            'turnaround_time' => 'required|integer|min:1',
+            'turnaround_time' => 'required|integer|min:0',
             'unit' => 'nullable|string|max:100',
             'normal_values' => 'nullable|string',
             'procedure' => 'nullable|string',
             'status' => 'nullable|string|in:active,inactive',
+            'parameters' => 'nullable|array',
+            'reference_ranges' => 'nullable|array',
         ]);
 
         if ($validator->fails()) {
@@ -212,6 +214,8 @@ if (!$user->isSuperAdmin() && !$user->hasPermission('create-lab-tests')) {
             'unit' => $request->input('unit'),
             'normal_values' => $request->input('normal_values'),
             'status' => $request->input('status'),
+            'parameters' => $request->input('parameters', []),
+            'reference_ranges' => $request->input('reference_ranges', []),
         ];
 
         Log::debug('LabTestController store - data to be created', [
@@ -289,13 +293,28 @@ if (!$user->hasPermission('edit-lab-tests')) {
         'turnaround_time' => 'nullable|integer|min:0',
         'unit' => 'nullable|string|max:100',
         'normal_values' => 'nullable|string',
+        'parameters' => 'nullable|array',
+        'reference_ranges' => 'nullable|array',
     ]);
 
     if ($validator->fails()) {
         return redirect()->back()->withErrors($validator)->withInput();
     }
 
-    $labTest->update($validator->validated());
+    // Map frontend field names to database field names
+    $validatedData = [
+        'name' => $request->input('name'),
+        'description' => $request->input('description'),
+        'cost' => $request->input('cost'),
+        'procedure' => $request->input('procedure'),
+        'turnaround_time' => $request->input('turnaround_time'),
+        'unit' => $request->input('unit'),
+        'normal_values' => $request->input('normal_values'),
+        'parameters' => $request->input('parameters', []),
+        'reference_ranges' => $request->input('reference_ranges', []),
+    ];
+
+    $labTest->update($validatedData);
 
     return redirect()->route('laboratory.lab-tests.index')->with('success', 'Lab test updated successfully.');
 }

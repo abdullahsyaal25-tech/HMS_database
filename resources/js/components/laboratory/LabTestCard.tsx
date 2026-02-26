@@ -39,12 +39,19 @@ export interface LabTest {
   id: string | number;
   name: string;
   code: string;
-  category: 'Hematology' | 'Biochemistry' | 'Serology' | 'Coagulation' | 'Microbiology' | 'Molecular' | 'Urine' | 'Stool' | 'Semen' | 'Special';
+  category: 'Hematology' | 'Biochemistry' | 'Serology' | 'Coagulation' | 'Microbiology' | 'Molecular' | 'Urine' | 'Stool' | 'Semen' | 'Special' | 'Immunology';
   status: 'active' | 'inactive';
   cost?: number;
   turnaroundTime?: string;
   description?: string;
   sample_type?: string;
+  parameters?: {
+    [key: string]: {
+      name: string;
+      unit: string;
+      description?: string;
+    };
+  };
 }
 
 export interface LabTestRequest {
@@ -315,6 +322,20 @@ const LabTestCard = React.forwardRef<HTMLDivElement, LabTestCardProps>(
             <p className="mt-3 text-sm text-muted-foreground line-clamp-2">
               {labTest.description}
             </p>
+          )}
+
+          {/* Parameters */}
+          {isTest && labTest.parameters && Object.keys(labTest.parameters).length > 0 && (
+            <div className="mt-3">
+              <p className="text-xs font-medium text-muted-foreground mb-1">Parameters:</p>
+              <div className="flex flex-wrap gap-1">
+                {Object.entries(labTest.parameters).map(([key, param]) => (
+                  <Badge key={key} variant="secondary" className="text-xs">
+                    {param.name} ({param.unit})
+                  </Badge>
+                ))}
+              </div>
+            </div>
           )}
         </CardContent>
 

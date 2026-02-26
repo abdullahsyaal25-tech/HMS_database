@@ -74,6 +74,11 @@ class WalletController extends Controller
             Log::info('WalletController getRevenueData - Day end timestamp found, querying after: ' . $dayEndTimestamp);
         }
 
+        Log::info('WalletController getRevenueData - Effective date range', [
+            'effectiveStartTime' => $effectiveStartTime->toISOString(),
+            'tomorrow' => $tomorrow->toISOString(),
+        ]);
+
         $periods = [
             'today' => [$effectiveStartTime, $tomorrow],
             'this_week' => [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()],

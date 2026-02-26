@@ -13,6 +13,7 @@ import LaboratoryLayout from '@/layouts/LaboratoryLayout';
 import { ParameterBuilder } from '@/components/laboratory/ParameterBuilder';
 import { ReferenceRangeBuilder } from '@/components/laboratory/ReferenceRangeBuilder';
 import { sampleTypes } from '@/components/laboratory/SampleTypeBadge';
+import { formatCurrency } from '@/lib/currency';
 import {
   ArrowLeft,
   Save,
@@ -154,7 +155,8 @@ export default function LabTestCreate() {
     unit: '',
     category: '' as LabCategory | '',
     cost: 0,
-    turnaround_time: 24,
+    turnaround_time: 0,
+    turnaround_minutes: 0,
     status: 'active',
     parameters: {} as Record<string, { name: string; unit: string; description?: string }>,
     reference_ranges: {} as Record<string, { min?: number; max?: number; unit?: string; values?: string[] }>,
@@ -416,20 +418,38 @@ export default function LabTestCreate() {
                     {/* Turnaround Time */}
                     <div className="space-y-2">
                       <Label htmlFor="turnaround_time">
-                        Turnaround Time (hours) <span className="text-destructive">*</span>
+                        Turnaround Time <span className="text-destructive">*</span>
                       </Label>
-                      <div className="relative">
-                        <Clock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="turnaround_time"
-                          name="turnaround_time"
-                          type="number"
-                          min="1"
-                          value={data.turnaround_time}
-                          onChange={handleChange}
-                          placeholder="24"
-                          className={cn("pl-9", errors.turnaround_time && "border-destructive")}
-                        />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="relative">
+                          <Clock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="turnaround_time"
+                            name="turnaround_time"
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={data.turnaround_time}
+                            onChange={handleChange}
+                            placeholder="Hours"
+                            className={cn("pl-9", errors.turnaround_time && "border-destructive")}
+                          />
+                        </div>
+                        <div className="relative">
+                          <Clock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="turnaround_minutes"
+                            name="turnaround_minutes"
+                            type="number"
+                            min="0"
+                            max="59"
+                            step="1"
+                            value={data.turnaround_minutes || 0}
+                            onChange={handleChange}
+                            placeholder="Minutes"
+                            className="pl-9"
+                          />
+                        </div>
                       </div>
                       {errors.turnaround_time && (
                         <p className="text-sm text-destructive flex items-center gap-1">
@@ -438,9 +458,9 @@ export default function LabTestCreate() {
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        {data.turnaround_time < 24 
-                          ? `${data.turnaround_time} hours` 
-                          : `${Math.floor(data.turnaround_time / 24)} day${Math.floor(data.turnaround_time / 24) > 1 ? 's' : ''}${data.turnaround_time % 24 > 0 ? ` ${data.turnaround_time % 24}h` : ''}`}
+                        {data.turnaround_time > 0 || (data.turnaround_minutes && data.turnaround_minutes > 0) 
+                          ? `${data.turnaround_time || 0}h ${data.turnaround_minutes || 0}m` 
+                          : 'No time set'}
                       </p>
                     </div>
                     
@@ -616,11 +636,13 @@ export default function LabTestCreate() {
                     <div className="flex items-center gap-4 mt-2 text-sm">
                       <span className="flex items-center gap-1">
                         <DollarSign className="h-3 w-3" />
-                        {data.cost > 0 ? `$${data.cost.toFixed(2)}` : 'No price set'}
+                        {data.cost > 0 ? formatCurrency(data.cost, 'AFN') : 'No price set'}
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {data.turnaround_time} hours
+                        {data.turnaround_time > 0 || data.turnaround_minutes > 0 
+                          ? `${data.turnaround_time}h ${data.turnaround_minutes}m` 
+                          : 'No time set'}
                       </span>
                       <span className="flex items-center gap-1">
                         <Tag className="h-3 w-3" />

@@ -6,6 +6,7 @@ use App\Models\DailySnapshot;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class DayStatusService
 {
@@ -101,9 +102,14 @@ class DayStatusService
             // Mark today as acknowledged
             Cache::put('day_acknowledged_' . $todayStr, true, now()->addDays(1));
             
-            // Set day_end_timestamp for TODAY to reset today's counters to 0
-            // This makes all revenue queries return 0 for today
-            Cache::put('day_end_timestamp_' . $todayStr, now()->toISOString(), now()->addDays(1));
+            // Set day_end_timestamp for TODAY to start of day (midnight)
+            // This ensures all revenue from midnight onwards is counted for today
+            Cache::put('day_end_timestamp_' . $todayStr, $today->startOfDay()->toISOString(), now()->addDays(1));
+            
+            Log::info('DayStatusService archiveCurrentDay (already archived) - Set day_end_timestamp to start of day', [
+                'cache_key' => 'day_end_timestamp_' . $todayStr,
+                'timestamp' => $today->startOfDay()->toISOString(),
+            ]);
             
             return [
                 'success' => true,
@@ -142,9 +148,14 @@ class DayStatusService
         // Mark today as acknowledged (user has clicked "Start New Day")
         Cache::put('day_acknowledged_' . $todayStr, true, now()->addDays(1));
         
-        // Set day_end_timestamp for TODAY to reset today's counters to 0
-        // This makes all revenue queries return 0 for today
-        Cache::put('day_end_timestamp_' . $todayStr, now()->toISOString(), now()->addDays(1));
+        // Set day_end_timestamp for TODAY to start of day (midnight)
+        // This ensures all revenue from midnight onwards is counted for today
+        Cache::put('day_end_timestamp_' . $todayStr, $today->startOfDay()->toISOString(), now()->addDays(1));
+        
+        Log::info('DayStatusService archiveCurrentDay - Set day_end_timestamp to start of day', [
+            'cache_key' => 'day_end_timestamp_' . $todayStr,
+            'timestamp' => $today->startOfDay()->toISOString(),
+        ]);
         
         return [
             'success' => true,

@@ -20,6 +20,8 @@ class LabTest extends Model
         'normal_values',
         'status',
         'category',
+        'parameters',
+        'reference_ranges',
     ];
 
     protected $casts = [

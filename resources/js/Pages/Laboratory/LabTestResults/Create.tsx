@@ -112,6 +112,7 @@ interface ParsedReferenceRange {
   criticalLow?: number;
   criticalHigh?: number;
   unit?: string;
+  values?: string[];
 }
 
 // Category configuration with icons and colors
@@ -275,6 +276,16 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
       criticalHigh: refRange.critical_high,
     };
   }, []);
+
+  // Parse results JSON string to array
+  const parseResults = (results: string | ResultParameter[]): ResultParameter[] => {
+    if (Array.isArray(results)) return results;
+    try {
+      return JSON.parse(results);
+    } catch {
+      return [];
+    }
+  };
 
   // Get test parameters from LabTest.parameters JSON
   const getTestParameters = useCallback((test: LabTest): ResultParameter[] => {
