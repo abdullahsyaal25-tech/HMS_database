@@ -35,6 +35,7 @@ import {
     Droplets,
     AlertCircle,
     Building2,
+    TestTube,
 } from 'lucide-react';
 import { ReactNode, useMemo, useCallback } from 'react';
 import { Link } from '@inertiajs/react';
@@ -95,6 +96,23 @@ const laboratoryNavItems: (NavItem & { permission?: string })[] = [
         href: '/laboratory',
         icon: LayoutGrid,
     },
+        {
+            title: 'Laboratory Materials',
+            href: '/laboratory/materials',
+            icon: TestTube,
+            items: [
+                {
+                    title: 'Materials Dashboard',
+                    href: '/laboratory/materials',
+                    icon: TestTube,
+                },
+                {
+                    title: 'Add Material',
+                    href: '/laboratory/materials/create',
+                    icon: Plus,
+                },
+            ],
+        },
  
     {
         title: 'Test Requests',

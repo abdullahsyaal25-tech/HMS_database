@@ -323,6 +323,8 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
                     yesterdaySummary={yesterdaySummary} 
                     onArchiveDay={archiveDay} 
                     isLoading={isDayStatusLoading} 
+                    showActionButton={false}
+                    moduleType="pharmacy"
                 />
 
                 {/* Statistics Cards */}

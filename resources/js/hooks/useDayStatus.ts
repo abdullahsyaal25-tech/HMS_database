@@ -15,6 +15,10 @@ interface YesterdaySummary {
     date: string;
     appointments_count: number;
     total_revenue: number;
+    appointments_revenue: number;
+    pharmacy_revenue: number;
+    laboratory_revenue: number;
+    departments_revenue: number;
     source: 'archived' | 'cached' | 'unavailable';
 }
 

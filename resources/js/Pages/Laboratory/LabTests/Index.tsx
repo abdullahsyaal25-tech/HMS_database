@@ -154,22 +154,38 @@ export default function LabTestIndex({ labTests, query = '', status = '', catego
   };
 
   // Transform LabTest to LabTestCard format
-  const transformToCardTest = (test: LabTest) => ({
-    id: test.id,
-    name: test.name,
-    code: test.test_id,
-    category: (filters.category === 'hematology' ? 'Hematology' : 
-              filters.category === 'biochemistry' ? 'Biochemistry' : 
-              filters.category === 'microbiology' ? 'Microbiology' : 
-              filters.category === 'immunology' ? 'Immunology' : 
-              filters.category === 'urinalysis' ? 'Urine' : 
-              'Hematology') as 'Hematology' | 'Biochemistry' | 'Microbiology' | 'Immunology' | 'Urine',
-    status: test.status as 'active' | 'inactive',
-    cost: test.cost,
-    turnaroundTime: formatTime(test.turnaround_time),
-    description: test.description || undefined,
-    parameters: test.parameters || undefined,
-  });
+  const transformToCardTest = (test: LabTest) => {
+    // Map database category (lowercase) to display category (proper case)
+    const categoryMap: Record<string, 'Hematology' | 'Biochemistry' | 'Microbiology' | 'Immunology' | 'Urine' | 'Serology' | 'Coagulation' | 'Molecular' | 'Stool' | 'Semen' | 'Special'> = {
+      'hematology': 'Hematology',
+      'biochemistry': 'Biochemistry',
+      'microbiology': 'Microbiology',
+      'immunology': 'Immunology',
+      'urinalysis': 'Urine',
+      'serology': 'Serology',
+      'coagulation': 'Coagulation',
+      'molecular': 'Molecular',
+      'stool': 'Stool',
+      'semen': 'Semen',
+      'special': 'Special',
+    };
+
+    // Safely handle category - check if it exists and convert to lowercase
+    const categoryKey = test.category ? test.category.toLowerCase() : 'hematology';
+    const displayCategory = categoryMap[categoryKey] || 'Hematology';
+
+    return {
+      id: test.id,
+      name: test.name,
+      code: test.test_code,
+      category: displayCategory,
+      status: test.status as 'active' | 'inactive',
+      cost: test.cost,
+      turnaroundTime: formatTime(test.turnaround_time),
+      description: test.description || undefined,
+      parameters: test.parameters || undefined,
+    };
+  };
 
   return (
     <LaboratoryLayout
@@ -364,7 +380,7 @@ export default function LabTestIndex({ labTests, query = '', status = '', catego
                             <div>
                               <h3 className="font-medium">{test.name}</h3>
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <span>{test.test_id}</span>
+                                <span>{test.test_code}</span>
                                 <span>•</span>
                                 <span>{formatCurrency(test.cost)}</span>
                                 <span>•</span>

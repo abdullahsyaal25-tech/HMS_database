@@ -139,13 +139,32 @@ export default function LabTestResultShow({
 
   const parsedResults = useMemo(() => {
     try {
-      const parsed = JSON.parse(labTestResult.results);
-      return Object.entries(parsed).map(([key, value]: [string, unknown]) => {
-        const val = value as { value: number; unit: string; status: string; notes?: string };
+      // Handle both string and already-parsed results
+      const resultsData = typeof labTestResult.results === 'string' 
+        ? JSON.parse(labTestResult.results) 
+        : labTestResult.results;
+      
+      // Handle array format (from some legacy data)
+      if (Array.isArray(resultsData)) {
+        return resultsData.map((item: ResultParameter) => ({
+          parameter_id: item.parameter_id || item.name,
+          name: item.name || item.parameter_id,
+          value: String(item.value),
+          unit: item.unit || '',
+          referenceMin: item.referenceMin || 0,
+          referenceMax: item.referenceMax || 0,
+          status: item.status || 'normal',
+          notes: item.notes || '',
+        }));
+      }
+      
+      // Handle object format { parameter_id: { value, unit, status, notes } }
+      return Object.entries(resultsData).map(([key, value]: [string, unknown]) => {
+        const val = value as { value: number | string; unit: string; status: string; notes?: string; name?: string };
         return {
           parameter_id: key,
-          name: key,
-          value: String(val.value),
+          name: val.name || key,
+          value: String(val.value ?? ''),
           unit: val.unit || '',
           referenceMin: 0,
           referenceMax: 0,
@@ -153,7 +172,8 @@ export default function LabTestResultShow({
           notes: val.notes || '',
         };
       });
-    } catch {
+    } catch (e) {
+      console.error('Failed to parse results:', e);
       return [];
     }
   }, [labTestResult.results]);

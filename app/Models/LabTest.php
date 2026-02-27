@@ -14,6 +14,7 @@ class LabTest extends Model
         'name',
         'description',
         'procedure',
+        'sample_type',
         'cost',
         'turnaround_time',
         'unit',
@@ -53,5 +54,13 @@ class LabTest extends Model
     public function labTestResults()
     {
         return $this->hasMany(LabTestResult::class);
+    }
+
+    /**
+     * Get the lab test requests for this test.
+     */
+    public function labTestRequests()
+    {
+        return $this->hasMany(LabTestRequest::class);
     }
 }

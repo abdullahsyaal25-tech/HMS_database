@@ -9,6 +9,7 @@ use App\Models\LabTestRequest;
 use App\Models\Patient;
 use App\Models\Doctor;
 use App\Models\Department;
+use App\Models\LabTest;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -36,56 +37,86 @@ class LabTestRequestController extends Controller
             abort(403, 'Unauthorized access');
         }
 
-        $query = LabTestRequest::with(['patient', 'doctor', 'createdBy', 'department']);
+        $query = LabTestRequest::with(['patient', 'doctor', 'createdBy', 'department', 'labTest']);
 
         // Apply filters
-        if ($request->has('status') && $request->status) {
-            $query->byStatus($request->status);
+        if ($request->filled('status')) {
+            $status = $request->input('status');
+            if (is_string($status) && !empty($status)) {
+                $query->byStatus($status);
+            }
         }
 
-        if ($request->has('patient_id') && $request->patient_id) {
-            $query->byPatient($request->patient_id);
+        if ($request->filled('patient_id')) {
+            $patientId = $request->input('patient_id');
+            if (is_numeric($patientId)) {
+                $query->byPatient((int)$patientId);
+            }
         }
 
-        if ($request->has('doctor_id') && $request->doctor_id) {
-            $query->byDoctor($request->doctor_id);
+        if ($request->filled('doctor_id')) {
+            $doctorId = $request->input('doctor_id');
+            if (is_numeric($doctorId)) {
+                $query->byDoctor((int)$doctorId);
+            }
         }
 
-        if ($request->has('department_id') && $request->department_id) {
-            $query->byDepartment($request->department_id);
+        if ($request->filled('department_id')) {
+            $departmentId = $request->input('department_id');
+            if (is_numeric($departmentId)) {
+                $query->byDepartment((int)$departmentId);
+            }
         }
 
-        if ($request->has('test_type') && $request->test_type) {
-            $query->where('test_type', $request->test_type);
+        if ($request->filled('test_type')) {
+            $testType = $request->input('test_type');
+            if (is_string($testType) && !empty($testType)) {
+                $query->where('test_type', $testType);
+            }
         }
 
-        if ($request->has('date_from') && $request->date_from) {
-            $query->where('scheduled_at', '>=', $request->date_from);
-        }
-
-        if ($request->has('date_to') && $request->date_to) {
-            $query->where('scheduled_at', '<=', $request->date_to);
+        // Handle date range filtering
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+        
+        if ($dateFrom && $dateTo) {
+            // Both dates provided - use date range
+            if (is_string($dateFrom) && is_string($dateTo)) {
+                $query->whereBetween('scheduled_at', [$dateFrom, $dateTo]);
+            }
+        } elseif ($dateFrom) {
+            // Only start date provided
+            if (is_string($dateFrom)) {
+                $query->where('scheduled_at', '>=', $dateFrom);
+            }
+        } elseif ($dateTo) {
+            // Only end date provided
+            if (is_string($dateTo)) {
+                $query->where('scheduled_at', '<=', $dateTo);
+            }
         }
 
         // Search functionality
-        if ($request->has('query') && $request->query) {
-            $searchTerm = $request->query;
-            $query->where(function ($q) use ($searchTerm) {
-                $q->where('request_id', 'like', "%{$searchTerm}%")
-                  ->orWhere('test_name', 'like', "%{$searchTerm}%")
-                  ->orWhereHas('patient', function ($subQ) use ($searchTerm) {
-                      $subQ->where('first_name', 'like', "%{$searchTerm}%")
-                           ->orWhere('father_name', 'like', "%{$searchTerm}%")
-                           ->orWhere('patient_id', 'like', "%{$searchTerm}%");
-                  })
-                  ->orWhereHas('doctor', function ($subQ) use ($searchTerm) {
-                      $subQ->where('full_name', 'like', "%{$searchTerm}%")
-                           ->orWhere('doctor_id', 'like', "%{$searchTerm}%");
-                  });
-            });
+        if ($request->filled('query')) {
+            $searchTerm = $request->input('query');
+            if (is_string($searchTerm) && !empty($searchTerm)) {
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('request_id', 'like', "%{$searchTerm}%")
+                      ->orWhere('test_name', 'like', "%{$searchTerm}%")
+                      ->orWhereHas('patient', function ($subQ) use ($searchTerm) {
+                          $subQ->where('first_name', 'like', "%{$searchTerm}%")
+                               ->orWhere('father_name', 'like', "%{$searchTerm}%")
+                               ->orWhere('patient_id', 'like', "%{$searchTerm}%");
+                      })
+                      ->orWhereHas('doctor', function ($subQ) use ($searchTerm) {
+                          $subQ->where('full_name', 'like', "%{$searchTerm}%")
+                               ->orWhere('doctor_id', 'like', "%{$searchTerm}%");
+                      });
+                });
+            }
         }
 
-        $labTestRequests = $query->latest()->paginate(10)->withQueryString();
+        $labTestRequests = $query->latest()->paginate(50)->withQueryString();
 
         $departments = Department::select('id', 'name')->orderBy('name')->get();
 
@@ -110,11 +141,13 @@ class LabTestRequestController extends Controller
         $patients = Patient::select('id', 'patient_id', 'first_name', 'father_name')->get();
         $doctors = Doctor::select('id', 'doctor_id', 'full_name')->get();
         $departments = Department::select('id', 'name')->orderBy('name')->get();
+        $labTests = LabTest::where('status', 'active')->select('id', 'test_code', 'name', 'cost', 'turnaround_time', 'category')->orderBy('name')->get();
 
         return Inertia::render('Laboratory/LabTestRequests/Create', [
             'patients' => $patients,
             'doctors' => $doctors,
             'departments' => $departments,
+            'labTests' => $labTests,
         ]);
     }
 
@@ -132,6 +165,35 @@ class LabTestRequestController extends Controller
         $validated = $request->validated();
         $validated['created_by'] = $user->id;
         $validated['status'] = LabTestRequest::STATUS_PENDING;
+
+        // Convert cost to float if provided as string
+        if (isset($validated['cost']) && is_string($validated['cost'])) {
+            $validated['cost'] = (float) $validated['cost'];
+        }
+
+        // Convert turnaround_hours to integer if provided as string
+        if (isset($validated['turnaround_hours']) && is_string($validated['turnaround_hours'])) {
+            $validated['turnaround_hours'] = (int) $validated['turnaround_hours'];
+        }
+
+        // Auto-populate from lab test master data if lab_test_id is provided
+        if (!empty($validated['lab_test_id'])) {
+            $labTest = LabTest::find($validated['lab_test_id']);
+            if ($labTest) {
+                // Auto-fill test_name from master data if not provided
+                if (empty($validated['test_name'])) {
+                    $validated['test_name'] = $labTest->name;
+                }
+                // Auto-fill cost from master data if not overridden
+                if (empty($validated['cost'])) {
+                    $validated['cost'] = $labTest->cost;
+                }
+                // Auto-fill turnaround time from master data if not provided
+                if (empty($validated['turnaround_hours'])) {
+                    $validated['turnaround_hours'] = $labTest->turnaround_time;
+                }
+            }
+        }
 
         $labTestRequest = LabTestRequest::create($validated);
 
@@ -183,15 +245,17 @@ class LabTestRequestController extends Controller
         $patients = Patient::select('id', 'patient_id', 'first_name', 'father_name')->get();
         $doctors = Doctor::select('id', 'doctor_id', 'full_name')->get();
         $departments = Department::select('id', 'name')->orderBy('name')->get();
+        $labTests = LabTest::where('status', 'active')->select('id', 'test_code', 'name', 'cost', 'turnaround_time', 'category')->orderBy('name')->get();
 
         // Load relationships for the lab test request
-        $labTestRequest->load(['patient', 'doctor']);
+        $labTestRequest->load(['patient', 'doctor', 'labTest']);
 
         return Inertia::render('Laboratory/LabTestRequests/Edit', [
             'labTestRequest' => $labTestRequest,
             'patients' => $patients,
             'doctors' => $doctors,
             'departments' => $departments,
+            'labTests' => $labTests,
         ]);
     }
 
@@ -207,6 +271,35 @@ class LabTestRequestController extends Controller
         }
 
         $validated = $request->validated();
+
+        // Convert cost to float if provided as string
+        if (isset($validated['cost']) && is_string($validated['cost'])) {
+            $validated['cost'] = (float) $validated['cost'];
+        }
+
+        // Convert turnaround_hours to integer if provided as string
+        if (isset($validated['turnaround_hours']) && is_string($validated['turnaround_hours'])) {
+            $validated['turnaround_hours'] = (int) $validated['turnaround_hours'];
+        }
+
+        // Auto-populate from lab test master data if lab_test_id is provided or changed
+        if (!empty($validated['lab_test_id'])) {
+            $labTest = LabTest::find($validated['lab_test_id']);
+            if ($labTest) {
+                // Auto-fill test_name from master data if not provided
+                if (empty($validated['test_name'])) {
+                    $validated['test_name'] = $labTest->name;
+                }
+                // Auto-fill cost from master data if not overridden
+                if (empty($validated['cost'])) {
+                    $validated['cost'] = $labTest->cost;
+                }
+                // Auto-fill turnaround time from master data if not provided
+                if (empty($validated['turnaround_hours'])) {
+                    $validated['turnaround_hours'] = $labTest->turnaround_time;
+                }
+            }
+        }
 
         // Handle status transition
         if (isset($validated['status']) && $validated['status'] !== $labTestRequest->status) {
@@ -291,7 +384,7 @@ class LabTestRequestController extends Controller
             abort(403, 'Unauthorized access');
         }
 
-        $query = LabTestRequest::with(['patient', 'doctor']);
+        $query = LabTestRequest::with(['patient', 'doctor', 'labTest']);
 
         // Multiple filter support
         if ($request->has('filters')) {
@@ -334,7 +427,7 @@ class LabTestRequestController extends Controller
             });
         }
 
-        $labTestRequests = $query->latest()->paginate(10)->withQueryString();
+        $labTestRequests = $query->latest()->paginate(50)->withQueryString();
 
         return Inertia::render('Laboratory/LabTestRequests/Index', [
             'labTestRequests' => $labTestRequests,

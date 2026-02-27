@@ -18,8 +18,8 @@ class DayStatusService
         $today = Carbon::today();
         $todayStr = $today->toDateString();
         
-        // Check if we have a day_end_timestamp for today
-        $dayEndTimestamp = Cache::get('day_end_timestamp_' . $todayStr);
+        // Check if we have a day_end_timestamp (persistent key, not date-based)
+        $dayEndTimestamp = Cache::get('day_end_timestamp');
         
         // Get the last archived date from daily_snapshots table
         $lastSnapshot = DailySnapshot::orderBy('snapshot_date', 'desc')->first();
@@ -88,12 +88,10 @@ class DayStatusService
     public function archiveCurrentDay()
     {
         $today = Carbon::today();
-        $yesterday = Carbon::yesterday();
-        $yesterdayStr = $yesterday->toDateString();
         $todayStr = $today->toDateString();
         
         // Check if yesterday has already been archived
-        $existingSnapshot = DailySnapshot::where('date', $yesterdayStr)->first();
+        $existingSnapshot = DailySnapshot::where('date', Carbon::yesterday()->toDateString())->first();
         if ($existingSnapshot) {
             // Yesterday already archived, just reset today's counters
             Cache::forget('daily_revenue_' . $todayStr);
@@ -102,32 +100,32 @@ class DayStatusService
             // Mark today as acknowledged
             Cache::put('day_acknowledged_' . $todayStr, true, now()->addDays(1));
             
-            // Set day_end_timestamp for TODAY to start of day (midnight)
-            // This ensures all revenue from midnight onwards is counted for today
-            Cache::put('day_end_timestamp_' . $todayStr, $today->startOfDay()->toISOString(), now()->addDays(1));
+            // Set day_end_timestamp to current time when user clicks "Start New Day"
+            // This resets "Today" to show only data AFTER this timestamp
+            Cache::put('day_end_timestamp', now()->toISOString(), now()->addDays(365));
             
-            Log::info('DayStatusService archiveCurrentDay (already archived) - Set day_end_timestamp to start of day', [
-                'cache_key' => 'day_end_timestamp_' . $todayStr,
-                'timestamp' => $today->startOfDay()->toISOString(),
+            Log::info('DayStatusService archiveCurrentDay (already archived) - Set day_end_timestamp to current time', [
+                'cache_key' => 'day_end_timestamp',
+                'timestamp' => now()->toISOString(),
             ]);
             
             return [
                 'success' => true,
                 'message' => 'Day already archived - today reset to 0',
                 'snapshot_id' => $existingSnapshot->id,
-                'date_archived' => $yesterdayStr,
+                'date_archived' => Carbon::yesterday()->toDateString(),
                 'data' => null,
             ];
         }
         
         // Get yesterday's data for archiving (from the beginning of yesterday to end of yesterday)
-        $yesterdayStart = $yesterday->copy()->startOfDay();
-        $yesterdayEnd = $yesterday->copy()->endOfDay();
+        $yesterdayStart = Carbon::yesterday()->copy()->startOfDay();
+        $yesterdayEnd = Carbon::yesterday()->copy()->endOfDay();
         $yesterdayData = $this->getDataForDateRange($yesterdayStart, $yesterdayEnd);
         
         // Archive yesterday's data to daily_snapshots table
         $snapshot = DailySnapshot::create([
-            'snapshot_date' => $yesterdayStr,
+            'snapshot_date' => Carbon::yesterday()->toDateString(),
             'appointments_count' => $yesterdayData['appointments_count'],
             'appointments_revenue' => $yesterdayData['appointments_revenue'],
             'departments_revenue' => $yesterdayData['departments_revenue'],
@@ -142,26 +140,23 @@ class DayStatusService
         Cache::forget('daily_revenue_' . $todayStr);
         Cache::forget('daily_revenue_calculated_at_' . $todayStr);
         
-        // Set day_end_timestamp for yesterday to mark it as archived
-        Cache::put('day_end_timestamp_' . $yesterdayStr, $yesterdayEnd->toISOString(), now()->addDays(30));
-        
         // Mark today as acknowledged (user has clicked "Start New Day")
         Cache::put('day_acknowledged_' . $todayStr, true, now()->addDays(1));
         
-        // Set day_end_timestamp for TODAY to start of day (midnight)
-        // This ensures all revenue from midnight onwards is counted for today
-        Cache::put('day_end_timestamp_' . $todayStr, $today->startOfDay()->toISOString(), now()->addDays(1));
+        // Set day_end_timestamp to current time when user clicks "Start New Day"
+        // This resets "Today" to show only data AFTER this timestamp
+        Cache::put('day_end_timestamp', now()->toISOString(), now()->addDays(365));
         
-        Log::info('DayStatusService archiveCurrentDay - Set day_end_timestamp to start of day', [
-            'cache_key' => 'day_end_timestamp_' . $todayStr,
-            'timestamp' => $today->startOfDay()->toISOString(),
+        Log::info('DayStatusService archiveCurrentDay - Set day_end_timestamp to current time', [
+            'cache_key' => 'day_end_timestamp',
+            'timestamp' => now()->toISOString(),
         ]);
         
         return [
             'success' => true,
             'message' => 'Day archived successfully',
             'snapshot_id' => $snapshot->id,
-            'date_archived' => $yesterdayStr,
+            'date_archived' => Carbon::yesterday()->toDateString(),
             'data' => $yesterdayData,
         ];
     }
@@ -200,12 +195,16 @@ class DayStatusService
         $tomorrow = Carbon::tomorrow();
         $todayStr = $today->toDateString();
 
-        // Check if day_end_timestamp exists - Option B: Running Total After Day-End
-        $dayEndTimestamp = Cache::get('day_end_timestamp_' . $todayStr);
+        // Check if day_end_timestamp exists - Manual day detection
+        $dayEndTimestamp = Cache::get('day_end_timestamp');
+
+        // Use a very old date as default to show all historical data when no cache exists
+        $defaultStartDate = Carbon::createFromFormat('Y-m-d H:i:s', '2000-01-01 00:00:00');
 
         // Determine the effective start time for today queries
         // If day_end_timestamp exists, only query transactions AFTER that timestamp
-        $effectiveStartTime = $today;
+        // If no cache exists, use year 2000 to show ALL historical data
+        $effectiveStartTime = $defaultStartDate;
         if ($dayEndTimestamp) {
             $effectiveStartTime = Carbon::parse($dayEndTimestamp);
         }

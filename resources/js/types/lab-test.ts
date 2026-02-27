@@ -62,6 +62,7 @@ export interface LabTestRequest {
     patient_id: number;
     doctor_id: number;
     department_id: number | null;
+    lab_test_id: number | null;
     test_name: string;
     test_type: LabTestRequestType;
     status: LabTestRequestStatus;
@@ -70,6 +71,8 @@ export interface LabTestRequest {
     notes: string | null;
     clinical_indications: string | null;
     created_by: number;
+    cost: number | null;
+    turnaround_hours: number | null;
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
@@ -78,6 +81,7 @@ export interface LabTestRequest {
     department?: Department;
     createdBy?: User;
     results?: LabTestResult[];
+    labTest?: LabTest;
 }
 
 export type LabTestRequestStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';

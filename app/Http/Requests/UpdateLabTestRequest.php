@@ -28,11 +28,14 @@ class UpdateLabTestRequest extends FormRequest
             'patient_id' => ['sometimes', 'required', 'integer', 'exists:patients,id'],
             'doctor_id' => ['sometimes', 'required', 'integer', 'exists:doctors,id'],
             'department_id' => ['sometimes', 'nullable', 'exists:departments,id'],
+            'lab_test_id' => ['sometimes', 'nullable', 'integer', 'exists:lab_tests,id'],
             'test_name' => ['sometimes', 'required', 'string', 'max:255'],
             'test_type' => ['sometimes', 'required', 'string', Rule::in(['routine', 'urgent', 'stat'])],
             'status' => ['sometimes', 'required', 'string', Rule::in(['pending', 'in_progress', 'completed', 'cancelled'])],
             'scheduled_at' => ['sometimes', 'required', 'date'],
             'notes' => ['nullable', 'string'],
+            'cost' => ['nullable', 'numeric', 'min:0'],
+            'turnaround_hours' => ['nullable', 'integer', 'min:1'],
         ];
     }
 

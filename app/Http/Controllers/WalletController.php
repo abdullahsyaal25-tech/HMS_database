@@ -44,6 +44,7 @@ class WalletController extends Controller
             'displayBalance' => $displayBalance,
             'revenueData' => $revenueData,
             'transactions' => $transactions,
+            'auth' => auth()->user(),
         ]);
     }
 
@@ -57,18 +58,23 @@ class WalletController extends Controller
         $tomorrow = Carbon::tomorrow();
         $todayStr = $today->toDateString();
 
-        // Check if day_end_timestamp exists - Option B: Running Total After Day-End
-        $dayEndTimestamp = Cache::get('day_end_timestamp_' . $todayStr);
+        // Check if day_end_timestamp exists - Manual day detection
+        // If cache exists, use stored timestamp (set when button is clicked)
+        // If cache doesn't exist, use today's start to show only today's data
+        $dayEndTimestamp = Cache::get('day_end_timestamp');
+        
+        // Default to today's start if no cache exists - show actual today's data
+        $defaultStartDate = Carbon::today()->startOfDay();
 
         Log::info('WalletController getRevenueData - Start', [
-            'todayStr' => $todayStr,
             'dayEndTimestamp' => $dayEndTimestamp,
             'current_time' => now()->toISOString(),
         ]);
 
         // Determine the effective start time for today queries
         // If day_end_timestamp exists, only query transactions AFTER that timestamp
-        $effectiveStartTime = $today;
+        // If no cache exists, use today's start to show only today's data
+        $effectiveStartTime = $defaultStartDate;
         if ($dayEndTimestamp) {
             $effectiveStartTime = Carbon::parse($dayEndTimestamp);
             Log::info('WalletController getRevenueData - Day end timestamp found, querying after: ' . $dayEndTimestamp);
@@ -145,9 +151,9 @@ class WalletController extends Controller
         // Get completed appointments WITHOUT services AND NOT from Laboratory department
         // Appointments with services are tracked in department revenue instead
         // Laboratory appointments (even without services attached) are tracked in laboratory revenue
-        // Uses created_at to track when the appointment was actually created in the system
+        // FIXED: Use appointment_date instead of created_at to match DashboardService logic
         $appointments = Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('created_at', [$start, $end])
+            ->whereBetween('appointment_date', [$start, $end])
             ->whereDoesntHave('services')  // Only appointments without services
             ->where(function ($query) {
                 // Exclude appointments where department is Laboratory
@@ -174,14 +180,14 @@ class WalletController extends Controller
     {
         // Sum the final_cost from appointment_services for completed appointments
         // Exclude laboratory department services (those are tracked in laboratory revenue)
-        // Uses created_at to track when the service was actually created in the system
+        // FIXED: Use appointment_date for joining with appointments to match DashboardService
         return DB::table('appointment_services')
             ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
             ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '!=', 'Laboratory')  // Exclude laboratory services
-            ->whereBetween('appointment_services.created_at', [$start, $end])
+            ->whereBetween('appointments.appointment_date', [$start, $end])
             ->sum('appointment_services.final_cost');
     }
 
@@ -191,9 +197,9 @@ class WalletController extends Controller
     private function getPharmacyRevenue(Carbon $start, Carbon $end)
     {
         // Count completed sales as revenue
-        // Uses created_at to track when the sale was actually created in the system
-        return Sale::where('status', 'completed')
-            ->whereBetween('created_at', [$start, $end])
+        // FIXED: Remove status filter to match DashboardService - sales may not always have status set
+        // Using created_at to track when the sale was actually created in the system
+        return Sale::whereBetween('created_at', [$start, $end])
             ->sum('grand_total');
     }
 
@@ -207,28 +213,28 @@ class WalletController extends Controller
     private function getLaboratoryRevenue(Carbon $start, Carbon $end)
     {
         // Get lab test results that are completed OR have been performed
-        // Uses created_at to track when the result was actually created in the system
+        // FIXED: Use performed_at instead of created_at to match DashboardService
         $labTestResultsRevenue = DB::table('lab_test_results')
             ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
-            ->whereBetween('lab_test_results.created_at', [$start, $end])
+            ->whereBetween('lab_test_results.performed_at', [$start, $end])
             ->sum('lab_tests.cost');
 
         // Get laboratory services from appointments (department services)
-        // Uses created_at to track when the service was actually created in the system
+        // Uses appointment_date for joining with appointments
         $appointmentLabServicesRevenue = DB::table('appointment_services')
             ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
             ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '=', 'Laboratory')  // Only laboratory department services
-            ->whereBetween('appointment_services.created_at', [$start, $end])
+            ->whereBetween('appointments.appointment_date', [$start, $end])
             ->sum('appointment_services.final_cost');
 
         // Get laboratory department appointments (appointments where department=Laboratory and no services attached)
         // These are standalone lab appointments created through the department selection
-        // Uses created_at to track when the appointment was actually created in the system
+        // Uses appointment_date to track when the appointment was scheduled
         $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('created_at', [$start, $end])
+            ->whereBetween('appointment_date', [$start, $end])
             ->whereDoesntHave('services')  // Only appointments without attached services
             ->where(function ($query) {
                 // Include only Laboratory department appointments
@@ -288,12 +294,16 @@ class WalletController extends Controller
         $tomorrow = Carbon::tomorrow();
         $todayStr = $today->toDateString();
 
-        // Check if day_end_timestamp exists - Option B: Running Total After Day-End
-        $dayEndTimestamp = Cache::get('day_end_timestamp_' . $todayStr);
+        // Check if day_end_timestamp exists - Manual day detection
+        // If cache exists, use stored timestamp (set when button is clicked)
+        // If cache doesn't exist, use today's start to show only today's data
+        $dayEndTimestamp = Cache::get('day_end_timestamp');
+        
+        // Default to today's start if no cache exists - show actual today's data
+        $defaultStartDate = Carbon::today()->startOfDay();
 
         Log::info('WalletController calculateTodayRevenue - Request params', [
             'include_all_history' => $includeAllHistory,
-            'todayStr' => $todayStr,
             'dayEndTimestamp' => $dayEndTimestamp,
             'current_time' => now()->toISOString(),
         ]);
@@ -310,11 +320,12 @@ class WalletController extends Controller
         } else {
             // Determine effective start time for today queries
             // If day_end_timestamp exists, only query transactions AFTER that timestamp
+            // If no cache exists, use today's start to show only today's data
             if ($dayEndTimestamp) {
                 $startDate = Carbon::parse($dayEndTimestamp);
                 Log::info('WalletController calculateTodayRevenue - Day end timestamp found, querying after: ' . $dayEndTimestamp);
             } else {
-                $startDate = $today;
+                $startDate = $defaultStartDate;
             }
             $endDate = $tomorrow;
         }

@@ -420,6 +420,7 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
         const isNumeric = !isNaN(numValue) && isFinite(numValue);
         
         acc[param.parameter_id] = {
+          name: param.name,
           value: isNumeric ? numValue : param.value,
           unit: param.unit,
           status: param.status,

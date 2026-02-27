@@ -28,12 +28,13 @@ import { cn } from '@/lib/utils';
 import type { Patient } from '@/types/patient';
 import type { Doctor } from '@/types/doctor';
 import type { Department } from '@/types/department';
-import type { LabTestRequestType } from '@/types/lab-test';
+import type { LabTestRequestType, LabTest } from '@/types/lab-test';
 
 interface LabTestRequestCreateProps {
   patients: Patient[];
   doctors: Doctor[];
   departments: Department[];
+  labTests: LabTest[];
 }
 
 interface PriorityOption {
@@ -72,21 +73,26 @@ const priorityOptions: PriorityOption[] = [
   },
 ];
 
-export default function LabTestRequestCreate({ patients, doctors, departments }: LabTestRequestCreateProps) {
+export default function LabTestRequestCreate({ patients, doctors, departments, labTests }: LabTestRequestCreateProps) {
   const [patientSearch, setPatientSearch] = useState('');
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   const [doctorSearch, setDoctorSearch] = useState('');
   const [showDoctorDropdown, setShowDoctorDropdown] = useState(false);
+  const [labTestSearch, setLabTestSearch] = useState('');
+  const [showLabTestDropdown, setShowLabTestDropdown] = useState(false);
 
   const { data, setData, post, processing, errors, reset } = useForm({
     patient_id: '',
     doctor_id: '',
     department_id: '',
+    lab_test_id: '',
     test_name: '',
     test_type: 'routine' as LabTestRequestType,
     scheduled_at: new Date().toISOString().slice(0, 16),
     notes: '',
     clinical_indications: '',
+    cost: '',
+    turnaround_hours: '',
   });
 
   // Filter patients based on search
@@ -114,6 +120,18 @@ export default function LabTestRequestCreate({ patients, doctors, departments }:
   // Get selected patient and doctor
   const selectedPatient = patients.find(p => p.id.toString() === data.patient_id);
   const selectedDoctor = doctors.find(d => d.id.toString() === data.doctor_id);
+  const selectedLabTest = labTests.find(t => t.id.toString() === data.lab_test_id);
+
+  // Filter lab tests based on search
+  const filteredLabTests = useMemo(() => {
+    if (!labTestSearch) return labTests.slice(0, 20);
+    const search = labTestSearch.toLowerCase();
+    return labTests.filter(t => 
+      t.name.toLowerCase().includes(search) ||
+      t.test_code.toLowerCase().includes(search) ||
+      t.category?.toLowerCase().includes(search)
+    ).slice(0, 20);
+  }, [labTests, labTestSearch]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,6 +153,23 @@ export default function LabTestRequestCreate({ patients, doctors, departments }:
     setData('doctor_id', doctorId);
     setDoctorSearch(doctorName);
     setShowDoctorDropdown(false);
+  };
+
+  const handleLabTestSelect = (labTest: LabTest) => {
+    setData('lab_test_id', labTest.id.toString());
+    setData('test_name', labTest.name);
+    setData('cost', labTest.cost.toString());
+    setData('turnaround_hours', labTest.turnaround_time.toString());
+    setLabTestSearch(labTest.name);
+    setShowLabTestDropdown(false);
+  };
+
+  const handleClearLabTest = () => {
+    setData('lab_test_id', '');
+    setData('test_name', '');
+    setData('cost', '');
+    setData('turnaround_hours', '');
+    setLabTestSearch('');
   };
 
   const getInitials = (firstName?: string | null, lastName?: string | null) => {
@@ -443,15 +478,100 @@ export default function LabTestRequestCreate({ patients, doctors, departments }:
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Test Name */}
+                  {/* Lab Test Selection */}
                   <div className="space-y-2">
-                    <Label htmlFor="test_name">Test Name *</Label>
+                    <Label htmlFor="lab_test_search">Select Lab Test *</Label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="lab_test_search"
+                        value={labTestSearch}
+                        onChange={(e) => {
+                          setLabTestSearch(e.target.value);
+                          setShowLabTestDropdown(true);
+                          if (!e.target.value) {
+                            handleClearLabTest();
+                          }
+                        }}
+                        onFocus={() => setShowLabTestDropdown(true)}
+                        placeholder="Search lab tests by name or code..."
+                        className={cn("pl-9", errors.lab_test_id && "border-destructive")}
+                      />
+                    </div>
+                    
+                    {/* Lab Test Dropdown */}
+                    {showLabTestDropdown && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-10" 
+                          onClick={() => setShowLabTestDropdown(false)}
+                        />
+                        <div className="absolute z-20 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-60 overflow-auto">
+                          {filteredLabTests.length > 0 ? (
+                            filteredLabTests.map((test) => (
+                              <button
+                                key={test.id}
+                                type="button"
+                                onClick={() => handleLabTestSelect(test)}
+                                className="w-full flex items-center justify-between p-3 hover:bg-muted transition-colors text-left"
+                              >
+                                <div>
+                                  <p className="font-medium text-sm">{test.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {test.test_code} • {test.category}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-medium text-sm">${test.cost}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {test.turnaround_time}h
+                                  </p>
+                                </div>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="p-4 text-center text-muted-foreground text-sm">
+                              No lab tests found
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                    {errors.lab_test_id && (
+                      <p className="text-sm text-destructive flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {errors.lab_test_id}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Selected Lab Test Display */}
+                  {selectedLabTest && (
+                    <div className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <div>
+                        <p className="font-medium">{selectedLabTest.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedLabTest.test_code} • {selectedLabTest.category}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">${selectedLabTest.cost}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Turnaround: {selectedLabTest.turnaround_time}h
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Manual Test Name (fallback) */}
+                  <div className="space-y-2">
+                    <Label htmlFor="test_name">Test Name (or enter manually)</Label>
                     <Input
                       id="test_name"
                       name="test_name"
                       value={data.test_name}
                       onChange={handleChange}
-                      placeholder="e.g., Complete Blood Count, Lipid Panel..."
+                      placeholder="Enter custom test name if not from list..."
                       className={cn(errors.test_name && "border-destructive")}
                     />
                     {errors.test_name && (

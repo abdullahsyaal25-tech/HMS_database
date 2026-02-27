@@ -219,9 +219,13 @@ export default function LabTestResultIndex({
 
   const parseResults = (results: string | ResultParameter[]): ResultParameter[] => {
     if (Array.isArray(results)) return results;
+    if (typeof results !== 'string') return [];
     try {
-      return JSON.parse(results);
-    } catch {
+      const parsed = JSON.parse(results);
+      console.log('parseResults - input:', results, 'parsed:', parsed);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error('parseResults - error parsing:', error, 'input:', results);
       return [];
     }
   };

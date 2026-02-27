@@ -231,6 +231,31 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/reports', [\App\Http\Controllers\Laboratory\LabReportController::class, 'index'])
             ->name('laboratory.reports.index')
             ->middleware('check.permission:laboratory.reports.view');
+
+        // Laboratory Materials Routes
+        Route::middleware('check.permission:view-laboratory')->group(function () {
+            Route::get('/materials', [\App\Http\Controllers\Laboratory\LabMaterialController::class, 'index'])->name('laboratory.materials.index');
+            Route::get('/materials/create', [\App\Http\Controllers\Laboratory\LabMaterialController::class, 'create'])->name('laboratory.materials.create');
+            Route::post('/materials', [\App\Http\Controllers\Laboratory\LabMaterialController::class, 'store'])->name('laboratory.materials.store');
+            Route::get('/materials/{labMaterial}', [\App\Http\Controllers\Laboratory\LabMaterialController::class, 'show'])->name('laboratory.materials.show');
+        });
+
+        Route::middleware('check.permission:edit-lab-materials')->group(function () {
+            Route::get('/materials/{labMaterial}/edit', [\App\Http\Controllers\Laboratory\LabMaterialController::class, 'edit'])->name('laboratory.materials.edit');
+            Route::put('/materials/{labMaterial}', [\App\Http\Controllers\Laboratory\LabMaterialController::class, 'update'])->name('laboratory.materials.update');
+            Route::post('/materials/{labMaterial}/restore', [\App\Http\Controllers\Laboratory\LabMaterialController::class, 'restore'])->name('laboratory.materials.restore');
+            Route::post('/materials/{labMaterial}/add-stock', [\App\Http\Controllers\Laboratory\LabMaterialController::class, 'addStock'])->name('laboratory.materials.add-stock');
+            Route::post('/materials/{labMaterial}/remove-stock', [\App\Http\Controllers\Laboratory\LabMaterialController::class, 'removeStock'])->name('laboratory.materials.remove-stock');
+            Route::post('/materials/bulk-update-status', [\App\Http\Controllers\Laboratory\LabMaterialController::class, 'bulkUpdateStatus'])->name('laboratory.materials.bulk-update-status');
+        });
+
+        Route::middleware('check.permission:delete-lab-materials')->group(function () {
+            Route::delete('/materials/{labMaterial}', [\App\Http\Controllers\Laboratory\LabMaterialController::class, 'destroy'])->name('laboratory.materials.destroy');
+        });
+
+        // Laboratory Materials API Routes
+        Route::get('/api/materials/search-lab-tests', [\App\Http\Controllers\Laboratory\LabMaterialController::class, 'searchLabTests'])->name('laboratory.materials.search-lab-tests');
+        Route::get('/api/materials/statistics', [\App\Http\Controllers\Laboratory\LabMaterialController::class, 'getStatistics'])->name('laboratory.materials.statistics');
     });
 
     // Department Routes

@@ -33,17 +33,25 @@ interface DayStatusBannerProps {
         date: string;
         appointments_count: number;
         total_revenue: number;
+        appointments_revenue: number;
+        pharmacy_revenue: number;
+        laboratory_revenue: number;
+        departments_revenue: number;
         source: string;
     } | null;
     onArchiveDay: () => Promise<boolean> | void;
     isLoading: boolean;
+    showActionButton?: boolean;
+    moduleType?: 'all' | 'appointments' | 'pharmacy' | 'laboratory';
 }
 
 export function DayStatusBanner({ 
     dayStatus, 
     yesterdaySummary, 
     onArchiveDay, 
-    isLoading 
+    isLoading,
+    showActionButton = false,
+    moduleType = 'all'
 }: DayStatusBannerProps) {
     
     if (!dayStatus || !dayStatus.new_day_available) {
@@ -88,6 +96,41 @@ export function DayStatusBanner({
     const variant = getBannerVariant();
     const IconComponent = variant.icon;
 
+    // Get module-specific labels
+    const getModuleLabels = () => {
+        switch (moduleType) {
+            case 'appointments':
+                return { title: 'Appointments', revenueLabel: 'Appointments Revenue' };
+            case 'pharmacy':
+                return { title: 'Pharmacy Sales', revenueLabel: 'Pharmacy Revenue' };
+            case 'laboratory':
+                return { title: 'Laboratory', revenueLabel: 'Lab Revenue' };
+            default:
+                return { title: "Yesterday's Summary", revenueLabel: 'Total Revenue' };
+        }
+    };
+
+    const moduleLabels = getModuleLabels();
+
+    // Get the appropriate revenue based on module type
+    const getDisplayRevenue = () => {
+        if (!yesterdaySummary) return 0;
+        
+        switch (moduleType) {
+            case 'appointments':
+                return yesterdaySummary.appointments_revenue;
+            case 'pharmacy':
+                return yesterdaySummary.pharmacy_revenue;
+            case 'laboratory':
+                return yesterdaySummary.laboratory_revenue;
+            case 'all':
+            default:
+                return yesterdaySummary.total_revenue;
+        }
+    };
+
+    const displayRevenue = getDisplayRevenue();
+
     return (
         <Alert className={`border-2 ${variant.className} shadow-lg mb-6 animate-in slide-in-from-top-2 duration-300`}>
             <IconComponent className="h-5 w-5 text-amber-600" />
@@ -104,7 +147,7 @@ export function DayStatusBanner({
                     <div className="bg-white/50 rounded-lg p-3 border border-amber-200">
                         <div className="flex items-center gap-2 mb-2">
                             <Calendar className="h-4 w-4 text-amber-600" />
-                            <span className="text-sm font-medium text-amber-700">Yesterday's Summary</span>
+                            <span className="text-sm font-medium text-amber-700">{moduleLabels.title}</span>
                         </div>
                         {yesterdaySummary ? (
                             <div className="space-y-1">
@@ -112,16 +155,20 @@ export function DayStatusBanner({
                                     <span className="text-amber-600">Date:</span>
                                     <span className="font-medium">{formatDate(yesterdaySummary.date)}</span>
                                 </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-amber-600">Appointments:</span>
-                                    <span className="font-medium">{yesterdaySummary.appointments_count}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-amber-600">Revenue:</span>
-                                    <span className="font-medium text-emerald-600">
-                                        {formatCurrency(yesterdaySummary.total_revenue)}
-                                    </span>
-                                </div>
+                                {(moduleType === 'all' || moduleType === 'appointments') && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-amber-600">Appointments:</span>
+                                        <span className="font-medium">{yesterdaySummary.appointments_count}</span>
+                                    </div>
+                                )}
+                                {(moduleType === 'all' || moduleType === 'appointments' || moduleType === 'pharmacy' || moduleType === 'laboratory') && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-amber-600">{moduleLabels.revenueLabel}:</span>
+                                        <span className="font-medium text-emerald-600">
+                                            {formatCurrency(displayRevenue)}
+                                        </span>
+                                    </div>
+                                )}
                                 <div className="text-xs text-amber-500 mt-1">
                                     Source: {yesterdaySummary.source}
                                 </div>
@@ -159,7 +206,8 @@ export function DayStatusBanner({
                         </div>
                     </div>
 
-                    {/* Action */}
+                    {/* Action - Only show if showActionButton is true */}
+                    {showActionButton && (
                     <div className="bg-white/50 rounded-lg p-3 border border-amber-200">
                         <div className="flex items-center gap-2 mb-2">
                             <RefreshCw className="h-4 w-4 text-amber-600" />
@@ -188,6 +236,7 @@ export function DayStatusBanner({
                             </Button>
                         </div>
                     </div>
+                    )}
                 </div>
             </AlertDescription>
         </Alert>

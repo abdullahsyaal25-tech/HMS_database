@@ -190,6 +190,8 @@ export default function AppointmentIndex({ appointments, stats }: AppointmentInd
                     yesterdaySummary={yesterdaySummary} 
                     onArchiveDay={archiveDay} 
                     isLoading={isDayStatusLoading} 
+                    showActionButton={false}
+                    moduleType="appointments"
                 />
 
                 {/* Stats Cards - Row 1 */}

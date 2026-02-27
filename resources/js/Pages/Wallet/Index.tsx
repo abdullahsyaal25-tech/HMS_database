@@ -28,6 +28,7 @@ import { Progress } from '@/components/ui/progress';
 import RefreshAllDataButton from '@/components/RefreshAllDataButton';
 import { DayStatusBanner } from '@/components/DayStatusBanner';
 import { useDayStatus } from '@/hooks/useDayStatus';
+import type { User } from '@/types';
 
 interface Wallet {
     id: number;
@@ -114,15 +115,32 @@ interface Props {
     wallet: Wallet;
     displayBalance?: number;
     revenueData?: RevenueData;
+    auth?: {
+        user: User;
+    };
 }
 
-export default function Index({ wallet: initialWallet, displayBalance: initialDisplayBalance, revenueData: initialRevenueData }: Props) {
+export default function Index({ wallet: initialWallet, displayBalance: initialDisplayBalance, revenueData: initialRevenueData, auth }: Props) {
     // DIAGNOSTIC LOG: Track initial prop values
     console.log('[Wallet/Index] Initial props received:', { 
         hasWallet: !!initialWallet, 
         hasRevenueData: !!initialRevenueData,
-        revenueDataKeys: initialRevenueData ? Object.keys(initialRevenueData) : 'N/A'
+        revenueDataKeys: initialRevenueData ? Object.keys(initialRevenueData) : 'N/A',
+        hasAuth: !!auth,
+        userRole: auth?.user?.role
     });
+    
+    // Helper function to check if user is an admin
+    const isAdmin = (): boolean => {
+        if (!auth?.user) return false;
+        const user = auth.user;
+        const adminRoles = ['Super Admin', 'Sub Super Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Reception Admin'];
+        const userRole = user.role ?? '';
+        const hasAdminRole = adminRoles.includes(userRole);
+        const hasManageWalletPermission = user.permissions?.includes('manage-wallet') ?? false;
+        const hasRefreshAllDataPermission = user.permissions?.includes('refresh-all-data') ?? false;
+        return hasAdminRole || hasManageWalletPermission || hasRefreshAllDataPermission;
+    };
     
     const [wallet, setWallet] = useState(initialWallet);
     // Use ensureRevenueData helper to guarantee safe data structure
@@ -312,7 +330,7 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                             <Clock className="h-4 w-4" />
                             <span>Updated: {lastUpdated.toLocaleTimeString()}</span>
                         </div>
-                        <RefreshAllDataButton />
+                        {isAdmin() && <RefreshAllDataButton />}
 
                     </div>
                 </div>
@@ -322,7 +340,9 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                     dayStatus={dayStatus} 
                     yesterdaySummary={yesterdaySummary} 
                     onArchiveDay={archiveDay} 
-                    isLoading={isDayStatusLoading} 
+                    isLoading={isDayStatusLoading}
+                    showActionButton={true}
+                    moduleType="all"
                 />
 
                 {/* Main Stats Cards */}

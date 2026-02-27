@@ -562,21 +562,14 @@ export default function LabTestRequestShow({ labTestRequest }: LabTestRequestSho
             {labTestRequest.results && labTestRequest.results.length > 0 && (
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                        <FlaskConical className="h-4 w-4 text-purple-600" />
-                      </div>
-                      <div>
-                        <CardTitle>Test Results</CardTitle>
-                        <CardDescription>Results for this test request</CardDescription>
-                      </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                      <FlaskConical className="h-4 w-4 text-purple-600" />
                     </div>
-                    <Link href={`/laboratory/lab-test-results?request_id=${labTestRequest.id}`}>
-                      <Button variant="outline" size="sm">
-                        View All Results
-                      </Button>
-                    </Link>
+                    <div>
+                      <CardTitle>Test Results</CardTitle>
+                      <CardDescription>Results for this test request</CardDescription>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>

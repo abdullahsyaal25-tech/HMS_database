@@ -26,10 +26,13 @@ class StoreLabTestRequest extends FormRequest
             'patient_id' => ['required', 'integer', 'exists:patients,id'],
             'doctor_id' => ['required', 'integer', 'exists:doctors,id'],
             'department_id' => ['nullable', 'exists:departments,id'],
+            'lab_test_id' => ['nullable', 'integer', 'exists:lab_tests,id'],
             'test_name' => ['required', 'string', 'max:255'],
             'test_type' => ['required', 'string', Rule::in(['routine', 'urgent', 'stat'])],
             'scheduled_at' => ['required', 'date', 'after_or_equal:today'],
             'notes' => ['nullable', 'string'],
+            'cost' => ['nullable', 'numeric', 'min:0'],
+            'turnaround_hours' => ['nullable', 'integer', 'min:1'],
         ];
     }
 

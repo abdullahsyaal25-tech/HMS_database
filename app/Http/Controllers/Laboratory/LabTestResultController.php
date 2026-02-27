@@ -143,23 +143,25 @@ class LabTestResultController extends Controller
         // Build a cache of test names to IDs for efficient lookups
         $testNameToIdMap = LabTest::pluck('id', 'name')->toArray();
         
-        // Get patients who have lab test requests (pending, in_progress, or completed)
+        // Get patients who have lab test requests that are pending or in_progress
+        // This allows technicians to see patients with newly created requests (pending)
+        // as well as requests that have been started (in_progress)
         $patientsWithRequests = Patient::whereHas('labTestRequests', function ($query) {
-            $query->whereIn('status', ['pending', 'in_progress', 'completed']);
+            $query->whereIn('status', ['pending', 'in_progress']);
         })->get();
         
         // Filter to exclude patients who already have results for all their tests
         $patients = $patientsWithRequests->filter(function ($patient) use ($testNameToIdMap) {
             $allRequests = $patient->labTestRequests()
-                ->whereIn('status', ['pending', 'in_progress', 'completed'])
+                ->whereIn('status', ['pending', 'in_progress'])
                 ->get();
             
-            // If patient has no requests, exclude them
+            // If patient has no pending or in_progress requests, exclude them
             if ($allRequests->isEmpty()) {
                 return false;
             }
             
-            // Get test IDs from requests using the cached mapping
+            // Get test IDs from pending/in_progress requests using the cached mapping
             $requestTestIds = $allRequests->map(function ($req) use ($testNameToIdMap) {
                 return $testNameToIdMap[$req->test_name] ?? null;
             })->filter()->toArray();
@@ -169,10 +171,14 @@ class LabTestResultController extends Controller
                 return true;
             }
             
-            // Get test IDs that already have results
-            $resultTestIds = $patient->labTestResults()->pluck('test_id')->toArray();
+            // Get test IDs that already have completed/verified results
+            // Only exclude patients whose results are completed or verified
+            $resultTestIds = $patient->labTestResults()
+                ->whereIn('status', ['completed', 'verified'])
+                ->pluck('test_id')
+                ->toArray();
             
-            // Check if there are any requests without results
+            // Check if there are any pending/in_progress requests without completed results
             $unresultedTestIds = array_diff($requestTestIds, $resultTestIds);
             
             return !empty($unresultedTestIds);
@@ -185,8 +191,9 @@ class LabTestResultController extends Controller
                 ->whereIn('status', ['pending', 'in_progress', 'completed'])
                 ->get();
             
-            // Get test IDs that already have results for any of these patients
+            // Get test IDs that already have completed/verified results for these patients
             $testsWithResults = LabTestResult::whereIn('patient_id', $patients->pluck('id'))
+                ->whereIn('status', ['completed', 'verified'])
                 ->pluck('test_id')
                 ->toArray();
             
@@ -207,22 +214,36 @@ class LabTestResultController extends Controller
                 ->toArray();
         }
             
-        $labTests = $requestedTestNames ? LabTest::whereIn('name', $requestedTestNames)->get() : collect();
+        // Fetch lab tests that have parameters configured
+        // Filter out duplicates by name, keeping only tests with valid parameters
+        $labTests = $requestedTestNames 
+            ? LabTest::whereIn('name', $requestedTestNames)
+                ->whereNotNull('parameters')
+                ->where('parameters', '!=', '[]')
+                ->where('parameters', '!=', '{}')
+                ->get()
+                // Remove duplicates by name, keeping the first one (typically the seeder one)
+                ->keyBy('name')
+                ->values()
+            : collect();
         
         // Get patient-specific test requests (map of patient_id to their test requests)
-        // Exclude tests that already have results
+        // Only show pending and in_progress requests that don't have results yet
         $patientTestRequests = [];
         foreach ($patients as $patient) {
-            // Get all requests for this patient
-            $allRequests = $patient->labTestRequests()
-                ->whereIn('status', ['pending', 'in_progress', 'completed'])
+            // Get pending and in_progress requests for this patient
+            $pendingRequests = $patient->labTestRequests()
+                ->whereIn('status', ['pending', 'in_progress'])
                 ->get();
             
-            // Get test IDs that already have results
-            $resultTestIds = $patient->labTestResults()->pluck('test_id')->toArray();
+            // Get test IDs that already have completed/verified results
+            $resultTestIds = $patient->labTestResults()
+                ->whereIn('status', ['completed', 'verified'])
+                ->pluck('test_id')
+                ->toArray();
             
             // Filter out tests that already have results using cached mapping
-            $patientRequests = $allRequests
+            $patientRequests = $pendingRequests
                 ->filter(function ($req) use ($testNameToIdMap, $resultTestIds) {
                     $testId = $testNameToIdMap[$req->test_name] ?? null;
                     if ($testId === null) {
@@ -288,8 +309,7 @@ class LabTestResultController extends Controller
             'lab_test_id' => 'required|exists:lab_tests,id',
             'patient_id' => 'required|exists:patients,id',
             'performed_at' => 'required|date',
-            'results' => 'required|array',
-            'results.*.value' => 'required|string',
+            'results' => 'required|string',
             'status' => 'required|in:pending,completed,verified',
             'notes' => 'nullable|string',
         ]);
@@ -304,18 +324,60 @@ class LabTestResultController extends Controller
         try {
             DB::beginTransaction();
 
+            // Get the lab test details for the test name lookup
+            $labTest = LabTest::find($request->lab_test_id);
+            
             $resultId = 'RES-' . strtoupper(uniqid());
+            
+            // Results are already JSON string from frontend, decode and re-encode to ensure valid JSON
+            $resultsData = is_string($request->results) ? json_decode($request->results, true) : $request->results;
             
             $labTestResult = LabTestResult::create([
                 'result_id' => $resultId,
                 'test_id' => $request->lab_test_id,
                 'patient_id' => $request->patient_id,
                 'performed_at' => $request->performed_at,
-                'results' => json_encode($request->results),
+                'results' => json_encode($resultsData),
                 'status' => $request->status,
                 'notes' => $request->notes,
                 'performed_by' => $user->id,
             ]);
+
+            // Auto-update the associated LabTestRequest status
+            // Find the LabTestRequest for this patient and test that is pending or in_progress
+            if ($labTest) {
+                $labTestRequest = LabTestRequest::where('patient_id', $request->patient_id)
+                    ->where('test_name', $labTest->name)
+                    ->whereIn('status', ['pending', 'in_progress'])
+                    ->first();
+                
+                if ($labTestRequest) {
+                    // Handle status transition based on current status
+                    // pending -> in_progress -> completed
+                    try {
+                        if ($labTestRequest->status === 'pending' && $labTestRequest->canTransitionTo('in_progress')) {
+                            $labTestRequest->transitionTo('in_progress');
+                            Log::info('LabTestRequest auto-transitioned to in_progress', [
+                                'request_id' => $labTestRequest->request_id,
+                                'result_id' => $labTestResult->id,
+                            ]);
+                        }
+                        
+                        if ($labTestRequest->canTransitionTo('completed')) {
+                            $labTestRequest->transitionTo('completed');
+                            Log::info('LabTestRequest auto-completed', [
+                                'request_id' => $labTestRequest->request_id,
+                                'result_id' => $labTestResult->id,
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        Log::warning('LabTestRequest auto-transition failed', [
+                            'request_id' => $labTestRequest->request_id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
 
             DB::commit();
             

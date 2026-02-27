@@ -46,6 +46,7 @@ class LabTestRequest extends Model
         'patient_id',
         'doctor_id',
         'department_id',
+        'lab_test_id',
         'test_name',
         'test_type',
         'status',
@@ -53,6 +54,8 @@ class LabTestRequest extends Model
         'completed_at',
         'notes',
         'created_by',
+        'cost',
+        'turnaround_hours',
     ];
 
     /**
@@ -101,6 +104,14 @@ class LabTestRequest extends Model
     public function department()
     {
         return $this->belongsTo(Department::class);
+    }
+
+    /**
+     * Get the lab test master data associated with this request.
+     */
+    public function labTest()
+    {
+        return $this->belongsTo(LabTest::class);
     }
 
     /**

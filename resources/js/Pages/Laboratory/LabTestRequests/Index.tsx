@@ -4,6 +4,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Heading from '@/components/heading';
 import LaboratoryLayout from '@/layouts/LaboratoryLayout';
+import { DayStatusBanner } from '@/components/DayStatusBanner';
+import { useDayStatus } from '@/hooks/useDayStatus';
 import {
   PriorityBadge,
   LabStatusBadge,
@@ -19,7 +21,6 @@ import {
   User,
   Stethoscope,
   Calendar,
-  Eye,
   Edit,
   Play,
   CheckCircle2,
@@ -105,6 +106,9 @@ export default function LabTestRequestIndex({
     date_from: filters.date_from || '',
     date_to: filters.date_to || '',
   });
+
+  // Smart Day Detection
+  const { dayStatus, yesterdaySummary, isLoading: isDayStatusLoading, archiveDay } = useDayStatus();
 
   // Filter configurations
   const filterConfigs: FilterConfig[] = useMemo(() => [
@@ -203,13 +207,6 @@ export default function LabTestRequestIndex({
 
   const getStatusActions = (request: LabTestRequestWithRelations) => {
     const actions = [];
-    
-    actions.push({
-      label: 'View',
-      icon: Eye,
-      href: `/laboratory/lab-test-requests/${request.id}`,
-      variant: 'default' as const,
-    });
 
     if (request.status === 'pending') {
       actions.push({
@@ -363,6 +360,16 @@ export default function LabTestRequestIndex({
             </Link>
           </div>
         </div>
+
+        {/* Smart Day Detection Banner */}
+        <DayStatusBanner
+            dayStatus={dayStatus}
+            yesterdaySummary={yesterdaySummary}
+            onArchiveDay={archiveDay}
+            isLoading={isDayStatusLoading}
+            showActionButton={false}
+            moduleType="laboratory"
+        />
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -573,24 +580,38 @@ export default function LabTestRequestIndex({
           </Card>
         )}
 
+        {/* Debug Info - Remove this after testing */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+          <p className="text-xs text-yellow-800 font-mono">
+            Debug: total={labTestRequests.meta?.total || 0} | 
+            last_page={labTestRequests.meta?.last_page || 0} | 
+            current_page={labTestRequests.meta?.current_page || 0} | 
+            data_length={labTestRequests.data?.length || 0}
+          </p>
+        </div>
+
         {/* Pagination */}
         {(labTestRequests.meta?.last_page || 0) > 1 && (
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
+          <div className="flex items-center justify-between py-4 border-t border-gray-200">
+            <p className="text-sm text-gray-600 font-medium">
               Showing {labTestRequests.meta?.from || 0} to {labTestRequests.meta?.to || 0} of {labTestRequests.meta?.total || 0} results
             </p>
             <div className="flex items-center gap-2">
+              {/* Previous Button */}
               <Link
                 href={labTestRequests.links.prev || '#'}
                 className={cn(
                   'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
-                  'h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-                  !labTestRequests.links.prev && 'pointer-events-none opacity-50'
+                  'h-10 px-4 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900',
+                  'shadow-sm hover:shadow-md',
+                  !labTestRequests.links.prev && 'opacity-50 cursor-not-allowed pointer-events-none'
                 )}
               >
-                <ChevronLeft className="h-4 w-4 mr-1" />
+                <ChevronLeft className="h-4 w-4 mr-2" />
                 Previous
               </Link>
+              
+              {/* Page Numbers */}
               <div className="flex items-center gap-1">
                 {labTestRequests.meta.links
                   .filter(link => !link.label.includes('Previous') && !link.label.includes('Next'))
@@ -599,26 +620,30 @@ export default function LabTestRequestIndex({
                       key={index}
                       href={link.url || '#'}
                       className={cn(
-                        'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 w-9',
+                        'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-10 w-10',
                         link.active
-                          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                          : 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-                        !link.url && 'pointer-events-none opacity-50'
+                          ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                          : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900',
+                        !link.url && 'opacity-50 cursor-not-allowed pointer-events-none'
                       )}
-                      dangerouslySetInnerHTML={{ __html: link.label }}
-                    />
+                    >
+                      {link.label}
+                    </Link>
                   ))}
               </div>
+              
+              {/* Next Button */}
               <Link
                 href={labTestRequests.links.next || '#'}
                 className={cn(
                   'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
-                  'h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-                  !labTestRequests.links.next && 'pointer-events-none opacity-50'
+                  'h-10 px-4 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900',
+                  'shadow-sm hover:shadow-md',
+                  !labTestRequests.links.next && 'opacity-50 cursor-not-allowed pointer-events-none'
                 )}
               >
                 Next
-                <ChevronRight className="h-4 w-4 ml-1" />
+                <ChevronRight className="h-4 w-4 ml-2" />
               </Link>
             </div>
           </div>
