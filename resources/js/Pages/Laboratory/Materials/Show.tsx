@@ -309,17 +309,23 @@ export default function LabMaterialShow({
 
                 {/* Quick Actions */}
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm">
-                    <PlusCircle className="h-4 w-4 mr-1" />
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleStockUpdate('add')}
+                    className="bg-green-50 hover:bg-green-100 border-green-200"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-1 text-green-600" />
                     Add Stock
                   </Button>
-                  <Button variant="outline" size="sm">
-                    <MinusCircle className="h-4 w-4 mr-1" />
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleStockUpdate('remove')}
+                    className="bg-orange-50 hover:bg-orange-100 border-orange-200"
+                  >
+                    <MinusCircle className="h-4 w-4 mr-1 text-orange-600" />
                     Remove Stock
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <History className="h-4 w-4 mr-1" />
-                    View History
                   </Button>
                 </div>
 

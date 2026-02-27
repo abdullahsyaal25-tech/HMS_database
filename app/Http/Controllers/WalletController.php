@@ -219,6 +219,20 @@ class WalletController extends Controller
             ->whereBetween('lab_test_results.performed_at', [$start, $end])
             ->sum('lab_tests.cost');
 
+        // DEBUG: Log the raw query results
+        $labTestResults = DB::table('lab_test_results')
+            ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
+            ->whereBetween('lab_test_results.performed_at', [$start, $end])
+            ->select('lab_tests.cost', 'lab_test_results.performed_at', 'lab_test_results.status')
+            ->get();
+        
+        Log::info('WalletController getLaboratoryRevenue - Lab Test Results Query', [
+            'start' => $start->toISOString(),
+            'end' => $end->toISOString(),
+            'count' => $labTestResults->count(),
+            'results' => $labTestResults->toArray(),
+        ]);
+
         // Get laboratory services from appointments (department services)
         // Uses appointment_date for joining with appointments
         $appointmentLabServicesRevenue = DB::table('appointment_services')

@@ -48,7 +48,7 @@ class LabMaterial extends Model
     }
 
     /**
-     * Boot method to automatically generate material_id
+     * Boot method to automatically generate material_id and update status
      */
     protected static function boot()
     {
@@ -57,6 +57,15 @@ class LabMaterial extends Model
         static::creating(function ($model) {
             if (empty($model->material_id)) {
                 $model->material_id = $model->generateMaterialId();
+            }
+            // Auto-update status based on quantity
+            $model->updateStatus();
+        });
+
+        static::updating(function ($model) {
+            // Auto-update status when quantity changes
+            if ($model->isDirty('quantity')) {
+                $model->updateStatus();
             }
         });
     }

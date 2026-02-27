@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\DayStatusService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class DayStatusController extends Controller
 {
@@ -22,7 +23,13 @@ class DayStatusController extends Controller
     public function getStatus(): JsonResponse
     {
         try {
+            Log::info('DayStatusController getStatus - Request received');
             $status = $this->dayStatusService->checkDayStatus();
+            
+            Log::info('DayStatusController getStatus - Response', [
+                'status' => $status['status'],
+                'new_day_available' => $status['new_day_available'] ?? 'N/A',
+            ]);
             
             return response()->json([
                 'success' => true,
@@ -30,6 +37,9 @@ class DayStatusController extends Controller
                 'timestamp' => now()->toISOString(),
             ]);
         } catch (\Exception $e) {
+            Log::error('DayStatusController getStatus - Error', [
+                'message' => $e->getMessage(),
+            ]);
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to get day status',
@@ -44,7 +54,13 @@ class DayStatusController extends Controller
     public function archiveDay(): JsonResponse
     {
         try {
+            Log::info('DayStatusController archiveDay - Starting archive process');
             $result = $this->dayStatusService->archiveCurrentDay();
+            
+            Log::info('DayStatusController archiveDay - Archive result', [
+                'success' => $result['success'],
+                'message' => $result['message'] ?? '',
+            ]);
             
             return response()->json([
                 'success' => true,
@@ -53,6 +69,9 @@ class DayStatusController extends Controller
                 'timestamp' => now()->toISOString(),
             ]);
         } catch (\Exception $e) {
+            Log::error('DayStatusController archiveDay - Error', [
+                'message' => $e->getMessage(),
+            ]);
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to archive day',

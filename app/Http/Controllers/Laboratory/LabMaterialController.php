@@ -147,8 +147,55 @@ class LabMaterialController extends Controller
 
         $labMaterial->load(['labTest', 'createdBy']);
 
+        // Get recent stock movements from audit logs
+        $recentMovements = \App\Models\AuditLog::where('module', 'Laboratory')
+            ->where(function ($query) use ($labMaterial) {
+                $query->where('description', 'like', "%{$labMaterial->material_id}%")
+                      ->orWhere('description', 'like', "%material {$labMaterial->id}%")
+                      ->orWhere('description', 'like', "%{$labMaterial->name}%");
+            })
+            ->where(function ($query) {
+                $query->where('action', 'like', '%Add Stock%')
+                      ->orWhere('action', 'like', '%Remove Stock%');
+            })
+            ->orderBy('logged_at', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($log) {
+                $type = str_contains($log->action, 'Add') ? 'add' : 'remove';
+                // Extract quantity from description (e.g., "Added 5 units to material...")
+                preg_match('/(\d+)\s+unit/', $log->description, $matches);
+                $quantity = isset($matches[1]) ? (int)$matches[1] : 0;
+                
+                return [
+                    'id' => $log->id,
+                    'type' => $type,
+                    'quantity' => $quantity,
+                    'reason' => $log->description,
+                    'created_at' => $log->logged_at->toISOString(),
+                    'performed_by' => [
+                        'name' => $log->user_name,
+                        'email' => 'N/A',
+                    ],
+                ];
+            })
+            ->toArray();
+
+        // Build stock history from movements
+        $stockHistory = [];
+        foreach ($recentMovements as $movement) {
+            $stockHistory[] = [
+                'date' => $movement['created_at'],
+                'quantity' => $movement['quantity'],
+                'type' => $movement['type'],
+                'reason' => $movement['reason'],
+            ];
+        }
+
         return Inertia::render('Laboratory/Materials/Show', [
             'labMaterial' => $labMaterial,
+            'recentMovements' => $recentMovements,
+            'stockHistory' => $stockHistory,
         ]);
     }
 

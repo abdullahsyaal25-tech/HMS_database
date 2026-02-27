@@ -31,9 +31,19 @@ class DayStatusService
             $lastArchivedDate = $dayEndTimestamp ? Carbon::parse($dayEndTimestamp) : null;
         }
         
+        // DEBUG: Log all relevant values for diagnosis
+        Log::info('DayStatusService checkDayStatus - DIAGNOSTIC DATA', [
+            'today' => $todayStr,
+            'today_raw' => $today->toISOString(),
+            'lastSnapshot' => $lastSnapshot ? $lastSnapshot->snapshot_date : null,
+            'lastArchivedDate' => $lastArchivedDate?->toDateString(),
+            'dayEndTimestamp' => $dayEndTimestamp,
+        ]);
+        
         // Determine current status
         if (!$lastArchivedDate) {
             // No previous data - this is likely the first day
+            Log::info('DayStatusService checkDayStatus - No last archived date, returning day_started');
             return [
                 'status' => 'day_started',
                 'message' => 'System initialized - day already started',
@@ -47,9 +57,20 @@ class DayStatusService
         // Check if today has been acknowledged by the user
         $todayAcknowledged = Cache::get('day_acknowledged_' . $todayStr, false);
         
+        // DEBUG: Log the acknowledgement check
+        Log::info('DayStatusService checkDayStatus - Acknowledgement check', [
+            'todayAcknowledged' => $todayAcknowledged,
+            'cache_key' => 'day_acknowledged_' . $todayStr,
+            'today_gt_lastArchived' => $today->gt($lastArchivedDate),
+            'not_acknowledged' => !$todayAcknowledged,
+        ]);
+        
         // Compare today with last archived date
         if ($today->gt($lastArchivedDate) && !$todayAcknowledged) {
             // New day detected - previous day needs to be archived
+            Log::info('DayStatusService checkDayStatus - Returning new_day_available', [
+                'days_behind' => $today->diffInDays($lastArchivedDate),
+            ]);
             return [
                 'status' => 'new_day_available',
                 'message' => 'New day detected - previous day needs to be archived',
@@ -61,6 +82,7 @@ class DayStatusService
             ];
         } elseif ($today->eq($lastArchivedDate) || ($today->gt($lastArchivedDate) && $todayAcknowledged)) {
             // Same day as last archived - day is already started
+            Log::info('DayStatusService checkDayStatus - Returning day_started (today acknowledged or same day)');
             return [
                 'status' => 'day_started',
                 'message' => 'Day already started and processed',
@@ -71,6 +93,7 @@ class DayStatusService
             ];
         } else {
             // This shouldn't happen, but handle it gracefully
+            Log::info('DayStatusService checkDayStatus - Returning day_started (fallback)');
             return [
                 'status' => 'day_started',
                 'message' => 'System date appears to be in the past',
