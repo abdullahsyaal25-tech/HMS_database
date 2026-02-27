@@ -80,30 +80,19 @@ class AppointmentController extends Controller
         // Today's stats - query database directly for real-time data
         $todayAppointmentsCount = Appointment::whereDate('appointment_date', today())->count();
         
-        // Calculate today's appointment revenue - ONLY for completed/confirmed appointments WITHOUT services
-        // and NOT from Laboratory department (matching WalletController logic)
+        // Calculate today's appointment revenue - for completed/confirmed appointments WITHOUT services
         $regularRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
             ->whereDate('appointment_date', today())
             ->whereDoesntHave('services')
-            ->where(function ($query) {
-                // Exclude appointments where department is Laboratory
-                $query->whereNull('department_id')
-                      ->orWhereNotIn('department_id', function ($subQuery) {
-                          $subQuery->select('id')
-                                   ->from('departments')
-                                   ->where('name', 'Laboratory');
-                      });
-            })
             ->get()
             ->sum(fn($a) => max(0, ($a->fee ?? 0) - ($a->discount ?? 0)));
         
-        // Service revenue from appointment_services (non-lab department services)
+        // Service revenue from appointment_services (all department services)
         $serviceRevenue = DB::table('appointment_services')
             ->join('appointments', 'appointments.id', '=', 'appointment_services.appointment_id')
             ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
-            ->where('departments.name', '!=', 'Laboratory')
             ->whereDate('appointments.appointment_date', today())
             ->sum('appointment_services.final_cost') ?? 0;
         

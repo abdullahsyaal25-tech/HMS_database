@@ -11,8 +11,6 @@ import {
   Search,
   Filter,
   RefreshCw,
-  PlusCircle,
-  MinusCircle,
   AlertTriangle,
   CheckCircle,
   XCircle,
@@ -217,20 +215,6 @@ export default function LabMaterialIndex({
         href: `/laboratory/materials/${material.id}/edit`,
         variant: 'outline' as const,
       },
-      {
-        label: 'Add Stock',
-        icon: PlusCircle,
-        href: `#`,
-        onClick: () => handleStockUpdate(material.id, 'add'),
-        variant: 'outline' as const,
-      },
-      {
-        label: 'Remove Stock',
-        icon: MinusCircle,
-        href: `#`,
-        onClick: () => handleStockUpdate(material.id, 'remove'),
-        variant: 'outline' as const,
-      },
     ];
 
     return (
@@ -307,10 +291,10 @@ export default function LabMaterialIndex({
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2 pt-3 border-t">
-            {actions.slice(0, 2).map((action, idx) => {
+            {actions.map((action, idx) => {
               const ActionIcon = action.icon;
               return (
-                <Link key={idx} href={action.href} onClick={action.onClick}>
+                <Link key={idx} href={action.href}>
                   <Button
                     variant={action.variant}
                     size="sm"
@@ -322,36 +306,10 @@ export default function LabMaterialIndex({
                 </Link>
               );
             })}
-            {actions.slice(2).map((action, idx) => {
-              const ActionIcon = action.icon;
-              return (
-                <Button
-                  key={idx}
-                  variant={action.variant}
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={action.onClick}
-                >
-                  <ActionIcon className="h-3.5 w-3.5" />
-                  {action.label}
-                </Button>
-              );
-            })}
           </div>
         </CardContent>
       </Card>
     );
-  };
-
-  const handleStockUpdate = (materialId: number, action: 'add' | 'remove') => {
-    const quantity = prompt(`Enter quantity to ${action}:`);
-    if (quantity && !isNaN(parseInt(quantity))) {
-      if (action === 'add') {
-        router.post(`/laboratory/materials/${materialId}/add-stock`, { quantity });
-      } else {
-        router.post(`/laboratory/materials/${materialId}/remove-stock`, { quantity });
-      }
-    }
   };
 
   return (

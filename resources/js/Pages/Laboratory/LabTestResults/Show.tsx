@@ -295,22 +295,83 @@ export default function LabTestResultShow({
         @media print {
           @page {
             size: A4;
-            margin: 15mm;
+            margin: 10mm 15mm;
           }
           body {
             print-color-adjust: exact;
             -webkit-print-color-adjust: exact;
+            font-family: 'Segoe UI', Arial, sans-serif;
           }
+          /* Force all print sections to be visible */
+          .print\:block {
+            display: block !important;
+          }
+          .print\:grid {
+            display: grid !important;
+          }
+          .print\:table-header-group {
+            display: table-header-group !important;
+          }
+          .print\:table-row-group {
+            display: table-row-group !important;
+          }
+          /* Hide non-print elements */
+          .print\:hidden {
+            display: none !important;
+          }
+          .print-header {
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            display: block !important;
+          }
+          .print-results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+          }
+          .print-results-table th {
+            background-color: #f3f4f6 !important;
+            border: 1px solid #d1d5db;
+            padding: 10px 8px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+          }
+          .print-results-table td {
+            border: 1px solid #e5e7eb;
+            padding: 8px;
+            font-size: 11px;
+          }
+          .print-results-table tr:nth-child(even) {
+            background-color: #f9fafb !important;
+          }
+          .print-status-normal { color: #059669 !important; font-weight: 600; }
+          .print-status-abnormal { color: #d97706 !important; font-weight: 600; }
+          .print-status-critical { color: #dc2626 !important; font-weight: 600; }
         }
       `}</style>
 
-      <div className="space-y-6 print:space-y-4">
+      <div className="space-y-6 print:space-y-0">
         {/* Print Header - Only visible when printing */}
-        <div className="hidden print:block print:mb-6">
-          <div className="text-center border-b-2 border-primary pb-4 mb-4">
-            <h1 className="text-2xl font-bold text-primary">HOSPITAL MANAGEMENT SYSTEM</h1>
-            <p className="text-lg font-semibold mt-1">Laboratory Report</p>
-            <p className="text-sm text-gray-600 mt-1">Result ID: {labTestResult.result_id}</p>
+        <div className="hidden print:block print-header">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-primary rounded-lg flex items-center justify-center">
+                <FlaskConical className="w-10 h-10 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">HMS Laboratory</h1>
+                <p className="text-sm text-gray-600">Comprehensive Diagnostic Services</p>
+                <p className="text-xs text-gray-500 mt-1">Phone: +1 (555) 123-4567 | Email: lab@hms.com</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-bold text-primary">LABORATORY REPORT</p>
+              <p className="text-sm font-mono text-gray-600 mt-1">{labTestResult.result_id}</p>
+              <p className="text-xs text-gray-500 mt-1">Report Date: {formatDateShort(labTestResult.performed_at)}</p>
+            </div>
           </div>
         </div>
 
@@ -442,22 +503,30 @@ export default function LabTestResultShow({
           </Alert>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:grid-cols-1">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:grid-cols-1 print:block">
           {/* Patient & Test Info - Print Layout */}
-          <div className="hidden print:grid print:grid-cols-2 print:gap-4 print:mb-6">
-            <div className="border rounded-lg p-4">
-              <h3 className="font-semibold text-sm text-gray-600 mb-2">Patient Information</h3>
-              <p className="font-bold">{labTestResult.patient?.first_name} {labTestResult.patient?.father_name}</p>
-              <p className="text-sm">ID: {labTestResult.patient?.patient_id}</p>
-              <p className="text-sm">Age: {labTestResult.patient?.age} years | Gender: {labTestResult.patient?.gender}</p>
-              <p className="text-sm">Blood Group: {labTestResult.patient?.blood_group || 'N/A'}</p>
+          <div className="hidden print:grid print:grid-cols-2 print:gap-6 print:mb-6 print:bg-gray-50 print:p-4 print:rounded-lg">
+            <div>
+              <h3 className="font-bold text-xs uppercase tracking-wide text-gray-500 mb-3 border-b pb-1">Patient Information</h3>
+              <div className="space-y-1">
+                <p className="text-sm"><span className="font-semibold">Name:</span> {labTestResult.patient?.first_name} {labTestResult.patient?.father_name}</p>
+                <p className="text-sm"><span className="font-semibold">Patient ID:</span> {labTestResult.patient?.patient_id}</p>
+                <p className="text-sm"><span className="font-semibold">Age/Gender:</span> {labTestResult.patient?.age} years / {labTestResult.patient?.gender}</p>
+                <p className="text-sm"><span className="font-semibold">Blood Group:</span> {labTestResult.patient?.blood_group || 'N/A'}</p>
+                {labTestResult.patient?.phone && (
+                  <p className="text-sm"><span className="font-semibold">Phone:</span> {labTestResult.patient?.phone}</p>
+                )}
+              </div>
             </div>
-            <div className="border rounded-lg p-4">
-              <h3 className="font-semibold text-sm text-gray-600 mb-2">Test Information</h3>
-              <p className="font-bold">{labTestResult.labTest?.name}</p>
-              <p className="text-sm">Category: {labTestResult.labTest?.category}</p>
-              <p className="text-sm">Sample: {labTestResult.labTest?.sample_type || 'N/A'}</p>
-              <p className="text-sm">Performed: {formatDateShort(labTestResult.performed_at)}</p>
+            <div>
+              <h3 className="font-bold text-xs uppercase tracking-wide text-gray-500 mb-3 border-b pb-1">Test Information</h3>
+              <div className="space-y-1">
+                <p className="text-sm"><span className="font-semibold">Test Name:</span> {labTestResult.labTest?.name}</p>
+                <p className="text-sm"><span className="font-semibold">Category:</span> {labTestResult.labTest?.category}</p>
+                <p className="text-sm"><span className="font-semibold">Sample Type:</span> {labTestResult.labTest?.sample_type || 'N/A'}</p>
+                <p className="text-sm"><span className="font-semibold">Collected:</span> {formatDateShort(labTestResult.performed_at)}</p>
+                <p className="text-sm"><span className="font-semibold">Reported:</span> {formatDateShort(labTestResult.performed_at)}</p>
+              </div>
             </div>
           </div>
 
@@ -604,8 +673,8 @@ export default function LabTestResultShow({
           </div>
 
           {/* Right Column - Results */}
-          <div className="lg:col-span-2 space-y-6 print:col-span-1">
-            <Card className="print:shadow-none print:border-0">
+          <div className="lg:col-span-2 space-y-6 print:col-span-1 print:block">
+            <Card className="print:shadow-none print:border-0 print:block">
               <CardHeader className="print:pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Beaker className="h-5 w-5" />
@@ -623,16 +692,25 @@ export default function LabTestResultShow({
                   </TabsList>
 
                   <TabsContent value="table" className="mt-4 print:mt-0">
-                    <div className="border rounded-lg overflow-hidden">
-                      <table className="w-full">
-                        <thead className="bg-muted">
+                    <div className="border rounded-lg overflow-hidden print:border-0">
+                      <table className="w-full print:print-results-table">
+                        <thead className="bg-muted print:hidden">
                           <tr>
                             <th className="px-4 py-3 text-left text-sm font-medium">Parameter</th>
                             <th className="px-4 py-3 text-left text-sm font-medium">Result</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium">Reference Range</th>
                             <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y">
+                        <thead className="hidden print:table-header-group">
+                          <tr>
+                            <th className="w-1/3">Parameter</th>
+                            <th className="w-1/4">Result</th>
+                            <th className="w-1/4">Reference Range</th>
+                            <th className="w-1/6">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y print:table-row-group">
                           {parsedResults.map((result, idx) => (
                             <tr
                               key={idx}
@@ -641,35 +719,41 @@ export default function LabTestResultShow({
                                 result.status === 'abnormal' && 'bg-orange-50/50'
                               )}
                             >
-                              <td className="px-4 py-3">
-                                <p className="font-medium">{result.name}</p>
+                              <td className="px-4 py-3 print:py-2">
+                                <p className="font-medium print:text-xs">{result.name}</p>
                                 {result.notes && (
-                                  <p className="text-xs text-muted-foreground mt-1">{result.notes}</p>
+                                  <p className="text-xs text-muted-foreground mt-1 print:hidden">{result.notes}</p>
                                 )}
                               </td>
-                              <td className="px-4 py-3">
+                              <td className="px-4 py-3 print:py-2">
                                 <div className="flex items-center gap-2">
                                   <span className={cn(
                                     'font-semibold',
-                                    result.status === 'normal' && 'text-green-600',
-                                    result.status === 'abnormal' && 'text-orange-600',
-                                    result.status === 'critical' && 'text-red-600',
+                                    result.status === 'normal' && 'text-green-600 print:print-status-normal',
+                                    result.status === 'abnormal' && 'text-orange-600 print:print-status-abnormal',
+                                    result.status === 'critical' && 'text-red-600 print:print-status-critical',
                                   )}>
                                     {result.value}
                                   </span>
-                                  <span className="text-sm text-muted-foreground">{result.unit}</span>
+                                  <span className="text-sm text-muted-foreground print:text-xs">{result.unit}</span>
                                 </div>
                               </td>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  {result.status === 'normal' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                                  {result.status === 'abnormal' && <AlertCircle className="h-4 w-4 text-orange-600" />}
-                                  {result.status === 'critical' && <AlertTriangle className="h-4 w-4 text-red-600" />}
+                              <td className="px-4 py-3 print:py-2 print:text-xs text-muted-foreground print:text-gray-600">
+                                {result.referenceMin !== undefined && result.referenceMax !== undefined
+                                  ? `${result.referenceMin} - ${result.referenceMax} ${result.unit}`
+                                  : 'See reference'
+                                }
+                              </td>
+                              <td className="px-4 py-3 print:py-2">
+                                <div className="flex items-center gap-2 print:gap-1">
+                                  {result.status === 'normal' && <CheckCircle2 className="h-4 w-4 text-green-600 print:hidden" />}
+                                  {result.status === 'abnormal' && <AlertCircle className="h-4 w-4 text-orange-600 print:hidden" />}
+                                  {result.status === 'critical' && <AlertTriangle className="h-4 w-4 text-red-600 print:hidden" />}
                                   <span className={cn(
-                                    'text-sm font-medium capitalize',
-                                    result.status === 'normal' && 'text-green-600',
-                                    result.status === 'abnormal' && 'text-orange-600',
-                                    result.status === 'critical' && 'text-red-600',
+                                    'text-sm font-medium capitalize print:text-xs',
+                                    result.status === 'normal' && 'text-green-600 print:print-status-normal',
+                                    result.status === 'abnormal' && 'text-orange-600 print:print-status-abnormal',
+                                    result.status === 'critical' && 'text-red-600 print:print-status-critical',
                                   )}>
                                     {result.status}
                                   </span>
@@ -757,30 +841,55 @@ export default function LabTestResultShow({
         </div>
 
         {/* Print Footer - Only visible when printing */}
-        <div className="hidden print:block print:mt-8 print:pt-6 print:border-t">
-          <div className="grid grid-cols-2 gap-8">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-8">Performed By:</p>
-              <div className="border-t border-gray-400 pt-2">
-                <p className="font-semibold">{labTestResult.performedBy?.name || 'Unknown'}</p>
-                <p className="text-sm text-gray-600">Laboratory Technician</p>
-                <p className="text-xs text-gray-500 mt-1">Date: {formatDateShort(labTestResult.performed_at)}</p>
+        <div className="hidden print:block print:mt-8">
+          {/* Notes Section */}
+          {labTestResult.notes && (
+            <div className="print:mb-6 print:p-3 print:bg-gray-50 print:rounded-lg">
+              <p className="print:text-xs print:font-semibold print:text-gray-600 print:mb-1">Comments/Notes:</p>
+              <p className="print:text-xs print:text-gray-700">{labTestResult.notes}</p>
+            </div>
+          )}
+          
+          {/* Signature Section */}
+          <div className="print:mt-8 print:pt-6 print:border-t-2 print:border-gray-300">
+            <div className="print:grid print:grid-cols-2 print:gap-16">
+              <div className="print:text-center">
+                <div className="print:h-16 print:border-b print:border-gray-400 print:mb-2"></div>
+                <p className="print:text-sm print:font-bold">{labTestResult.performedBy?.name || 'Unknown'}</p>
+                <p className="print:text-xs print:text-gray-600">Laboratory Technician</p>
+                <p className="print:text-xs print:text-gray-500">Date: {formatDateShort(labTestResult.performed_at)}</p>
+              </div>
+              {isVerified && labTestResult.verifiedBy ? (
+                <div className="print:text-center">
+                  <div className="print:h-16 print:border-b print:border-gray-400 print:mb-2"></div>
+                  <p className="print:text-sm print:font-bold">{labTestResult.verifiedBy.name}</p>
+                  <p className="print:text-xs print:text-gray-600">Laboratory Pathologist</p>
+                  <p className="print:text-xs print:text-gray-500">Date: {labTestResult.verified_at ? formatDateShort(labTestResult.verified_at) : 'N/A'}</p>
+                </div>
+              ) : (
+                <div className="print:text-center">
+                  <div className="print:h-16 print:border-b print:border-gray-400 print:mb-2 print:border-dashed"></div>
+                  <p className="print:text-xs print:text-gray-400">Pending Verification</p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Footer Disclaimer */}
+          <div className="print:mt-8 print:pt-4 print:border-t print:border-gray-200">
+            <div className="print:flex print:justify-between print:items-start">
+              <div className="print:w-2/3">
+                <p className="print:text-xs print:text-gray-500 print:leading-relaxed">
+                  <span className="print:font-semibold">Important Note:</span> This is a computer-generated laboratory report. 
+                  The results should be interpreted by a qualified healthcare professional in conjunction with the patient's clinical history. 
+                  For any queries regarding this report, please contact our laboratory.
+                </p>
+              </div>
+              <div className="print:text-right">
+                <p className="print:text-xs print:text-gray-400">Printed: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                <p className="print:text-xs print:text-gray-400 print:mt-1">Page 1 of 1</p>
               </div>
             </div>
-            {isVerified && labTestResult.verifiedBy && (
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-8">Verified By:</p>
-                <div className="border-t border-gray-400 pt-2">
-                  <p className="font-semibold">{labTestResult.verifiedBy.name}</p>
-                  <p className="text-sm text-gray-600">Laboratory Pathologist</p>
-                  <p className="text-xs text-gray-500 mt-1">Date: {labTestResult.verified_at ? formatDateShort(labTestResult.verified_at) : 'N/A'}</p>
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="mt-8 text-center text-xs text-gray-500">
-            <p>This is a computer-generated report. For any queries, please contact the laboratory.</p>
-            <p className="mt-1">Printed on: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
           </div>
         </div>
       </div>

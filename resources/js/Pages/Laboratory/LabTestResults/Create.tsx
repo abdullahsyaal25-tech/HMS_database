@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -20,7 +20,6 @@ import {
   AlertCircle,
   CheckCircle2,
   AlertTriangle,
-  Clock,
   Droplet,
   Beaker,
   Info,
@@ -31,6 +30,7 @@ import {
   TrendingUp,
   TrendingDown,
   Activity,
+  Clock,
 } from 'lucide-react';
 import { useState, useMemo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
@@ -202,7 +202,7 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
     performed_at: new Date().toISOString().split('T')[0],
     performed_time: new Date().toTimeString().slice(0, 5),
     results: '{}',
-    status: 'pending' as 'pending' | 'completed' | 'verified',
+    status: 'completed' as const,
     notes: '',
     abnormal_flags: '',
   });
@@ -830,39 +830,6 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                             </div>
                           </div>
 
-                          {/* Status */}
-                          <div className="space-y-2">
-                            <Label htmlFor="status">Status *</Label>
-                            <Select
-                              value={data.status}
-                              onValueChange={(value) => setData('status', value as 'pending' | 'completed' | 'verified')}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="pending">
-                                  <div className="flex items-center gap-2">
-                                    <Clock className="h-4 w-4 text-yellow-500" />
-                                    Pending
-                                  </div>
-                                </SelectItem>
-                                <SelectItem value="completed">
-                                  <div className="flex items-center gap-2">
-                                    <CheckCircle2 className="h-4 w-4 text-blue-500" />
-                                    Completed
-                                  </div>
-                                </SelectItem>
-                                <SelectItem value="verified">
-                                  <div className="flex items-center gap-2">
-                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                    Verified
-                                  </div>
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
                           {/* Result Summary */}
                           {resultParameters.length > 0 && (
                             <div className="p-3 bg-muted/50 rounded-lg space-y-2">
@@ -1087,10 +1054,8 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                           <div>
                             <span className="text-muted-foreground block text-xs">Status</span>
                             <p className="font-medium capitalize flex items-center gap-1">
-                              {data.status === 'pending' && <Clock className="h-3 w-3 text-yellow-500" />}
-                              {data.status === 'completed' && <CheckCircle2 className="h-3 w-3 text-blue-500" />}
-                              {data.status === 'verified' && <CheckCircle2 className="h-3 w-3 text-green-500" />}
-                              {data.status}
+                              <CheckCircle2 className="h-3 w-3 text-blue-500" />
+                              Completed
                             </p>
                           </div>
                           {selectedTest.sample_type && (

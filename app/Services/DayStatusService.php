@@ -91,7 +91,14 @@ class DayStatusService
         $todayStr = $today->toDateString();
         
         // Check if yesterday has already been archived
-        $existingSnapshot = DailySnapshot::where('date', Carbon::yesterday()->toDateString())->first();
+        // Fixed: Now uses correct column name 'snapshot_date' instead of 'date'
+        $existingSnapshot = DailySnapshot::where('snapshot_date', Carbon::yesterday()->toDateString())->first();
+        
+        Log::info('DayStatusService archiveCurrentDay - Checking for existing snapshot', [
+            'query_date' => Carbon::yesterday()->toDateString(),
+            'existing_snapshot_found' => $existingSnapshot ? true : false,
+            'existing_snapshot_id' => $existingSnapshot?->id,
+        ]);
         if ($existingSnapshot) {
             // Yesterday already archived, just reset today's counters
             Cache::forget('daily_revenue_' . $todayStr);
@@ -181,11 +188,17 @@ class DayStatusService
 
         $totalRevenue = $appointmentsRevenue + $departmentsRevenue + $pharmacyRevenue + $laboratoryRevenue;
         
+        // FIXED: Now correctly calculates appointments_count from database
+        $appointmentsCount = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
+            ->whereBetween('appointment_date', [$start, $end])
+            ->count();
+        
         // DEBUG: Log revenue breakdown
         Log::info('DayStatusService getDataForDateRange - Revenue breakdown', [
             'start' => $start->toISOString(),
             'end' => $end->toISOString(),
             'appointmentsRevenue' => $appointmentsRevenue,
+            'appointmentsCount' => $appointmentsCount,
             'departmentsRevenue' => $departmentsRevenue,
             'pharmacyRevenue' => $pharmacyRevenue,
             'laboratoryRevenue' => $laboratoryRevenue,
@@ -193,7 +206,7 @@ class DayStatusService
         ]);
 
         return [
-            'appointments_count' => 0, // Would need separate calculation
+            'appointments_count' => $appointmentsCount,
             'appointments_revenue' => $appointmentsRevenue,
             'departments_revenue' => $departmentsRevenue,
             'pharmacy_revenue' => $pharmacyRevenue,
@@ -341,83 +354,127 @@ class DayStatusService
     
     /**
      * Get yesterday's summary for display in confirmation dialog
+     * 
+     * FIXED: Now calculates fresh values from database instead of relying on
+     * archived snapshots which may contain incorrect values from previous bugs.
+     * This ensures the banner always shows CORRECT values.
+     * 
+     * MODIFIED: Now returns data from the last button click timestamp (current business day)
+     * instead of yesterday, with time range information.
      */
     public function getYesterdaySummary()
     {
+        // Get the last day start timestamp from cache (when "Start New Day" was clicked)
+        $dayEndTimestamp = Cache::get('day_end_timestamp');
+        
+        // If we have a day_end_timestamp, use it as the start of current business day
+        // Otherwise, fall back to yesterday for backwards compatibility
+        if ($dayEndTimestamp) {
+            $businessDayStart = Carbon::parse($dayEndTimestamp);
+            $now = now();
+            
+            // DEBUG: Log the time range being queried
+            Log::info('DayStatusService getYesterdaySummary - Calculating fresh data for current business day', [
+                'business_day_start' => $businessDayStart->toISOString(),
+                'now' => $now->toISOString(),
+                'time_range' => $businessDayStart->format('M d, Y H:i') . ' - ' . $now->format('M d, Y H:i'),
+            ]);
+            
+            // Calculate revenue from all sources for the current business day (from last button click to now)
+            $appointmentsRevenue = $this->getAppointmentRevenue($businessDayStart, $now);
+            $departmentsRevenue = $this->getDepartmentRevenue($businessDayStart, $now);
+            $pharmacyRevenue = $this->getPharmacyRevenue($businessDayStart, $now);
+            $laboratoryRevenue = $this->getLaboratoryRevenue($businessDayStart, $now);
+            
+            // Get appointments count
+            $appointmentsCount = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
+                ->whereBetween('appointment_date', [$businessDayStart, $now])
+                ->count();
+            
+            $totalRevenue = $appointmentsRevenue + $departmentsRevenue + $pharmacyRevenue + $laboratoryRevenue;
+            
+            // DEBUG: Log calculated values
+            Log::info('DayStatusService getYesterdaySummary - Fresh calculated values for current business day', [
+                'business_day_start' => $businessDayStart->toISOString(),
+                'appointments_count' => $appointmentsCount,
+                'appointments_revenue' => $appointmentsRevenue,
+                'departments_revenue' => $departmentsRevenue,
+                'pharmacy_revenue' => $pharmacyRevenue,
+                'laboratory_revenue' => $laboratoryRevenue,
+                'total_revenue' => $totalRevenue,
+            ]);
+            
+            return [
+                'date' => $businessDayStart->toISOString(),
+                'date_formatted' => $businessDayStart->format('M d, Y'),
+                'time_range' => $businessDayStart->format('M d, Y H:i') . ' - ' . $now->format('M d, Y H:i'),
+                'business_day_start' => $businessDayStart->toISOString(),
+                'business_day_end' => $now->toISOString(),
+                'appointments_count' => $appointmentsCount,
+                'total_revenue' => $totalRevenue,
+                // Return breakdown by revenue type for module-specific display
+                'appointments_revenue' => (float) $appointmentsRevenue,
+                'pharmacy_revenue' => (float) $pharmacyRevenue,
+                'laboratory_revenue' => (float) $laboratoryRevenue,
+                'departments_revenue' => (float) $departmentsRevenue,
+                'source' => 'calculated',
+                'is_current_business_day' => true,
+            ];
+        }
+        
+        // Fallback: If no day_end_timestamp, get yesterday's data (backwards compatibility)
         $yesterday = Carbon::yesterday();
         $yesterdayStr = $yesterday->toDateString();
         
         // DEBUG: Log the date being queried
-        Log::info('DayStatusService getYesterdaySummary - Querying for date', [
+        Log::info('DayStatusService getYesterdaySummary - Calculating fresh data for date', [
             'yesterdayStr' => $yesterdayStr,
             'current_time' => now()->toISOString(),
         ]);
         
-        // Try to get from daily_snapshots first
-        $snapshot = DailySnapshot::where('snapshot_date', $yesterdayStr)->first();
+        // Calculate fresh values from database instead of relying on archived data
+        $yesterdayStart = $yesterday->copy()->startOfDay();
+        $yesterdayEnd = $yesterday->copy()->endOfDay();
         
-        // DEBUG: Log snapshot result
-        Log::info('DayStatusService getYesterdaySummary - Snapshot query result', [
+        // Calculate revenue from all sources for yesterday
+        $appointmentsRevenue = $this->getAppointmentRevenue($yesterdayStart, $yesterdayEnd);
+        $departmentsRevenue = $this->getDepartmentRevenue($yesterdayStart, $yesterdayEnd);
+        $pharmacyRevenue = $this->getPharmacyRevenue($yesterdayStart, $yesterdayEnd);
+        $laboratoryRevenue = $this->getLaboratoryRevenue($yesterdayStart, $yesterdayEnd);
+        
+        // Get appointments count
+        $appointmentsCount = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
+            ->whereBetween('appointment_date', [$yesterdayStart, $yesterdayEnd])
+            ->count();
+        
+        $totalRevenue = $appointmentsRevenue + $departmentsRevenue + $pharmacyRevenue + $laboratoryRevenue;
+        
+        // DEBUG: Log calculated values
+        Log::info('DayStatusService getYesterdaySummary - Fresh calculated values', [
             'yesterdayStr' => $yesterdayStr,
-            'snapshot_found' => $snapshot ? true : false,
-            'snapshot_data' => $snapshot ? [
-                'snapshot_date' => $snapshot->snapshot_date,
-                'appointments_count' => $snapshot->appointments_count,
-                'total_revenue' => $snapshot->total_revenue,
-                'appointments_revenue' => $snapshot->appointments_revenue,
-                'pharmacy_revenue' => $snapshot->pharmacy_revenue,
-                'laboratory_revenue' => $snapshot->laboratory_revenue,
-            ] : null,
+            'appointments_count' => $appointmentsCount,
+            'appointments_revenue' => $appointmentsRevenue,
+            'departments_revenue' => $departmentsRevenue,
+            'pharmacy_revenue' => $pharmacyRevenue,
+            'laboratory_revenue' => $laboratoryRevenue,
+            'total_revenue' => $totalRevenue,
         ]);
         
-        if ($snapshot) {
-            return [
-                'date' => $yesterdayStr,
-                'appointments_count' => $snapshot->appointments_count,
-                'total_revenue' => $snapshot->total_revenue,
-                // Return breakdown by revenue type for module-specific display
-                'appointments_revenue' => (float) ($snapshot->appointments_revenue ?? 0),
-                'pharmacy_revenue' => (float) ($snapshot->pharmacy_revenue ?? 0),
-                'laboratory_revenue' => (float) ($snapshot->laboratory_revenue ?? 0),
-                'departments_revenue' => (float) ($snapshot->departments_revenue ?? 0),
-                'source' => 'archived',
-            ];
-        }
-        
-        // If not in snapshots, try to calculate from cache
-        $cachedData = Cache::get('daily_revenue_' . $yesterdayStr);
-        
-        // DEBUG: Log cache query
-        Log::info('DayStatusService getYesterdaySummary - Cache query', [
-            'cache_key' => 'daily_revenue_' . $yesterdayStr,
-            'cached_data_found' => $cachedData ? true : false,
-            'cached_data' => $cachedData,
-        ]);
-        
-        if ($cachedData) {
-            return [
-                'date' => $yesterdayStr,
-                'appointments_count' => 0, // Would need separate calculation
-                'total_revenue' => $cachedData['total'] ?? 0,
-                // Return breakdown by revenue type for module-specific display
-                'appointments_revenue' => (float) ($cachedData['appointments_revenue'] ?? 0),
-                'pharmacy_revenue' => (float) ($cachedData['pharmacy_revenue'] ?? 0),
-                'laboratory_revenue' => (float) ($cachedData['laboratory_revenue'] ?? 0),
-                'departments_revenue' => (float) ($cachedData['departments_revenue'] ?? 0),
-                'source' => 'cached',
-            ];
-        }
-        
-        // If no data available
         return [
             'date' => $yesterdayStr,
-            'appointments_count' => 0,
-            'total_revenue' => 0,
-            'appointments_revenue' => 0,
-            'pharmacy_revenue' => 0,
-            'laboratory_revenue' => 0,
-            'departments_revenue' => 0,
-            'source' => 'unavailable',
+            'date_formatted' => $yesterday->format('M d, Y'),
+            'time_range' => $yesterdayStart->format('M d, Y H:i') . ' - ' . $yesterdayEnd->format('M d, Y H:i'),
+            'business_day_start' => $yesterdayStart->toISOString(),
+            'business_day_end' => $yesterdayEnd->toISOString(),
+            'appointments_count' => $appointmentsCount,
+            'total_revenue' => $totalRevenue,
+            // Return breakdown by revenue type for module-specific display
+            'appointments_revenue' => (float) $appointmentsRevenue,
+            'pharmacy_revenue' => (float) $pharmacyRevenue,
+            'laboratory_revenue' => (float) $laboratoryRevenue,
+            'departments_revenue' => (float) $departmentsRevenue,
+            'source' => 'calculated',
+            'is_current_business_day' => false,
         ];
     }
 }

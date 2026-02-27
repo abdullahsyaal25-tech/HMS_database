@@ -7,6 +7,7 @@ use App\Models\LabTestResult;
 use App\Models\LabTest;
 use App\Models\LabTestRequest;
 use App\Models\Patient;
+use App\Models\LabMaterial;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -379,6 +380,40 @@ class LabTestResultController extends Controller
                 }
             }
 
+            // Deduct materials associated with this lab test
+            // Each material with matching lab_test_id will be decremented by 1 unit
+            $materials = LabMaterial::where('lab_test_id', $request->lab_test_id)
+                ->where('status', '!=', 'out_of_stock')
+                ->get();
+            
+            foreach ($materials as $material) {
+                try {
+                    if ($material->quantity >= 1) {
+                        $material->removeStock(1);
+                        Log::info('Lab material deducted', [
+                            'material_id' => $material->material_id,
+                            'material_name' => $material->name,
+                            'lab_test_id' => $request->lab_test_id,
+                            'result_id' => $labTestResult->id,
+                            'quantity_deducted' => 1,
+                            'remaining_quantity' => $material->quantity,
+                        ]);
+                    } else {
+                        Log::warning('Lab material insufficient stock', [
+                            'material_id' => $material->material_id,
+                            'material_name' => $material->name,
+                            'lab_test_id' => $request->lab_test_id,
+                            'available_quantity' => $material->quantity,
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Failed to deduct lab material', [
+                        'material_id' => $material->material_id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
             DB::commit();
             
             return redirect()->route('laboratory.lab-test-results.index')
@@ -408,8 +443,18 @@ class LabTestResultController extends Controller
         // Load relationships
         $labTestResult->load(['patient', 'test', 'performedBy']);
         
+        // Determine permissions
+        $canEdit = $user->hasPermission('edit-lab-test-results') && $labTestResult->status !== 'verified';
+        $canVerify = $user->hasPermission('verify-lab-test-results') && $labTestResult->status !== 'verified';
+        $canPrint = true; // Always allow printing for users with view permission
+        $canEmail = true;
+        
         return Inertia::render('Laboratory/LabTestResults/Show', [
-            'labTestResult' => $labTestResult
+            'labTestResult' => $labTestResult,
+            'canEdit' => $canEdit,
+            'canVerify' => $canVerify,
+            'canPrint' => $canPrint,
+            'canEmail' => $canEmail,
         ]);
     }
 

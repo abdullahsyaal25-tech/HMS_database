@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -66,6 +66,17 @@ export default function LabMaterialShow({
   stockHistory = []
 }: LabMaterialShowProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'movements' | 'history'>('overview');
+
+  const handleStockUpdate = (action: 'add' | 'remove') => {
+    const quantity = prompt(`Enter quantity to ${action}:`);
+    if (quantity && !isNaN(parseInt(quantity))) {
+      if (action === 'add') {
+        router.post(`/laboratory/materials/${labMaterial.id}/add-stock`, { quantity });
+      } else {
+        router.post(`/laboratory/materials/${labMaterial.id}/remove-stock`, { quantity });
+      }
+    }
+  };
 
   const getInitials = (name: string) => {
     if (!name) return '';
@@ -179,13 +190,29 @@ export default function LabMaterialShow({
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Link href="/laboratory/materials">
               <Button variant="outline">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Materials
               </Button>
             </Link>
+            <Button
+              variant="outline"
+              onClick={() => handleStockUpdate('add')}
+              className="bg-green-50 hover:bg-green-100 border-green-200"
+            >
+              <PlusCircle className="mr-2 h-4 w-4 text-green-600" />
+              Add Stock
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleStockUpdate('remove')}
+              className="bg-orange-50 hover:bg-orange-100 border-orange-200"
+            >
+              <MinusCircle className="mr-2 h-4 w-4 text-orange-600" />
+              Remove Stock
+            </Button>
             <Link href={`/laboratory/materials/${labMaterial.id}/edit`}>
               <Button>
                 <Edit className="mr-2 h-4 w-4" />
@@ -221,6 +248,24 @@ export default function LabMaterialShow({
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleStockUpdate('add')}
+                      className="bg-green-50 hover:bg-green-100 border-green-200"
+                    >
+                      <PlusCircle className="h-4 w-4 mr-1 text-green-600" />
+                      Add
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleStockUpdate('remove')}
+                      className="bg-orange-50 hover:bg-orange-100 border-orange-200"
+                    >
+                      <MinusCircle className="h-4 w-4 mr-1 text-orange-600" />
+                      Remove
+                    </Button>
                     <Link href={`/laboratory/materials/${labMaterial.id}/edit`}>
                       <Button variant="outline" size="sm">
                         <Edit className="h-4 w-4 mr-1" />
