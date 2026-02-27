@@ -376,8 +376,10 @@ class LabReportMasterSeeder extends Seeder
                 'unit' => 'mm/hr',
                 'normal_values' => 'Male: 0-15, Female: 0-20 mm/hr',
                 'reference_ranges' => [
-                    'male' => ['min' => 0, 'max' => 15, 'unit' => 'mm/hr'],
-                    'female' => ['min' => 0, 'max' => 20, 'unit' => 'mm/hr']
+                    'esr' => [
+                        'male' => ['min' => 0, 'max' => 15, 'unit' => 'mm/hr'],
+                        'female' => ['min' => 0, 'max' => 20, 'unit' => 'mm/hr']
+                    ]
                 ],
                 'parameters' => [
                     'esr' => ['name' => 'ESR', 'unit' => 'mm/hr']
@@ -396,9 +398,11 @@ class LabReportMasterSeeder extends Seeder
                 'unit' => 'g/dL',
                 'normal_values' => 'Male: 13-18, Female: 12-16, Child: 11-16 g/dL',
                 'reference_ranges' => [
-                    'male' => ['min' => 13, 'max' => 18, 'unit' => 'g/dL'],
-                    'female' => ['min' => 12, 'max' => 16, 'unit' => 'g/dL'],
-                    'child' => ['min' => 11, 'max' => 16, 'unit' => 'g/dL']
+                    'hemoglobin' => [
+                        'male' => ['min' => 13, 'max' => 18, 'unit' => 'g/dL'],
+                        'female' => ['min' => 12, 'max' => 16, 'unit' => 'g/dL'],
+                        'child' => ['min' => 11, 'max' => 16, 'unit' => 'g/dL']
+                    ]
                 ],
                 'parameters' => [
                     'hemoglobin' => ['name' => 'Hemoglobin', 'unit' => 'g/dL']
@@ -463,7 +467,8 @@ class LabReportMasterSeeder extends Seeder
                 'unit' => 'N/A',
                 'normal_values' => 'No parasites seen',
                 'reference_ranges' => [
-                    'result' => ['values' => ['Negative', 'Positive']]
+                    'result' => ['values' => ['Negative', 'Positive']],
+                    'species' => ['values' => ['None', 'P. vivax', 'P. falciparum', 'P. ovale', 'P. malariae']]
                 ],
                 'parameters' => [
                     'result' => ['name' => 'Malarial Parasites', 'unit' => ''],
@@ -502,7 +507,9 @@ class LabReportMasterSeeder extends Seeder
                 'unit' => 'N/A',
                 'normal_values' => 'Normal RBC, WBC morphology',
                 'reference_ranges' => [
-                    'morphology' => ['values' => ['Normal', 'Abnormal']]
+                    'rbc_morphology' => ['values' => ['Normal', 'Microcytic', 'Macrocytic', 'Hypochromic', 'Poikilocytosis']],
+                    'wbc_morphology' => ['values' => ['Normal', 'Immature cells', 'Toxic granulation', 'Dohle bodies']],
+                    'platelets' => ['values' => ['Adequate', 'Reduced', 'Increased']]
                 ],
                 'parameters' => [
                     'rbc_morphology' => ['name' => 'RBC Morphology', 'unit' => ''],
@@ -2245,21 +2252,39 @@ class LabReportMasterSeeder extends Seeder
                 'normal_values' => 'Brown, formed stool, No blood/mucus, No ova/cysts/parasites, pH: 6.5-7.5',
                 'reference_ranges' => [
                     'ph' => ['min' => 6.5, 'max' => 7.5, 'unit' => ''],
-                    'result' => ['values' => ['Normal', 'Abnormal']]
+                    'color' => ['values' => ['Brown', 'Yellow', 'Green', 'Black', 'Red', 'Clay-colored']],
+                    'consistency' => ['values' => ['Formed', 'Semi-formed', 'Soft', 'Loose', 'Watery', 'Hard']],
+                    'amount' => ['values' => ['Normal', 'Small', 'Large']],
+                    'odor' => ['values' => ['Normal', 'Foul', 'Offensive', 'Sweet']],
+                    'blood' => ['values' => ['Absent', 'Present']],
+                    'mucus' => ['values' => ['Absent', 'Present']],
+                    'pus' => ['values' => ['Absent', 'Present']],
+                    'undigested_food' => ['values' => ['Absent', 'Present']],
+                    'ova' => ['values' => ['Not Seen', 'Seen']],
+                    'cysts' => ['values' => ['Not Seen', 'Seen']],
+                    'trophozoites' => ['values' => ['Not Seen', 'Seen']],
+                    'parasites' => ['values' => ['Not Seen', 'Seen']],
+                    'rbc' => ['values' => ['0-2/HPF', '3-5/HPF', '>5/HPF']],
+                    'pus_cells' => ['values' => ['0-2/HPF', '3-5/HPF', '>5/HPF']],
+                    'fat_globules' => ['values' => ['Few', 'Moderate', 'Many']],
+                    'starch_granules' => ['values' => ['Few', 'Moderate', 'Many']],
+                    'muscle_fibers' => ['values' => ['Few', 'Moderate', 'Many']],
+                    'vegetable_cells' => ['values' => ['Few', 'Moderate', 'Many']],
+                    'bacteria' => ['values' => ['Normal', 'Decreased', 'Increased']],
+                    'yeast' => ['values' => ['Not Seen', 'Seen']],
+                    'occult_blood' => ['values' => ['Negative', 'Positive']],
+                    'reducing_substances' => ['values' => ['Negative', 'Positive']]
                 ],
                 'parameters' => [
-                    // Physical
                     'color' => ['name' => 'Color', 'unit' => ''],
                     'consistency' => ['name' => 'Consistency', 'unit' => ''],
                     'amount' => ['name' => 'Amount', 'unit' => ''],
                     'odor' => ['name' => 'Odor', 'unit' => ''],
                     'ph' => ['name' => 'pH', 'unit' => ''],
-                    // Macroscopic
                     'blood' => ['name' => 'Blood (Gross)', 'unit' => ''],
                     'mucus' => ['name' => 'Mucus', 'unit' => ''],
                     'pus' => ['name' => 'Pus', 'unit' => ''],
                     'undigested_food' => ['name' => 'Undigested Food', 'unit' => ''],
-                    // Microscopic
                     'ova' => ['name' => 'Ova (Eggs)', 'unit' => ''],
                     'cysts' => ['name' => 'Cysts', 'unit' => ''],
                     'trophozoites' => ['name' => 'Trophozoites', 'unit' => ''],
@@ -2272,7 +2297,6 @@ class LabReportMasterSeeder extends Seeder
                     'vegetable_cells' => ['name' => 'Vegetable Cells', 'unit' => ''],
                     'bacteria' => ['name' => 'Bacterial Flora', 'unit' => ''],
                     'yeast' => ['name' => 'Yeast Cells', 'unit' => ''],
-                    // Chemical
                     'occult_blood' => ['name' => 'Occult Blood', 'unit' => ''],
                     'reducing_substances' => ['name' => 'Reducing Substances', 'unit' => '']
                 ],

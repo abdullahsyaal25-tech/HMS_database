@@ -123,6 +123,13 @@ class DayStatusService
         $yesterdayEnd = Carbon::yesterday()->copy()->endOfDay();
         $yesterdayData = $this->getDataForDateRange($yesterdayStart, $yesterdayEnd);
         
+        // DEBUG: Log the data being archived
+        Log::info('DayStatusService archiveCurrentDay - Archiving data', [
+            'yesterdayStart' => $yesterdayStart->toISOString(),
+            'yesterdayEnd' => $yesterdayEnd->toISOString(),
+            'yesterdayData' => $yesterdayData,
+        ]);
+        
         // Archive yesterday's data to daily_snapshots table
         $snapshot = DailySnapshot::create([
             'snapshot_date' => Carbon::yesterday()->toDateString(),
@@ -173,6 +180,17 @@ class DayStatusService
         $laboratoryRevenue = $this->getLaboratoryRevenue($start, $end);
 
         $totalRevenue = $appointmentsRevenue + $departmentsRevenue + $pharmacyRevenue + $laboratoryRevenue;
+        
+        // DEBUG: Log revenue breakdown
+        Log::info('DayStatusService getDataForDateRange - Revenue breakdown', [
+            'start' => $start->toISOString(),
+            'end' => $end->toISOString(),
+            'appointmentsRevenue' => $appointmentsRevenue,
+            'departmentsRevenue' => $departmentsRevenue,
+            'pharmacyRevenue' => $pharmacyRevenue,
+            'laboratoryRevenue' => $laboratoryRevenue,
+            'totalRevenue' => $totalRevenue,
+        ]);
 
         return [
             'appointments_count' => 0, // Would need separate calculation
@@ -329,14 +347,39 @@ class DayStatusService
         $yesterday = Carbon::yesterday();
         $yesterdayStr = $yesterday->toDateString();
         
+        // DEBUG: Log the date being queried
+        Log::info('DayStatusService getYesterdaySummary - Querying for date', [
+            'yesterdayStr' => $yesterdayStr,
+            'current_time' => now()->toISOString(),
+        ]);
+        
         // Try to get from daily_snapshots first
         $snapshot = DailySnapshot::where('snapshot_date', $yesterdayStr)->first();
+        
+        // DEBUG: Log snapshot result
+        Log::info('DayStatusService getYesterdaySummary - Snapshot query result', [
+            'yesterdayStr' => $yesterdayStr,
+            'snapshot_found' => $snapshot ? true : false,
+            'snapshot_data' => $snapshot ? [
+                'snapshot_date' => $snapshot->snapshot_date,
+                'appointments_count' => $snapshot->appointments_count,
+                'total_revenue' => $snapshot->total_revenue,
+                'appointments_revenue' => $snapshot->appointments_revenue,
+                'pharmacy_revenue' => $snapshot->pharmacy_revenue,
+                'laboratory_revenue' => $snapshot->laboratory_revenue,
+            ] : null,
+        ]);
         
         if ($snapshot) {
             return [
                 'date' => $yesterdayStr,
                 'appointments_count' => $snapshot->appointments_count,
                 'total_revenue' => $snapshot->total_revenue,
+                // Return breakdown by revenue type for module-specific display
+                'appointments_revenue' => (float) ($snapshot->appointments_revenue ?? 0),
+                'pharmacy_revenue' => (float) ($snapshot->pharmacy_revenue ?? 0),
+                'laboratory_revenue' => (float) ($snapshot->laboratory_revenue ?? 0),
+                'departments_revenue' => (float) ($snapshot->departments_revenue ?? 0),
                 'source' => 'archived',
             ];
         }
@@ -344,11 +387,23 @@ class DayStatusService
         // If not in snapshots, try to calculate from cache
         $cachedData = Cache::get('daily_revenue_' . $yesterdayStr);
         
+        // DEBUG: Log cache query
+        Log::info('DayStatusService getYesterdaySummary - Cache query', [
+            'cache_key' => 'daily_revenue_' . $yesterdayStr,
+            'cached_data_found' => $cachedData ? true : false,
+            'cached_data' => $cachedData,
+        ]);
+        
         if ($cachedData) {
             return [
                 'date' => $yesterdayStr,
                 'appointments_count' => 0, // Would need separate calculation
                 'total_revenue' => $cachedData['total'] ?? 0,
+                // Return breakdown by revenue type for module-specific display
+                'appointments_revenue' => (float) ($cachedData['appointments_revenue'] ?? 0),
+                'pharmacy_revenue' => (float) ($cachedData['pharmacy_revenue'] ?? 0),
+                'laboratory_revenue' => (float) ($cachedData['laboratory_revenue'] ?? 0),
+                'departments_revenue' => (float) ($cachedData['departments_revenue'] ?? 0),
                 'source' => 'cached',
             ];
         }
@@ -358,6 +413,10 @@ class DayStatusService
             'date' => $yesterdayStr,
             'appointments_count' => 0,
             'total_revenue' => 0,
+            'appointments_revenue' => 0,
+            'pharmacy_revenue' => 0,
+            'laboratory_revenue' => 0,
+            'departments_revenue' => 0,
             'source' => 'unavailable',
         ];
     }

@@ -323,9 +323,22 @@ class AppointmentService
                 continue; // Skip non-lab tests
             }
 
-            // For lab tests, department_service_id is actually lab_test_id
-            $labTest = \App\Models\LabTest::find($service['department_service_id']);
+            // For lab tests, use the id field as lab_test_id
+            $labTestId = $service['id'] ?? $service['department_service_id'] ?? null;
+            
+            Log::info('Processing lab test for request', [
+                'service_id' => $service['id'] ?? null,
+                'department_service_id' => $service['department_service_id'] ?? null,
+                'lab_test_id' => $labTestId,
+                'service_name' => $service['name'] ?? 'unknown',
+            ]);
+            
+            $labTest = $labTestId ? \App\Models\LabTest::find($labTestId) : null;
             if (!$labTest) {
+                Log::warning('Lab test not found, skipping', [
+                    'lab_test_id' => $labTestId,
+                    'service' => $service,
+                ]);
                 continue;
             }
 
