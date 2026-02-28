@@ -116,7 +116,7 @@ class LabTestRequestController extends Controller
             }
         }
 
-        $labTestRequests = $query->latest()->paginate(50)->withQueryString();
+        $labTestRequests = $query->latest()->paginate(100)->withQueryString();
 
         $departments = Department::select('id', 'name')->orderBy('name')->get();
 

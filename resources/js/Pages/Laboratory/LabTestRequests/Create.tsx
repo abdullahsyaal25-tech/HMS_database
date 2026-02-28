@@ -196,13 +196,6 @@ export default function LabTestRequestCreate({ patients, doctors, departments, l
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <Heading title="Create Lab Test Request" />
-            <p className="text-muted-foreground mt-1">
-              Submit a new laboratory test request for a patient
-            </p>
-          </div>
-
           <Link href="/laboratory/lab-test-requests">
             <Button variant="outline">
               <ArrowLeft className="mr-2 h-4 w-4" />

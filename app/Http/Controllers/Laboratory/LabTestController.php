@@ -144,7 +144,7 @@ class LabTestController extends Controller
         $searchQuery = $request->input('query', '');
         $status = $request->input('status', '');
         $category = $request->input('category', '');
-        $perPage = $request->input('per_page', 10);
+        $perPage = $request->input('per_page', 100);
 
         // Build the query
         $labTestsQuery = LabTest::query();

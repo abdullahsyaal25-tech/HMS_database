@@ -89,15 +89,16 @@ class LabTestResultController extends Controller
         }
         
         $labTestResults = $query->latest()
-            ->paginate(10)
-            ->withQueryString()
-            ->through(function ($result) {
-                // Map 'test' relationship to 'labTest' for frontend compatibility
-                $data = $result->toArray();
-                $data['labTest'] = $data['test'] ?? null;
-                unset($data['test']);
-                return $data;
-            });
+            ->paginate(100)
+            ->withQueryString();
+        
+        // Transform the collection to map 'test' to 'labTest'
+        $labTestResults->getCollection()->transform(function ($result) {
+            $data = $result->toArray();
+            $data['labTest'] = $data['test'] ?? null;
+            unset($data['test']);
+            return $data;
+        });
         
         // Get filter options
         $patients = Patient::select('id', 'patient_id', 'first_name', 'father_name')->get();

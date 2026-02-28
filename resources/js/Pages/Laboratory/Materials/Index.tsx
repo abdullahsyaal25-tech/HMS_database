@@ -328,13 +328,6 @@ export default function LabMaterialIndex({
       <div className="space-y-6">
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <Heading title="Laboratory Materials" />
-            <p className="text-muted-foreground mt-1">
-              Manage laboratory materials and supplies inventory
-            </p>
-          </div>
-
           <div className="flex gap-2">
             <Link href="/laboratory/materials/create">
               <Button className="bg-primary hover:bg-primary/90">

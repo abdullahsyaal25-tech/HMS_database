@@ -113,13 +113,6 @@ export default function LabMaterialCreate({ labTests = [] }: LabMaterialCreatePr
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <Heading title="Create Laboratory Material" />
-            <p className="text-muted-foreground mt-1">
-              Add a new laboratory material or supply to inventory
-            </p>
-          </div>
-
           <Link href="/laboratory/materials">
             <Button variant="outline">
               <ArrowLeft className="mr-2 h-4 w-4" />

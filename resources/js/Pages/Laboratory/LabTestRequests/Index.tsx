@@ -333,13 +333,6 @@ export default function LabTestRequestIndex({
       <div className="space-y-6">
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <Heading title="Lab Test Requests" />
-            <p className="text-muted-foreground mt-1">
-              Manage and track laboratory test requests
-            </p>
-          </div>
-
           <div className="flex gap-2">
             <Link href="/laboratory/lab-test-requests/create">
               <Button className="bg-primary hover:bg-primary/90">

@@ -333,7 +333,7 @@ export default function LabTestResultIndex({
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-2">
               <LabStatusBadge
-                status={result.status === 'pending' ? 'pending' : result.status === 'completed' ? 'in_progress' : 'completed'}
+                status={result.status === 'pending' ? 'pending' : 'completed'}
                 size="sm"
                 animate={result.status === 'pending'}
               />
@@ -460,13 +460,6 @@ export default function LabTestResultIndex({
       <div className="space-y-6">
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <Heading title="Laboratory Test Results" />
-            <p className="text-muted-foreground mt-1">
-              View and manage patient lab test results
-            </p>
-          </div>
-
           <div className="flex gap-2">
             <Link href="/laboratory/lab-test-results/create">
               <Button className="bg-primary hover:bg-primary/90">
@@ -638,7 +631,7 @@ export default function LabTestResultIndex({
                           <div className="flex items-center gap-2">
                             <h3 className="font-medium">{result.labTest?.name ?? 'Unknown Test'}</h3>
                             <LabStatusBadge
-                              status={result.status === 'pending' ? 'pending' : result.status === 'completed' ? 'in_progress' : 'completed'}
+                              status={result.status === 'pending' ? 'pending' : 'completed'}
                               size="sm"
                             />
                             {resultStatus.hasCritical && (

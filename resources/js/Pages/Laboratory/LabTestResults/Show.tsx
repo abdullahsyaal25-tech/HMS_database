@@ -572,7 +572,7 @@ export default function LabTestResultShow({
                     <span className="text-muted-foreground block text-xs uppercase tracking-wide">Status</span>
                     <div className="mt-1">
                       <LabStatusBadge
-                        status={labTestResult.status === 'pending' ? 'pending' : labTestResult.status === 'completed' ? 'in_progress' : 'completed'}
+                        status={labTestResult.status === 'pending' ? 'pending' : 'completed'}
                         size="md"
                       />
                     </div>
