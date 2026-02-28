@@ -177,10 +177,12 @@ class DepartmentServiceController extends Controller
                         'id' => $svc->id,
                         'name' => $svc->name,
                         'custom_cost' => (float) $svc->pivot->custom_cost,
-                        'discount_percentage' => (float) $svc->pivot->discount_percentage,
+                        'discount_percentage' => $svc->pivot->custom_cost > 0
+                            ? round((($svc->pivot->custom_cost - $svc->pivot->final_cost) / $svc->pivot->custom_cost) * 100, 2)
+                            : 0,
                         'final_cost' => (float) $svc->pivot->final_cost,
                         'doctor_percentage' => (float) $svc->doctor_percentage,
-                        'doctor_amount' => (float) $svc->doctor_amount,
+                        'doctor_amount' => round($svc->pivot->custom_cost * ($svc->doctor_percentage / 100), 2),
                     ])->values()->toArray(),
             ];
 
@@ -195,6 +197,74 @@ class DepartmentServiceController extends Controller
                 'monthlyCount' => $monthlyAppts->count(),
                 'yearlyCount' => $yearlyAppts->count(),
             ];
+
+            // When filtering by doctor, aggregate actual appointment data for the services table
+            // This replaces the config-based data with real appointment-based data
+            $allYearlyAppts = $yearlyAppts; // Use the already fetched yearly appointments
+            $serviceAggregates = collect();
+
+            foreach ($allYearlyAppts as $appt) {
+                foreach ($appt->services as $svc) {
+                    if ($svc->doctor_percentage <= 0) continue;
+
+                    $serviceId = $svc->id;
+                    $customCost = (float) $svc->pivot->custom_cost;
+                    $finalCost = (float) $svc->pivot->final_cost;
+                    $discountPct = $customCost > 0
+                        ? round((($customCost - $finalCost) / $customCost) * 100, 2)
+                        : 0;
+                    $doctorPct = (float) $svc->doctor_percentage;
+                    $doctorAmount = round($customCost * ($doctorPct / 100), 2);
+
+                    if (!$serviceAggregates->has($serviceId)) {
+                        $serviceAggregates->put($serviceId, [
+                            'id' => $svc->id,
+                            'name' => $svc->name,
+                            'description' => $svc->description,
+                            'department_id' => $svc->department_id,
+                            'doctor_id' => $svc->doctor_id,
+                            'department' => $svc->department,
+                            'doctor' => $svc->doctor,
+                            'is_active' => $svc->is_active,
+                            'base_cost' => $customCost, // Use actual custom_cost as base
+                            'fee_percentage' => $svc->fee_percentage,
+                            'discount_percentage' => $discountPct,
+                            'doctor_percentage' => $doctorPct,
+                            'final_cost' => $finalCost,
+                            'doctor_amount' => $doctorAmount,
+                            'appointment_count' => 1,
+                            'total_custom_cost' => $customCost,
+                            'total_final_cost' => $finalCost,
+                            'total_doctor_amount' => $doctorAmount,
+                        ]);
+                    } else {
+                        // Aggregate multiple appointments for the same service
+                        $existing = $serviceAggregates->get($serviceId);
+                        $existing['appointment_count']++;
+                        $existing['total_custom_cost'] += $customCost;
+                        $existing['total_final_cost'] += $finalCost;
+                        $existing['total_doctor_amount'] += $doctorAmount;
+                        // Use weighted average for percentages
+                        $existing['discount_percentage'] = $existing['total_custom_cost'] > 0
+                            ? round((($existing['total_custom_cost'] - $existing['total_final_cost']) / $existing['total_custom_cost']) * 100, 2)
+                            : 0;
+                        $existing['base_cost'] = $existing['total_custom_cost']; // Show total as base
+                        $existing['final_cost'] = $existing['total_final_cost'];
+                        $existing['doctor_amount'] = $existing['total_doctor_amount'];
+                        $serviceAggregates->put($serviceId, $existing);
+                    }
+                }
+            }
+
+            // Replace services with aggregated appointment data
+            if ($serviceAggregates->isNotEmpty()) {
+                $services = $serviceAggregates->values();
+                // Recalculate summary statistics
+                $totalDoctorEarnings = $services->sum('doctor_amount');
+                $totalBaseCost = $services->sum('base_cost');
+                $totalFinalCost = $services->sum('final_cost');
+                $servicesCount = $services->count();
+            }
         }
 
         return Inertia::render('DepartmentService/DoctorPercentage', [
