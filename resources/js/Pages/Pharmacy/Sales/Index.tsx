@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import {
     Table,
@@ -129,6 +129,17 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
     
     // Smart Day Detection
     const { dayStatus, yesterdaySummary, isLoading: isDayStatusLoading, archiveDay } = useDayStatus();
+    
+    // Check if user is admin
+    const page = usePage();
+    const auth = page.props.auth as any;
+    const isAdmin = (): boolean => {
+        if (!auth?.user) return false;
+        const user = auth.user;
+        const adminRoles = ['Super Admin', 'Sub Super Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Reception Admin'];
+        const userRole = user.role ?? '';
+        return adminRoles.includes(userRole) || (user.permissions?.includes('manage-wallet') ?? false);
+    };
 
     // Filter configurations
     const filterConfigs: FilterConfig[] = useMemo(() => [
@@ -324,6 +335,7 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
                     onArchiveDay={archiveDay} 
                     isLoading={isDayStatusLoading} 
                     showActionButton={false}
+                    isAdmin={isAdmin()}
                     moduleType="pharmacy"
                 />
 

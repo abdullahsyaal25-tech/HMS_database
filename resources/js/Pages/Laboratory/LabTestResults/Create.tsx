@@ -493,16 +493,20 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
     e.preventDefault();
     const performedDateTime = `${data.performed_at}T${data.performed_time}`;
 
+    // Set the combined datetime before submitting
     setData('performed_at', performedDateTime);
     
-    post('/laboratory/lab-test-results', {
-      onSuccess: () => {
-        reset();
-        setSelectedPatient(null);
-        setSelectedTest(null);
-        setResultParameters([]);
-      },
-    });
+    // Small delay to ensure state is updated, then submit
+    setTimeout(() => {
+      post('/laboratory/lab-test-results', {
+        onSuccess: () => {
+          reset();
+          setSelectedPatient(null);
+          setSelectedTest(null);
+          setResultParameters([]);
+        },
+      });
+    }, 0);
   };
 
   // Get patient initials

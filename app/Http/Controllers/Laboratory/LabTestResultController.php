@@ -141,118 +141,35 @@ class LabTestResultController extends Controller
             abort(403, 'Unauthorized access');
         }
         
-        // Build a cache of test names to IDs for efficient lookups
-        $testNameToIdMap = LabTest::pluck('id', 'name')->toArray();
+        // Get all patients (no filter - allow creating results for any patient)
+        $patients = Patient::orderBy('first_name')->get();
         
-        // Get patients who have lab test requests that are pending or in_progress
-        // This allows technicians to see patients with newly created requests (pending)
-        // as well as requests that have been started (in_progress)
-        $patientsWithRequests = Patient::whereHas('labTestRequests', function ($query) {
-            $query->whereIn('status', ['pending', 'in_progress']);
-        })->get();
+        // Get all lab tests with parameters
+        $labTests = LabTest::whereNotNull('parameters')
+            ->where('parameters', '!=', '[]')
+            ->where('parameters', '!=', '{}')
+            ->orderBy('name')
+            ->get()
+            ->keyBy('name')
+            ->values();
         
-        // Filter to exclude patients who already have results for all their tests
-        $patients = $patientsWithRequests->filter(function ($patient) use ($testNameToIdMap) {
-            $allRequests = $patient->labTestRequests()
-                ->whereIn('status', ['pending', 'in_progress'])
-                ->get();
-            
-            // If patient has no pending or in_progress requests, exclude them
-            if ($allRequests->isEmpty()) {
-                return false;
-            }
-            
-            // Get test IDs from pending/in_progress requests using the cached mapping
-            $requestTestIds = $allRequests->map(function ($req) use ($testNameToIdMap) {
-                return $testNameToIdMap[$req->test_name] ?? null;
-            })->filter()->toArray();
-            
-            // If we can't map test names to IDs, include the patient (better safe than sorry)
-            if (empty($requestTestIds)) {
-                return true;
-            }
-            
-            // Get test IDs that already have completed/verified results
-            // Only exclude patients whose results are completed or verified
-            $resultTestIds = $patient->labTestResults()
-                ->whereIn('status', ['completed', 'verified'])
-                ->pluck('test_id')
-                ->toArray();
-            
-            // Check if there are any pending/in_progress requests without completed results
-            $unresultedTestIds = array_diff($requestTestIds, $resultTestIds);
-            
-            return !empty($unresultedTestIds);
-        })->values();
+        // Get all lab test requests (for reference)
+        $requests = \App\Models\LabTestRequest::with('patient')
+            ->get()
+            ->map(function ($request) {
+                return [
+                    'id' => $request->id,
+                    'request_id' => $request->request_id,
+                    'test_name' => $request->test_name,
+                    'patient_id' => $request->patient_id,
+                ];
+            });
         
-        // Get lab tests that have been requested by these patients but don't have results yet
-        $requestedTestNames = [];
-        if (!$patients->isEmpty()) {
-            $allRequestedTests = \App\Models\LabTestRequest::whereIn('patient_id', $patients->pluck('id'))
-                ->whereIn('status', ['pending', 'in_progress', 'completed'])
-                ->get();
-            
-            // Get test IDs that already have completed/verified results for these patients
-            $testsWithResults = LabTestResult::whereIn('patient_id', $patients->pluck('id'))
-                ->whereIn('status', ['completed', 'verified'])
-                ->pluck('test_id')
-                ->toArray();
-            
-            // Map test names to IDs and filter out ones with results
-            $requestedTestNames = $allRequestedTests
-                ->map(function ($req) use ($testNameToIdMap) {
-                    return $testNameToIdMap[$req->test_name] ?? null;
-                })
-                ->filter()
-                ->filter(function ($testId) use ($testsWithResults) {
-                    return !in_array($testId, $testsWithResults);
-                })
-                ->map(function ($testId) {
-                    return LabTest::find($testId)?->name;
-                })
-                ->filter()
-                ->unique()
-                ->toArray();
-        }
-            
-        // Fetch lab tests that have parameters configured
-        // Filter out duplicates by name, keeping only tests with valid parameters
-        $labTests = $requestedTestNames 
-            ? LabTest::whereIn('name', $requestedTestNames)
-                ->whereNotNull('parameters')
-                ->where('parameters', '!=', '[]')
-                ->where('parameters', '!=', '{}')
-                ->get()
-                // Remove duplicates by name, keeping the first one (typically the seeder one)
-                ->keyBy('name')
-                ->values()
-            : collect();
-        
-        // Get patient-specific test requests (map of patient_id to their test requests)
-        // Only show pending and in_progress requests that don't have results yet
+        // Build patient-specific test request mapping (for reference)
         $patientTestRequests = [];
         foreach ($patients as $patient) {
-            // Get pending and in_progress requests for this patient
-            $pendingRequests = $patient->labTestRequests()
-                ->whereIn('status', ['pending', 'in_progress'])
-                ->get();
-            
-            // Get test IDs that already have completed/verified results
-            $resultTestIds = $patient->labTestResults()
-                ->whereIn('status', ['completed', 'verified'])
-                ->pluck('test_id')
-                ->toArray();
-            
-            // Filter out tests that already have results using cached mapping
-            $patientRequests = $pendingRequests
-                ->filter(function ($req) use ($testNameToIdMap, $resultTestIds) {
-                    $testId = $testNameToIdMap[$req->test_name] ?? null;
-                    if ($testId === null) {
-                        // If we can't find the test ID, include it (safer)
-                        return true;
-                    }
-                    return !in_array($testId, $resultTestIds);
-                })
+            $patientRequests = $patient->labTestRequests()
+                ->get()
                 ->map(function ($req) {
                     return [
                         'test_name' => $req->test_name,
@@ -264,24 +181,15 @@ class LabTestResultController extends Controller
             $patientTestRequests[$patient->id] = $patientRequests;
         }
         
-        // Remove patients who have no remaining tests without results
-        $patients = $patients->filter(function ($patient) use ($patientTestRequests) {
-            return !empty($patientTestRequests[$patient->id]);
-        })->values();
-        
-        // Get pending lab test requests for the dropdown
-        $requests = \App\Models\LabTestRequest::whereIn('status', ['pending', 'in_progress', 'completed'])
-            ->with('patient')
-            ->get()
-            ->map(function ($request) {
-                return [
-                    'id' => $request->id,
-                    'request_id' => $request->request_id,
-                    'test_name' => $request->test_name,
-                    'patient_id' => $request->patient_id,
-                ];
-            });
-        
+        // Debug logging
+        Log::debug('LabTestResultController create - data being passed', [
+            'labTests_count' => $labTests->count(),
+            'labTests_names' => $labTests->pluck('name')->toArray(),
+            'patients_count' => $patients->count(),
+            'patientTestRequests_keys' => array_keys($patientTestRequests),
+            'patientTestRequests_sample' => !empty($patientTestRequests) ? array_slice($patientTestRequests, 0, 1, true) : [],
+        ]);
+
         return Inertia::render('Laboratory/LabTestResults/Create', [
             'labTests' => $labTests,
             'patients' => $patients,
@@ -311,7 +219,7 @@ class LabTestResultController extends Controller
             'patient_id' => 'required|exists:patients,id',
             'performed_at' => 'required|date',
             'results' => 'required|string',
-            'status' => 'required|in:pending,completed,verified',
+            'status' => 'required|in:pending,completed',
             'notes' => 'nullable|string',
         ]);
         
@@ -333,13 +241,16 @@ class LabTestResultController extends Controller
             // Results are already JSON string from frontend, decode and re-encode to ensure valid JSON
             $resultsData = is_string($request->results) ? json_decode($request->results, true) : $request->results;
             
+            // Always set status to completed - no verification process
+            $status = $request->status === 'pending' ? 'pending' : 'completed';
+            
             $labTestResult = LabTestResult::create([
                 'result_id' => $resultId,
                 'test_id' => $request->lab_test_id,
                 'patient_id' => $request->patient_id,
                 'performed_at' => $request->performed_at,
                 'results' => json_encode($resultsData),
-                'status' => $request->status,
+                'status' => $status,
                 'notes' => $request->notes,
                 'performed_by' => $user->id,
             ]);
@@ -380,37 +291,38 @@ class LabTestResultController extends Controller
                 }
             }
 
-            // Deduct materials associated with this lab test
-            // Each material with matching lab_test_id will be decremented by 1 unit
+            // Deduct materials associated with this lab test (if any exist)
             $materials = LabMaterial::where('lab_test_id', $request->lab_test_id)
                 ->where('status', '!=', 'out_of_stock')
                 ->get();
             
-            foreach ($materials as $material) {
-                try {
-                    if ($material->quantity >= 1) {
-                        $material->removeStock(1);
-                        Log::info('Lab material deducted', [
+            if ($materials->isNotEmpty()) {
+                foreach ($materials as $material) {
+                    try {
+                        if ($material->quantity >= 1) {
+                            $material->removeStock(1);
+                            Log::info('Lab material deducted', [
+                                'material_id' => $material->material_id,
+                                'material_name' => $material->name,
+                                'lab_test_id' => $request->lab_test_id,
+                                'result_id' => $labTestResult->id,
+                                'quantity_deducted' => 1,
+                                'remaining_quantity' => $material->quantity,
+                            ]);
+                        } else {
+                            Log::warning('Lab material insufficient stock', [
+                                'material_id' => $material->material_id,
+                                'material_name' => $material->name,
+                                'lab_test_id' => $request->lab_test_id,
+                                'available_quantity' => $material->quantity,
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Failed to deduct lab material', [
                             'material_id' => $material->material_id,
-                            'material_name' => $material->name,
-                            'lab_test_id' => $request->lab_test_id,
-                            'result_id' => $labTestResult->id,
-                            'quantity_deducted' => 1,
-                            'remaining_quantity' => $material->quantity,
-                        ]);
-                    } else {
-                        Log::warning('Lab material insufficient stock', [
-                            'material_id' => $material->material_id,
-                            'material_name' => $material->name,
-                            'lab_test_id' => $request->lab_test_id,
-                            'available_quantity' => $material->quantity,
+                            'error' => $e->getMessage(),
                         ]);
                     }
-                } catch (\Exception $e) {
-                    Log::error('Failed to deduct lab material', [
-                        'material_id' => $material->material_id,
-                        'error' => $e->getMessage(),
-                    ]);
                 }
             }
 
@@ -443,16 +355,15 @@ class LabTestResultController extends Controller
         // Load relationships
         $labTestResult->load(['patient', 'test', 'performedBy']);
         
-        // Determine permissions
-        $canEdit = $user->hasPermission('edit-lab-test-results') && $labTestResult->status !== 'verified';
-        $canVerify = $user->hasPermission('verify-lab-test-results') && $labTestResult->status !== 'verified';
+        // Determine permissions - no verification process, always allow editing
+        $canEdit = $user->hasPermission('edit-lab-test-results');
         $canPrint = true; // Always allow printing for users with view permission
         $canEmail = true;
         
         return Inertia::render('Laboratory/LabTestResults/Show', [
             'labTestResult' => $labTestResult,
             'canEdit' => $canEdit,
-            'canVerify' => $canVerify,
+            'canVerify' => false, // Verification removed - auto-completed on save
             'canPrint' => $canPrint,
             'canEmail' => $canEmail,
         ]);

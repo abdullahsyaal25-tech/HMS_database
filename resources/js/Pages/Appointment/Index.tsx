@@ -191,6 +191,12 @@ export default function AppointmentIndex({ appointments, stats }: AppointmentInd
                     onArchiveDay={archiveDay} 
                     isLoading={isDayStatusLoading} 
                     showActionButton={false}
+                    isAdmin={(() => {
+                        const auth = (usePage().props as any).auth;
+                        if (!auth?.user) return false;
+                        const adminRoles = ['Super Admin', 'Sub Super Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Reception Admin'];
+                        return adminRoles.includes(auth.user.role) || (auth.user.permissions?.includes('manage-wallet') ?? false);
+                    })()}
                     moduleType="appointments"
                 />
 

@@ -39,8 +39,10 @@ class RefreshDataController extends Controller
 
             // Step 3: Set a cache key to indicate day has ended with the timestamp
             // This allows showing only transactions AFTER this timestamp (Option B - Running Total After Day-End)
-            Cache::put('day_end_timestamp_' . $today, now()->toIso8601String(), now()->endOfDay());
-            Log::info('[EndOfDay] Day end timestamp set in cache: ' . now()->toIso8601String());
+            // FIXED: Use consistent cache key 'day_end_timestamp' (matching WalletController and DayStatusService)
+            // Previously was using 'day_end_timestamp_' . $today which never matched in WalletController
+            Cache::put('day_end_timestamp', now()->toIso8601String(), now()->endOfDay());
+            Log::info('[EndOfDay] Day end timestamp set in cache: ' . now()->toIso8601String() . ' with key: day_end_timestamp');
 
             return response()->json([
                 'success' => true,
@@ -217,5 +219,9 @@ class RefreshDataController extends Controller
         Cache::forget("laboratory_today_{$today}");
         Cache::forget("department_services_today_{$today}");
         Cache::forget("daily_revenue_all_history");
+        
+        // Clear old date-based day_end_timestamp cache key for backward compatibility
+        // (previously was using 'day_end_timestamp_' . $today, now uses 'day_end_timestamp')
+        Cache::forget('day_end_timestamp_' . $today);
     }
 }

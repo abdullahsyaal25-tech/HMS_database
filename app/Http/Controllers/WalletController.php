@@ -44,7 +44,9 @@ class WalletController extends Controller
             'displayBalance' => $displayBalance,
             'revenueData' => $revenueData,
             'transactions' => $transactions,
-            'auth' => auth()->user(),
+            'auth' => [
+                'user' => auth()->user(),
+            ],
         ]);
     }
 

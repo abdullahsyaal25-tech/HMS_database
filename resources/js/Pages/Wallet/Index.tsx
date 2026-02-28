@@ -132,13 +132,27 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
     
     // Helper function to check if user is an admin
     const isAdmin = (): boolean => {
-        if (!auth?.user) return false;
+        if (!auth?.user) {
+            console.log('[Wallet/Index] isAdmin() returning false: auth?.user is missing');
+            return false;
+        }
         const user = auth.user;
         const adminRoles = ['Super Admin', 'Sub Super Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Reception Admin'];
         const userRole = user.role ?? '';
         const hasAdminRole = adminRoles.includes(userRole);
         const hasManageWalletPermission = user.permissions?.includes('manage-wallet') ?? false;
         const hasRefreshAllDataPermission = user.permissions?.includes('refresh-all-data') ?? false;
+        
+        // DIAGNOSTIC LOG: Log permission check details
+        console.log('[Wallet/Index] Permission check:', {
+            userRole,
+            hasAdminRole,
+            hasManageWalletPermission,
+            hasRefreshAllDataPermission,
+            permissions: user.permissions,
+            willShowButton: hasAdminRole || hasManageWalletPermission || hasRefreshAllDataPermission
+        });
+        
         return hasAdminRole || hasManageWalletPermission || hasRefreshAllDataPermission;
     };
     
@@ -163,6 +177,14 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
 
     // Smart Day Detection
     const { dayStatus, yesterdaySummary, isLoading: isDayStatusLoading, archiveDay } = useDayStatus();
+    
+    // DIAGNOSTIC LOG: Check DayStatusBanner visibility conditions
+    console.log('[Wallet/Index] DayStatusBanner conditions:', {
+        dayStatusExists: !!dayStatus,
+        new_day_available: dayStatus?.new_day_available,
+        showActionButton: true,
+        willShowBanner: !!(dayStatus && dayStatus.new_day_available)
+    });
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-US', {
@@ -342,6 +364,7 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                     onArchiveDay={archiveDay} 
                     isLoading={isDayStatusLoading}
                     showActionButton={true}
+                    isAdmin={isAdmin()}
                     moduleType="all"
                 />
 

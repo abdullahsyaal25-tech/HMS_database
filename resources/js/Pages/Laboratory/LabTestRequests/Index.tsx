@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -368,6 +368,12 @@ export default function LabTestRequestIndex({
             onArchiveDay={archiveDay}
             isLoading={isDayStatusLoading}
             showActionButton={false}
+            isAdmin={(() => {
+                const auth = (usePage().props as any).auth;
+                if (!auth?.user) return false;
+                const adminRoles = ['Super Admin', 'Sub Super Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Reception Admin'];
+                return adminRoles.includes(auth.user.role) || (auth.user.permissions?.includes('manage-wallet') ?? false);
+            })()}
             moduleType="laboratory"
         />
 

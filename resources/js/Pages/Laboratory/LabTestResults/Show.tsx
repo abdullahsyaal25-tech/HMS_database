@@ -122,7 +122,6 @@ interface LabTestResult {
 interface LabTestResultShowProps {
   labTestResult: LabTestResult;
   canEdit: boolean;
-  canVerify: boolean;
   canPrint: boolean;
   canEmail: boolean;
 }
@@ -130,11 +129,9 @@ interface LabTestResultShowProps {
 export default function LabTestResultShow({
   labTestResult,
   canEdit,
-  canVerify,
   canPrint,
   canEmail,
 }: LabTestResultShowProps) {
-  const [showVerifyDialog, setShowVerifyDialog] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
 
   const parsedResults = useMemo(() => {
@@ -188,8 +185,6 @@ export default function LabTestResultShow({
     return map;
   }, [labTestResult.previousResult]);
 
-  const isVerified = labTestResult.status === 'verified';
-
   const abnormalCount = parsedResults.filter(r => r.status === 'abnormal' || r.status === 'critical').length;
   const criticalCount = parsedResults.filter(r => r.status === 'critical').length;
   const normalCount = parsedResults.filter(r => r.status === 'normal').length;
@@ -224,11 +219,6 @@ export default function LabTestResultShow({
       minute: '2-digit',
       second: '2-digit',
     });
-  };
-
-  const handleVerify = () => {
-    router.post(`/laboratory/lab-test-results/${labTestResult.id}/verify`);
-    setShowVerifyDialog(false);
   };
 
   const handlePrint = () => {
@@ -385,51 +375,13 @@ export default function LabTestResultShow({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {canEdit && !isVerified && (
+            {canEdit && (
               <Link href={`/laboratory/lab-test-results/${labTestResult.id}/edit`}>
                 <Button variant="outline">
                   <Edit className="mr-2 h-4 w-4" />
                   Edit
                 </Button>
               </Link>
-            )}
-
-            {canVerify && !isVerified && (
-              <Dialog open={showVerifyDialog} onOpenChange={setShowVerifyDialog}>
-                <DialogTrigger asChild>
-                  <Button className="bg-green-600 hover:bg-green-700">
-                    <FileCheck className="mr-2 h-4 w-4" />
-                    Verify
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Verify Lab Test Result</DialogTitle>
-                    <DialogDescription>
-                      Are you sure you want to verify this result? Once verified, it cannot be edited.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="py-4">
-                    <Alert>
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Verification Confirmation</AlertTitle>
-                      <AlertDescription>
-                        By verifying, you confirm that all results have been reviewed and are accurate.
-                        This action will lock the result from further editing.
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowVerifyDialog(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleVerify} className="bg-green-600 hover:bg-green-700">
-                      <FileCheck className="mr-2 h-4 w-4" />
-                      Confirm Verification
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
             )}
 
             {canPrint && (
@@ -633,17 +585,7 @@ export default function LabTestResultShow({
                     </p>
                   </div>
 
-                  {isVerified && labTestResult.verifiedBy && (
-                    <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                      <div className="flex items-center gap-2 text-green-800">
-                        <FileCheck className="h-4 w-4" />
-                        <span className="text-sm font-medium">Verified</span>
-                      </div>
-                      <p className="text-xs text-green-700 mt-1">
-                        by {labTestResult.verifiedBy.name}
-                      </p>
-                    </div>
-                  )}
+
                 </div>
               </CardContent>
             </Card>
@@ -859,19 +801,12 @@ export default function LabTestResultShow({
                 <p className="print:text-xs print:text-gray-600">Laboratory Technician</p>
                 <p className="print:text-xs print:text-gray-500">Date: {formatDateShort(labTestResult.performed_at)}</p>
               </div>
-              {isVerified && labTestResult.verifiedBy ? (
-                <div className="print:text-center">
-                  <div className="print:h-16 print:border-b print:border-gray-400 print:mb-2"></div>
-                  <p className="print:text-sm print:font-bold">{labTestResult.verifiedBy.name}</p>
-                  <p className="print:text-xs print:text-gray-600">Laboratory Pathologist</p>
-                  <p className="print:text-xs print:text-gray-500">Date: {labTestResult.verified_at ? formatDateShort(labTestResult.verified_at) : 'N/A'}</p>
-                </div>
-              ) : (
-                <div className="print:text-center">
-                  <div className="print:h-16 print:border-b print:border-gray-400 print:mb-2 print:border-dashed"></div>
-                  <p className="print:text-xs print:text-gray-400">Pending Verification</p>
-                </div>
-              )}
+              <div className="print:text-center">
+                <div className="print:h-16 print:border-b print:border-gray-400 print:mb-2"></div>
+                <p className="print:text-sm print:font-bold">Authorized Signatory</p>
+                <p className="print:text-xs print:text-gray-600">Laboratory Pathologist</p>
+                <p className="print:text-xs print:text-gray-500">Date: {formatDateShort(labTestResult.performed_at)}</p>
+              </div>
             </div>
           </div>
           
