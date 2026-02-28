@@ -153,9 +153,9 @@ class WalletController extends Controller
         // Get completed appointments WITHOUT services AND NOT from Laboratory department
         // Appointments with services are tracked in department revenue instead
         // Laboratory appointments (even without services attached) are tracked in laboratory revenue
-        // FIXED: Use appointment_date instead of created_at to match DashboardService logic
+        // FIXED: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
         $appointments = Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('appointment_date', [$start, $end])
+            ->whereBetween('created_at', [$start, $end])
             ->whereDoesntHave('services')  // Only appointments without services
             ->where(function ($query) {
                 // Exclude appointments where department is Laboratory
@@ -182,14 +182,15 @@ class WalletController extends Controller
     {
         // Sum the final_cost from appointment_services for completed appointments
         // Exclude laboratory department services (those are tracked in laboratory revenue)
-        // FIXED: Use appointment_date for joining with appointments to match DashboardService
+        // FIXED: Use appointment_services.created_at instead of appointments.appointment_date
+        // to properly support day_end_timestamp filtering
         return DB::table('appointment_services')
             ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
             ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '!=', 'Laboratory')  // Exclude laboratory services
-            ->whereBetween('appointments.appointment_date', [$start, $end])
+            ->whereBetween('appointment_services.created_at', [$start, $end])
             ->sum('appointment_services.final_cost');
     }
 
@@ -220,21 +221,22 @@ class WalletController extends Controller
         // NOTE: Lab test results revenue has been removed to match DashboardService
 
         // Get laboratory services from appointments (department services)
-        // Uses appointment_date for joining with appointments
+        // FIXED: Use appointment_services.created_at instead of appointments.appointment_date
+        // to properly support day_end_timestamp filtering
         $appointmentLabServicesRevenue = DB::table('appointment_services')
             ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
             ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '=', 'Laboratory')  // Only laboratory department services
-            ->whereBetween('appointments.appointment_date', [$start, $end])
+            ->whereBetween('appointment_services.created_at', [$start, $end])
             ->sum('appointment_services.final_cost') ?? 0;
 
         // Get laboratory department appointments (appointments where department=Laboratory and no services attached)
         // These are standalone lab appointments created through the department selection
-        // Uses appointment_date to track when the appointment was scheduled
+        // FIXED: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
         $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('appointment_date', [$start, $end])
+            ->whereBetween('created_at', [$start, $end])
             ->whereDoesntHave('services')  // Only appointments without attached services
             ->where(function ($query) {
                 // Include only Laboratory department appointments

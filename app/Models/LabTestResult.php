@@ -20,6 +20,7 @@ class LabTestResult extends Model
         'status',
         'performed_at',
         'verified_at',
+        'verified_by',
     ];
 
     protected $casts = [
@@ -40,5 +41,10 @@ class LabTestResult extends Model
     public function performedBy()
     {
         return $this->belongsTo(User::class, 'performed_by');
+    }
+
+    public function verifiedBy()
+    {
+        return $this->belongsTo(User::class, 'verified_by');
     }
 }

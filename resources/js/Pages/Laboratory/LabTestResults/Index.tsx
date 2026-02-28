@@ -217,13 +217,46 @@ export default function LabTestResultIndex({
     return `${first}${last}`.toUpperCase();
   };
 
-  const parseResults = (results: string | ResultParameter[]): ResultParameter[] => {
+  const parseResults = (results: string | ResultParameter[] | Record<string, unknown>): ResultParameter[] => {
     if (Array.isArray(results)) return results;
     if (typeof results !== 'string') return [];
     try {
       const parsed = JSON.parse(results);
       console.log('parseResults - input:', results, 'parsed:', parsed);
-      return Array.isArray(parsed) ? parsed : [];
+
+      // Handle array format (expected)
+      if (Array.isArray(parsed)) {
+        // Validate and sanitize each item to ensure status is valid
+        const validStatuses: Array<'normal' | 'abnormal' | 'critical'> = ['normal', 'abnormal', 'critical'];
+        return parsed.map(item => ({
+          ...item,
+          status: validStatuses.includes(item.status)
+            ? item.status
+            : 'normal',
+        }));
+      }
+
+      // Handle object format { parameter_id: { value, unit, status, name } }
+      // This handles data stored by Create.tsx which builds an object with reduce()
+      if (parsed && typeof parsed === 'object') {
+        return Object.entries(parsed).map(([key, value]) => {
+          const val = value as { value: number | string; unit: string; status: string; name?: string; referenceRange?: { min: number; max: number } };
+          // Validate status is one of the allowed values, default to 'normal' otherwise
+          const validStatuses: Array<'normal' | 'abnormal' | 'critical'> = ['normal', 'abnormal', 'critical'];
+          const parsedStatus = validStatuses.includes(val.status as 'normal' | 'abnormal' | 'critical')
+            ? (val.status as 'normal' | 'abnormal' | 'critical')
+            : 'normal';
+          return {
+            name: val.name || key,
+            value: val.value ?? '',
+            unit: val.unit || '',
+            referenceRange: val.referenceRange || { min: 0, max: 0 },
+            status: parsedStatus,
+          };
+        });
+      }
+
+      return [];
     } catch (error) {
       console.error('parseResults - error parsing:', error, 'input:', results);
       return [];

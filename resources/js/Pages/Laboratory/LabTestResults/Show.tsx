@@ -178,6 +178,7 @@ export default function LabTestResultShow({
   const previousResults = useMemo(() => {
     if (!labTestResult.previousResult) return {};
     const prev = labTestResult.previousResult.results;
+    if (!Array.isArray(prev)) return {};
     const map: Record<string, number> = {};
     prev.forEach(p => {
       map[p.parameter_id] = parseFloat(p.value);

@@ -202,7 +202,6 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
     performed_at: new Date().toISOString().split('T')[0],
     performed_time: new Date().toTimeString().slice(0, 5),
     results: '{}',
-    status: 'completed' as const,
     notes: '',
     abnormal_flags: '',
   });
@@ -278,10 +277,12 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
   }, []);
 
   // Parse results JSON string to array
-  const parseResults = (results: string | ResultParameter[]): ResultParameter[] => {
+  const parseResults = (results: string | ResultParameter[] | null | undefined): ResultParameter[] => {
     if (Array.isArray(results)) return results;
+    if (!results) return [];
     try {
-      return JSON.parse(results);
+      const parsed = JSON.parse(results);
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
@@ -651,7 +652,17 @@ export default function LabTestResultCreate({ patients, labTests, requests, pati
                     </div>
                   </div>
 
-                  {filteredPatients.length === 0 && (
+                  {filteredPatients.length === 0 && patients.length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground border rounded-lg bg-amber-50 border-amber-200">
+                      <User className="h-12 w-12 mx-auto mb-4 text-amber-500" />
+                      <p className="font-medium text-amber-800">No patients with incomplete lab tests</p>
+                      <p className="text-sm mt-1 text-amber-700">
+                        All lab tests have been completed. Create a lab test request first.
+                      </p>
+                    </div>
+                  )}
+
+                  {filteredPatients.length === 0 && patients.length > 0 && (
                     <div className="text-center py-12 text-muted-foreground border rounded-lg">
                       <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>No patients found matching your search</p>

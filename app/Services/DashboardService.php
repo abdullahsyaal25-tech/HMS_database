@@ -140,7 +140,7 @@ class DashboardService
         
         if ($isToday && $dayEndTimestamp) {
             // Only query transactions AFTER the day_end_timestamp
-            $effectiveStart = Carbon::parse($dayEndTimestamp);
+            $effectiveStart = Carbon::parse($dayEndTimestamp)->startOfDay();
             Log::info('Dashboard Summary Stats - Day end timestamp found, querying after: ' . $dayEndTimestamp);
         }
         
@@ -148,9 +148,9 @@ class DashboardService
             // Day has ended, only show revenue from transactions AFTER the day_end_timestamp
             Log::info('Dashboard Summary Stats - Using day_end_timestamp, querying after: ' . $dayEndTimestamp);
             // Appointment revenue (excluding lab department) - query after day_end_timestamp
-            // FIX: Include ALL non-Lab appointment fees, not just those without services
+            // FIX: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
             $appointmentRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
-                ->whereBetween('appointment_date', [$effectiveStart, $effectiveEnd])
+                ->whereBetween('created_at', [$effectiveStart, $effectiveEnd])
                 ->where(function ($query) {
                     $query->whereNull('department_id')
                           ->orWhereNotIn('department_id', function ($subQuery) {
@@ -188,7 +188,7 @@ class DashboardService
                 ->sum('appointment_services.final_cost') ?? 0;
                 
             $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
-                ->whereBetween('appointment_date', [$effectiveStart, $effectiveEnd])
+                ->whereBetween('created_at', [$effectiveStart, $effectiveEnd])
                 ->whereDoesntHave('services')
                 ->where(function ($query) {
                     $query->whereIn('department_id', function ($subQuery) {
@@ -241,8 +241,9 @@ class DashboardService
                 // Fall back to database query if cache is empty
                 Log::info('Dashboard Summary Stats - Cache miss, calculating from database');
                 // Appointment revenue (excluding lab department) - FIX: Include ALL non-Lab appointment fees
+                // FIX: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
                 $appointmentRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
-                    ->whereBetween('appointment_date', $dateRange)
+                    ->whereBetween('created_at', $dateRange)
                     ->where(function ($query) {
                         $query->whereNull('department_id')
                               ->orWhereNotIn('department_id', function ($subQuery) {
@@ -280,7 +281,7 @@ class DashboardService
                     ->sum('appointment_services.final_cost') ?? 0;
                     
                 $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
-                    ->whereBetween('appointment_date', $dateRange)
+                    ->whereBetween('created_at', $dateRange)
                     ->whereDoesntHave('services')
                     ->where(function ($query) {
                         $query->whereIn('department_id', function ($subQuery) {
@@ -506,7 +507,7 @@ class DashboardService
         
         if ($isToday && $dayEndTimestamp) {
             // Only query transactions AFTER the day_end_timestamp
-            $effectiveStart = Carbon::parse($dayEndTimestamp);
+            $effectiveStart = Carbon::parse($dayEndTimestamp)->startOfDay();
             Log::info('Dashboard Financial Stats - Day end timestamp found, querying after: ' . $dayEndTimestamp);
         }
         

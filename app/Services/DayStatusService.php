@@ -286,8 +286,9 @@ class DayStatusService
      */
     private function getAppointmentRevenue($start, $end)
     {
+        // FIXED: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
         $appointments = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('appointment_date', [$start, $end])
+            ->whereBetween('created_at', [$start, $end])
             ->whereDoesntHave('services')
             ->where(function ($query) {
                 $query->whereNull('department_id')
@@ -309,13 +310,15 @@ class DayStatusService
      */
     private function getDepartmentRevenue($start, $end)
     {
+        // FIXED: Use appointment_services.created_at instead of appointments.appointment_date
+        // to properly support day_end_timestamp filtering
         return \Illuminate\Support\Facades\DB::table('appointment_services')
             ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
             ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '!=', 'Laboratory')
-            ->whereBetween('appointments.appointment_date', [$start, $end])
+            ->whereBetween('appointment_services.created_at', [$start, $end])
             ->sum('appointment_services.final_cost');
     }
 
@@ -347,18 +350,21 @@ class DayStatusService
             ->sum('lab_tests.cost');
 
         // Get laboratory services from appointments (department services)
+        // FIXED: Use appointment_services.created_at instead of appointments.appointment_date
+        // to properly support day_end_timestamp filtering
         $appointmentLabServicesRevenue = \Illuminate\Support\Facades\DB::table('appointment_services')
             ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
             ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '=', 'Laboratory')
-            ->whereBetween('appointments.appointment_date', [$start, $end])
+            ->whereBetween('appointment_services.created_at', [$start, $end])
             ->sum('appointment_services.final_cost');
 
         // Get laboratory department appointments
+        // FIXED: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
         $labDepartmentAppointmentsRevenue = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('appointment_date', [$start, $end])
+            ->whereBetween('created_at', [$start, $end])
             ->whereDoesntHave('services')
             ->where(function ($query) {
                 $query->whereIn('department_id', function ($subQuery) {

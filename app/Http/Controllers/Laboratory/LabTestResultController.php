@@ -141,8 +141,11 @@ class LabTestResultController extends Controller
             abort(403, 'Unauthorized access');
         }
         
-        // Get all patients (no filter - allow creating results for any patient)
-        $patients = Patient::orderBy('first_name')->get();
+        // Get only patients with incomplete lab test requests (pending or in_progress)
+        // Exclude patients whose tests are already completed
+        $patients = Patient::whereHas('labTestRequests', function ($query) {
+            $query->whereIn('status', ['pending', 'in_progress']);
+        })->orderBy('first_name')->get();
         
         // Get all lab tests with parameters
         $labTests = LabTest::whereNotNull('parameters')
@@ -165,10 +168,23 @@ class LabTestResultController extends Controller
                 ];
             });
         
-        // Build patient-specific test request mapping (for reference)
+        // Build patient-specific test request mapping (only incomplete tests without results)
         $patientTestRequests = [];
         foreach ($patients as $patient) {
+            // Get test names that already have completed results for this patient
+            $completedTestNames = LabTestResult::where('patient_id', $patient->id)
+                ->where('status', 'completed')
+                ->pluck('test_id')
+                ->toArray();
+            
+            // Get the lab test names from the completed results
+            $completedTestNames = LabTest::whereIn('id', $completedTestNames)
+                ->pluck('name')
+                ->toArray();
+            
             $patientRequests = $patient->labTestRequests()
+                ->whereIn('status', ['pending', 'in_progress'])
+                ->whereNotIn('test_name', $completedTestNames) // Exclude tests that already have results
                 ->get()
                 ->map(function ($req) {
                     return [
@@ -180,6 +196,11 @@ class LabTestResultController extends Controller
                 ->toArray();
             $patientTestRequests[$patient->id] = $patientRequests;
         }
+        
+        // Filter out patients who no longer have any available tests after filtering
+        $patients = $patients->filter(function ($patient) use ($patientTestRequests) {
+            return !empty($patientTestRequests[$patient->id]);
+        })->values();
         
         // Debug logging
         Log::debug('LabTestResultController create - data being passed', [
@@ -219,7 +240,6 @@ class LabTestResultController extends Controller
             'patient_id' => 'required|exists:patients,id',
             'performed_at' => 'required|date',
             'results' => 'required|string',
-            'status' => 'required|in:pending,completed',
             'notes' => 'nullable|string',
         ]);
         
@@ -228,6 +248,23 @@ class LabTestResultController extends Controller
                 'errors' => $validator->errors()->toArray(),
             ]);
             return redirect()->back()->withErrors($validator)->withInput();
+        }
+        
+        // Check if a completed result already exists for this patient and test
+        $existingResult = LabTestResult::where('patient_id', $request->patient_id)
+            ->where('test_id', $request->lab_test_id)
+            ->where('status', 'completed')
+            ->first();
+            
+        if ($existingResult) {
+            Log::warning('LabTestResultController store - result already exists', [
+                'patient_id' => $request->patient_id,
+                'lab_test_id' => $request->lab_test_id,
+                'existing_result_id' => $existingResult->result_id,
+            ]);
+            return redirect()->back()
+                ->with('error', 'A result already exists for this patient and test. Please edit the existing result instead.')
+                ->withInput();
         }
         
         try {
@@ -241,8 +278,8 @@ class LabTestResultController extends Controller
             // Results are already JSON string from frontend, decode and re-encode to ensure valid JSON
             $resultsData = is_string($request->results) ? json_decode($request->results, true) : $request->results;
             
-            // Always set status to completed - no verification process
-            $status = $request->status === 'pending' ? 'pending' : 'completed';
+            // Always set status to completed - simplified workflow
+            $status = 'completed';
             
             $labTestResult = LabTestResult::create([
                 'result_id' => $resultId,
@@ -253,6 +290,8 @@ class LabTestResultController extends Controller
                 'status' => $status,
                 'notes' => $request->notes,
                 'performed_by' => $user->id,
+                'verified_at' => now(),
+                'verified_by' => $user->id,
             ]);
 
             // Auto-update the associated LabTestRequest status
@@ -411,7 +450,6 @@ class LabTestResultController extends Controller
             'patient_id' => 'required|exists:patients,id',
             'performed_at' => 'required|date',
             'results' => 'required|string',
-            'status' => 'required|in:pending,completed,verified',
             'notes' => 'nullable|string',
             'abnormal_flags' => 'nullable|string',
         ]);
@@ -422,17 +460,17 @@ class LabTestResultController extends Controller
 
         try {
             DB::beginTransaction();
-
-            $oldStatus = $labTestResult->status;
         
             $labTestResult->update([
                 'lab_test_id' => $request->lab_test_id,
                 'patient_id' => $request->patient_id,
                 'performed_at' => $request->performed_at,
                 'results' => $request->results,
-                'status' => $request->status,
+                'status' => 'completed',
                 'notes' => $request->notes,
                 'abnormal_flags' => $request->abnormal_flags,
+                'verified_at' => now(),
+                'verified_by' => $user->id,
             ]);
 
             DB::commit();
@@ -470,6 +508,9 @@ class LabTestResultController extends Controller
 
     /**
      * Verify the specified lab test result.
+     * 
+     * NOTE: This method is kept for backward compatibility but verification
+     * is no longer required as results are auto-completed on save.
      */
     public function verifyPost(Request $request, LabTestResult $labTestResult): RedirectResponse
     {
@@ -480,38 +521,9 @@ class LabTestResultController extends Controller
             abort(403, 'Unauthorized access');
         }
         
-        // Check if already verified
-        if ($labTestResult->status === 'verified') {
-            return redirect()->back()->with('error', 'This result has already been verified.');
-        }
-        
-        try {
-            DB::beginTransaction();
-            
-            $labTestResult->update([
-                'status' => 'verified',
-                'verified_at' => now(),
-                'verified_by' => $user->id,
-            ]);
-            
-            // Log the verification
-            Log::info('Lab test result verified', [
-                'result_id' => $labTestResult->id,
-                'verified_by' => $user->id,
-            ]);
-
-            DB::commit();
-            
-            return redirect()->route('laboratory.lab-test-results.index')
-                ->with('success', 'Lab test result verified successfully.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error verifying lab test result', [
-                'result_id' => $labTestResult->id,
-                'error' => $e->getMessage(),
-            ]);
-            return redirect()->back()->with('error', 'Failed to verify lab test result: ' . $e->getMessage());
-        }
+        // Results are auto-completed on save - no verification needed
+        return redirect()->route('laboratory.lab-test-results.index')
+            ->with('info', 'Results are automatically completed on save. No additional verification required.');
     }
 
     /**

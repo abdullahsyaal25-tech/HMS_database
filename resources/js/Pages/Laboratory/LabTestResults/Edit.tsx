@@ -104,12 +104,37 @@ export default function LabTestResultEdit({ labTestResult, patients, labTests, c
   const [showAuditTrail, setShowAuditTrail] = useState(false);
 
   // Parse results from JSON string or use as-is if already an array
+  // Handles both array format and object format { parameter_id: { value, unit, ... } }
   const parsedResults = useMemo(() => {
     if (Array.isArray(labTestResult.results)) {
       return labTestResult.results;
     }
     try {
-      return JSON.parse(labTestResult.results) as ResultParameter[];
+      const parsed = JSON.parse(labTestResult.results);
+
+      // Handle array format
+      if (Array.isArray(parsed)) {
+        return parsed as ResultParameter[];
+      }
+
+      // Handle object format { parameter_id: { value, unit, status, name } }
+      if (parsed && typeof parsed === 'object') {
+        return Object.entries(parsed).map(([key, value]) => {
+          const val = value as { value: number | string; unit: string; status: string; name?: string; referenceMin?: number; referenceMax?: number };
+          return {
+            parameter_id: key,
+            name: val.name || key,
+            value: String(val.value ?? ''),
+            unit: val.unit || '',
+            referenceMin: val.referenceMin || 0,
+            referenceMax: val.referenceMax || 0,
+            status: (val.status as 'normal' | 'abnormal' | 'critical' | 'pending') || 'normal',
+            notes: '',
+          } as ResultParameter;
+        });
+      }
+
+      return [];
     } catch {
       return [];
     }

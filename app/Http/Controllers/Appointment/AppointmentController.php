@@ -56,18 +56,20 @@ class AppointmentController extends Controller
             ->sum('lab_tests.cost') ?? 0;
 
         // Get laboratory services from appointments (department services)
+        // FIXED: Use appointment_services.created_at instead of appointments.appointment_date
         $appointmentLabServicesRevenue = \Illuminate\Support\Facades\DB::table('appointment_services')
             ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
             ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '=', 'Laboratory')
-            ->whereBetween('appointments.appointment_date', [$start, $end])
+            ->whereBetween('appointment_services.created_at', [$start, $end])
             ->sum('appointment_services.final_cost') ?? 0;
 
         // Get laboratory department appointments
+        // FIXED: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
         $labDepartmentAppointmentsRevenue = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('appointment_date', [$start, $end])
+            ->whereBetween('created_at', [$start, $end])
             ->whereDoesntHave('services')
             ->where(function ($query) {
                 $query->whereIn('department_id', function ($subQuery) {
@@ -89,13 +91,15 @@ class AppointmentController extends Controller
      */
     private function getDepartmentRevenue($start, $end): float
     {
+        // FIXED: Use appointment_services.created_at instead of appointments.appointment_date
+        // to properly support day_end_timestamp filtering
         return \Illuminate\Support\Facades\DB::table('appointment_services')
             ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
             ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '!=', 'Laboratory')
-            ->whereBetween('appointments.appointment_date', [$start, $end])
+            ->whereBetween('appointment_services.created_at', [$start, $end])
             ->sum('appointment_services.final_cost') ?? 0;
     }
 
@@ -201,8 +205,9 @@ class AppointmentController extends Controller
         $laboratoryRevenue = $this->getLaboratoryRevenue($effectiveStartTime, $tomorrow);
         $departmentsRevenue = $this->getDepartmentRevenue($effectiveStartTime, $tomorrow);
         
-        // Calculate total from all sources
-        $totalRevenue = $currentDayAppointmentRevenue + $pharmacyRevenue + $laboratoryRevenue + $departmentsRevenue;
+        // Calculate total from visible sources only (exclude pharmacy as it's hidden on appointments page)
+        // The DayStatusBanner uses hidePharmacy=true on the appointments page, so total should match visible categories
+        $totalRevenue = $currentDayAppointmentRevenue + $laboratoryRevenue + $departmentsRevenue;
 
         return Inertia::render('Appointment/Index', [
             'appointments' => $appointments,
@@ -558,9 +563,9 @@ class AppointmentController extends Controller
         // Get completed appointments WITHOUT services AND NOT from Laboratory department
         // Appointments with services are tracked in department revenue instead
         // Laboratory appointments (even without services attached) are tracked in laboratory revenue
-        // FIXED: Use appointment_date instead of created_at to match DashboardService logic
+        // FIXED: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
         $appointments = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('appointment_date', [$start, $end])
+            ->whereBetween('created_at', [$start, $end])
             ->whereDoesntHave('services')  // Only appointments without services
             ->where(function ($query) {
                 // Exclude appointments where department is Laboratory

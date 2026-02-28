@@ -127,7 +127,11 @@ const ResultValueDisplay = React.forwardRef<HTMLDivElement, ResultValueDisplayPr
     },
     ref
   ) => {
-    const config = statusConfig[status];
+    // Defensive check: ensure status is valid, default to 'normal' if not
+    const validStatus = status && ['normal', 'abnormal', 'critical'].includes(status)
+      ? status
+      : 'normal';
+    const config = statusConfig[validStatus];
     const StatusIcon = config.icon;
     const sizes = sizeClasses[size];
 

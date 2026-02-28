@@ -101,8 +101,9 @@ class HospitalDashboardService extends BaseService
      */
     private function calculateTodayAppointmentRevenue(Carbon $start, Carbon $end)
     {
+        // FIXED: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
         return Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('appointment_date', [$start, $end])
+            ->whereBetween('created_at', [$start, $end])
             ->whereDoesntHave('services')
             ->where(function ($query) {
                 $query->whereNull('department_id')
@@ -161,7 +162,7 @@ class HospitalDashboardService extends BaseService
             ->sum('appointment_services.final_cost') ?? 0;
             
         $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('appointment_date', [$start, $end])
+            ->whereBetween('created_at', [$start, $end])
             ->whereDoesntHave('services')
             ->where(function ($query) {
                 $query->whereIn('department_id', function ($subQuery) {
