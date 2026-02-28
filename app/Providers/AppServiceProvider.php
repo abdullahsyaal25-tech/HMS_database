@@ -4,8 +4,14 @@ namespace App\Providers;
 
 use App\Models\Payment;
 use App\Models\Sale;
+use App\Models\Appointment;
+use App\Models\AppointmentService;
+use App\Models\LabTestRequest;
 use App\Observers\PaymentObserver;
 use App\Observers\SaleObserver;
+use App\Observers\AppointmentObserver;
+use App\Observers\AppointmentServiceObserver;
+use App\Observers\LabTestRequestObserver;
 use App\Services\SmartCacheService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Vite;
@@ -30,6 +36,9 @@ class AppServiceProvider extends ServiceProvider
         // Register model observers
         Payment::observe(PaymentObserver::class);
         Sale::observe(SaleObserver::class);
+        Appointment::observe(AppointmentObserver::class);
+        AppointmentService::observe(AppointmentServiceObserver::class);
+        LabTestRequest::observe(LabTestRequestObserver::class);
 
         Vite::prefetch(concurrency: 3);
 

@@ -1,7 +1,7 @@
 import { AppShell } from '@/components/app-shell';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
-import { NavUser } from '@/components/nav-user';
+import { ProfileNav } from '@/components/profile-nav';
 import {
     Sidebar,
     SidebarContent,
@@ -317,7 +317,7 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
 
                 <SidebarFooter className="border-t border-sidebar-border/50 p-2">
                     <NavFooter items={footerNavItems} className="mt-auto" />
-                    <NavUser />
+                    <ProfileNav />
                 </SidebarFooter>
             </Sidebar>
             <SidebarInset className="bg-background">

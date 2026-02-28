@@ -267,35 +267,20 @@ export default function LabTestRequestEdit({ labTestRequest, patients, doctors }
       <Head title={`Edit Request - ${labTestRequest.request_id}`} />
 
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div>
-              <Heading title={`Edit Request`} />
-              <p className="text-muted-foreground mt-1">
-                Request ID: <span className="font-mono">{labTestRequest.request_id}</span>
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <PriorityBadge priority={data.test_type} size="sm" />
-              <LabStatusBadge status={data.status} size="sm" animate />
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Link href={`/laboratory/lab-test-requests/${labTestRequest.id}`}>
-              <Button variant="outline">
-                <Eye className="mr-2 h-4 w-4" />
-                View Details
-              </Button>
-            </Link>
-            <Link href="/laboratory/lab-test-requests">
-              <Button variant="outline">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Requests
-              </Button>
-            </Link>
-          </div>
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <Link href={`/laboratory/lab-test-requests/${labTestRequest.id}`}>
+            <Button variant="outline">
+              <Eye className="mr-2 h-4 w-4" />
+              View Details
+            </Button>
+          </Link>
+          <Link href="/laboratory/lab-test-requests">
+            <Button variant="outline">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Requests
+            </Button>
+          </Link>
         </div>
 
         {/* Status Workflow Controls */}

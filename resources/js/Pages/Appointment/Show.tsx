@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Heading from '@/components/heading';
 import HospitalLayout from '@/layouts/HospitalLayout';
-import { Calendar, Clock, User, Stethoscope, FileText, ArrowLeft, Pencil } from 'lucide-react';
+import { Calendar, Clock, User, Stethoscope, FileText, ArrowLeft, Pencil, Package, DollarSign, Percent, Tag, Receipt, Building2, FlaskConical } from 'lucide-react';
 
 interface Patient {
     id: number;
@@ -24,6 +24,22 @@ interface Department {
     name: string;
 }
 
+interface DepartmentInfo {
+    id: number;
+    name: string;
+}
+
+interface Service {
+    id: number;
+    name: string;
+    department: DepartmentInfo | null;
+    pivot: {
+        custom_cost: number;
+        discount_percentage: number;
+        final_cost: number;
+    };
+}
+
 interface Appointment {
     id: number;
     appointment_id: string;
@@ -33,11 +49,15 @@ interface Appointment {
     appointment_time: string;
     status: string;
     reason: string;
+    fee: number;
+    discount: number;
+    grand_total: number;
     created_at: string;
     updated_at: string;
     patient: Patient;
     doctor: Doctor | null;
     department: Department | null;
+    services: Service[];
 }
 
 interface AppointmentShowProps {
@@ -235,6 +255,139 @@ export default function AppointmentShow({ appointment }: AppointmentShowProps) {
                             </Card>
                         </div>
                     </div>
+
+                    {/* Services and Billing Section */}
+                    <Card className="shadow-lg border-t-4 border-t-emerald-500">
+                        <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50">
+                            <CardTitle className="flex items-center gap-2 text-xl">
+                                <Receipt className="h-6 w-6 text-emerald-600" />
+                                Services & Billing Details
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-6 space-y-6">
+                            {/* Consultation Fee */}
+                            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                                <h3 className="text-sm font-medium text-blue-900 uppercase tracking-wider flex items-center gap-2 mb-3">
+                                    <Stethoscope className="h-4 w-4" />
+                                    Doctor Consultation Fee
+                                </h3>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Consultation Fee</span>
+                                    <span className="font-semibold text-lg">؋{Number(appointment.fee || 0).toFixed(2)}</span>
+                                </div>
+                            </div>
+
+                            {/* Services List */}
+                            {appointment.services && appointment.services.length > 0 ? (
+                                <div className="space-y-4">
+                                    <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                                        <Package className="h-4 w-4" />
+                                        Services ({appointment.services.length})
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {appointment.services.map((service, index) => {
+                                            const isLaboratory = service.department?.name?.toLowerCase().includes('lab');
+                                            return (
+                                                <div key={service.id} className={`rounded-lg p-4 border ${isLaboratory ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
+                                                    <div className="flex items-start justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${isLaboratory ? 'bg-blue-500/10' : 'bg-purple-500/10'}`}>
+                                                                {isLaboratory ? (
+                                                                    <FlaskConical className="h-5 w-5 text-blue-600" />
+                                                                ) : (
+                                                                    <Building2 className="h-5 w-5 text-purple-600" />
+                                                                )}
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-semibold text-gray-900">{service.name}</p>
+                                                                <div className="flex items-center gap-2 mt-1">
+                                                                    {isLaboratory ? (
+                                                                        <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-300">
+                                                                            Laboratory
+                                                                        </Badge>
+                                                                    ) : (
+                                                                        <Badge variant="outline" className="text-xs bg-purple-100 text-purple-700 border-purple-300">
+                                                                            {service.department?.name || 'Department Service'}
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="font-semibold text-emerald-600">؋{Number(service.pivot.final_cost).toFixed(2)}</p>
+                                                            {service.pivot.discount_percentage > 0 && (
+                                                                <p className="text-sm text-red-500">-{service.pivot.discount_percentage}% off</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-3 gap-4 text-sm">
+                                                        <div>
+                                                            <span className="text-muted-foreground">Base Cost:</span>
+                                                            <span className="ml-2 font-medium">؋{Number(service.pivot.custom_cost).toFixed(2)}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-muted-foreground">Discount:</span>
+                                                            <span className="ml-2 font-medium text-red-600">{service.pivot.discount_percentage}%</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-muted-foreground">Final:</span>
+                                                            <span className="ml-2 font-medium text-emerald-600">؋{Number(service.pivot.final_cost).toFixed(2)}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="bg-gray-50 rounded-lg p-6 text-center border border-gray-200">
+                                    <Package className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                                    <p className="text-muted-foreground">No additional services attached to this appointment</p>
+                                </div>
+                            )}
+
+                            {/* Cost Summary */}
+                            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-4 border border-amber-200">
+                                <h3 className="text-sm font-medium text-amber-900 uppercase tracking-wider flex items-center gap-2 mb-4">
+                                    <DollarSign className="h-4 w-4" />
+                                    Cost Summary
+                                </h3>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-muted-foreground">Consultation Fee</span>
+                                        <span className="font-medium">؋{Number(appointment.fee || 0).toFixed(2)}</span>
+                                    </div>
+                                    {appointment.services && appointment.services.length > 0 && (
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-muted-foreground">Services Total</span>
+                                            <span className="font-medium">
+                                                ؋{appointment.services.reduce((sum, s) => sum + Number(s.pivot.final_cost), 0).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-muted-foreground">Subtotal</span>
+                                        <span className="font-medium">
+                                            ؋{(Number(appointment.fee || 0) + (appointment.services?.reduce((sum, s) => sum + Number(s.pivot.final_cost), 0) || 0)).toFixed(2)}
+                                        </span>
+                                    </div>
+                                    {appointment.discount > 0 && (
+                                        <div className="flex items-center justify-between text-red-600">
+                                            <span className="flex items-center gap-2">
+                                                <Tag className="h-4 w-4" />
+                                                Appointment Discount
+                                            </span>
+                                            <span className="font-medium">-؋{Number(appointment.discount).toFixed(2)}</span>
+                                        </div>
+                                    )}
+                                    <div className="pt-3 border-t border-amber-200 flex items-center justify-between">
+                                        <span className="text-lg font-semibold text-amber-900">Grand Total</span>
+                                        <span className="text-2xl font-bold text-emerald-600">؋{Number(appointment.grand_total || 0).toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
 
                     {/* Additional Information Section */}
                     <Card className="shadow-lg">

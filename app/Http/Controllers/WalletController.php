@@ -200,9 +200,10 @@ class WalletController extends Controller
     private function getPharmacyRevenue(Carbon $start, Carbon $end)
     {
         // Count completed sales as revenue
-        // FIXED: Remove status filter to match DashboardService - sales may not always have status set
+        // FIXED: Add status filter to match DashboardService
         // Using created_at to track when the sale was actually created in the system
         return Sale::whereBetween('created_at', [$start, $end])
+            ->where('status', 'completed')
             ->sum('grand_total');
     }
 

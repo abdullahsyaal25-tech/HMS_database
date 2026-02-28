@@ -149,8 +149,10 @@ class DashboardService
             Log::info('Dashboard Summary Stats - Using day_end_timestamp, querying after: ' . $dayEndTimestamp);
             // Appointment revenue (excluding lab department) - query after day_end_timestamp
             // FIX: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
+            // FIX: Add whereDoesntHave('services') to match WalletController logic
             $appointmentRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
                 ->whereBetween('created_at', [$effectiveStart, $effectiveEnd])
+                ->whereDoesntHave('services')  // Only appointments without services
                 ->where(function ($query) {
                     $query->whereNull('department_id')
                           ->orWhereNotIn('department_id', function ($subQuery) {
@@ -242,8 +244,10 @@ class DashboardService
                 Log::info('Dashboard Summary Stats - Cache miss, calculating from database');
                 // Appointment revenue (excluding lab department) - FIX: Include ALL non-Lab appointment fees
                 // FIX: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
+                // FIX: Add whereDoesntHave('services') to match WalletController logic
                 $appointmentRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
                     ->whereBetween('created_at', $dateRange)
+                    ->whereDoesntHave('services')  // Only appointments without services
                     ->where(function ($query) {
                         $query->whereNull('department_id')
                               ->orWhereNotIn('department_id', function ($subQuery) {
@@ -300,8 +304,11 @@ class DashboardService
         } else {
             // For non-today periods, calculate from database
             // Appointment revenue (excluding lab department) - FIX: Include ALL non-Lab appointment fees
+            // FIX: Add whereDoesntHave('services') to match WalletController logic
+            // FIX: Use created_at instead of appointment_date for consistency with WalletController
             $appointmentRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
-                ->whereBetween('appointment_date', $dateRange)
+                ->whereBetween('created_at', $dateRange)
+                ->whereDoesntHave('services')  // Only appointments without services
                 ->where(function ($query) {
                     $query->whereNull('department_id')
                           ->orWhereNotIn('department_id', function ($subQuery) {
@@ -353,8 +360,9 @@ class DashboardService
                 ->whereBetween('appointment_services.created_at', $dateRange)
                 ->sum('appointment_services.final_cost') ?? 0;
                 
+            // FIX: Use created_at instead of appointment_date for consistency with WalletController
             $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
-                ->whereBetween('appointment_date', $dateRange)
+                ->whereBetween('created_at', $dateRange)
                 ->whereDoesntHave('services')
                 ->where(function ($query) {
                     $query->whereIn('department_id', function ($subQuery) {
@@ -516,7 +524,8 @@ class DashboardService
             Log::info('Dashboard Financial Stats - Using day_end_timestamp, querying after: ' . $dayEndTimestamp);
             // Revenue breakdown - use consistent column names (grand_total)
             // Appointment revenue (doctor consultation fees, excluding lab dept)
-            $appointmentRevenue = Appointment::whereBetween('appointment_date', [$effectiveStart, $effectiveEnd])
+            // FIX: Use created_at instead of appointment_date for consistency with WalletController
+            $appointmentRevenue = Appointment::whereBetween('created_at', [$effectiveStart, $effectiveEnd])
                 ->whereIn('status', ['completed', 'confirmed'])
                 ->whereDoesntHave('services')
                 ->where(function ($query) {
@@ -555,8 +564,9 @@ class DashboardService
                 ->whereBetween('appointment_services.created_at', [$effectiveStart, $effectiveEnd])
                 ->sum('appointment_services.final_cost') ?? 0;
                 
+            // FIX: Use created_at instead of appointment_date for consistency with WalletController
             $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
-                ->whereBetween('appointment_date', [$effectiveStart, $effectiveEnd])
+                ->whereBetween('created_at', [$effectiveStart, $effectiveEnd])
                 ->whereDoesntHave('services')
                 ->where(function ($query) {
                     $query->whereIn('department_id', function ($subQuery) {
@@ -573,8 +583,10 @@ class DashboardService
             // For normal queries (no day_end_timestamp), use the full date range
             // Revenue breakdown - use consistent column names (grand_total)
             // Appointment revenue (doctor consultation fees, excluding lab dept) - FIX: Include ALL non-Lab appointment fees
-            $appointmentRevenue = Appointment::whereBetween('appointment_date', $dateRange)
+            // FIX: Use created_at instead of appointment_date for consistency with WalletController
+            $appointmentRevenue = Appointment::whereBetween('created_at', $dateRange)
                 ->whereIn('status', ['completed', 'confirmed'])
+                ->whereDoesntHave('services')  // Only appointments without services
                 ->where(function ($query) {
                     $query->whereNull('department_id')
                           ->orWhereNotIn('department_id', function ($subQuery) {
@@ -619,8 +631,9 @@ class DashboardService
                 ->whereBetween('appointment_services.created_at', $dateRange)
                 ->sum('appointment_services.final_cost') ?? 0;
                 
+            // FIX: Use created_at instead of appointment_date for consistency with WalletController
             $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
-                ->whereBetween('appointment_date', $dateRange)
+                ->whereBetween('created_at', $dateRange)
                 ->whereDoesntHave('services')
                 ->where(function ($query) {
                     $query->whereIn('department_id', function ($subQuery) {

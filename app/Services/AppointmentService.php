@@ -35,7 +35,7 @@ class AppointmentService
      */
     public function getAppointmentById($id)
     {
-        $appointment = Appointment::with(['patient', 'doctor', 'department', 'services'])->findOrFail($id);
+        $appointment = Appointment::with(['patient', 'doctor', 'department', 'services.department'])->findOrFail($id);
         return $this->transformAppointment($appointment);
     }
 
@@ -445,6 +445,10 @@ class AppointmentService
                 return [
                     'id' => $service->id,
                     'name' => $service->name,
+                    'department' => $service->department ? [
+                        'id' => $service->department->id,
+                        'name' => $service->department->name,
+                    ] : null,
                     'pivot' => [
                         'custom_cost' => $service->pivot->custom_cost,
                         'discount_percentage' => $service->pivot->discount_percentage,

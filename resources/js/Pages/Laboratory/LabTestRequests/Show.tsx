@@ -219,51 +219,36 @@ export default function LabTestRequestShow({ labTestRequest }: LabTestRequestSho
       <Head title={`Request - ${labTestRequest.request_id}`} />
 
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div>
-              <Heading title={`Request Details`} />
-              <p className="text-muted-foreground mt-1">
-                Request ID: <span className="font-mono">{labTestRequest.request_id}</span>
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <PriorityBadge priority={labTestRequest.test_type} size="sm" animate={labTestRequest.test_type === 'stat'} />
-              <LabStatusBadge status={labTestRequest.status} size="sm" animate />
-            </div>
-          </div>
-
-          <div className="flex gap-2 flex-wrap">
-            {canEdit && (
-              <Link href={`/laboratory/lab-test-requests/${labTestRequest.id}/edit`}>
-                <Button>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Request
-                </Button>
-              </Link>
-            )}
-            {canRestore && (
-              <Button
-                onClick={() => handleStatusTransition('pending')}
-                variant="outline"
-                className="bg-green-50 hover:bg-green-100 text-green-700"
-              >
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Restore Request
-              </Button>
-            )}
-            <Button variant="outline" onClick={handlePrint}>
-              <Printer className="mr-2 h-4 w-4" />
-              Print
-            </Button>
-            <Link href="/laboratory/lab-test-requests">
-              <Button variant="outline">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
+        {/* Action Buttons */}
+        <div className="flex gap-2 flex-wrap">
+          {canEdit && (
+            <Link href={`/laboratory/lab-test-requests/${labTestRequest.id}/edit`}>
+              <Button>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Request
               </Button>
             </Link>
-          </div>
+          )}
+          {canRestore && (
+            <Button
+              onClick={() => handleStatusTransition('pending')}
+              variant="outline"
+              className="bg-green-50 hover:bg-green-100 text-green-700"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Restore Request
+            </Button>
+          )}
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer className="mr-2 h-4 w-4" />
+            Print
+          </Button>
+          <Link href="/laboratory/lab-test-requests">
+            <Button variant="outline">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+          </Link>
         </div>
 
         {/* Contextual Action Bar */}
