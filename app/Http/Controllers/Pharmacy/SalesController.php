@@ -267,6 +267,28 @@ class SalesController extends Controller
             ]);
         });
 
+        // Get current day pharmacy revenue data for DayStatusBanner
+        $today = \Carbon\Carbon::today();
+        $tomorrow = \Carbon\Carbon::tomorrow();
+        $todayStr = $today->toDateString();
+
+        // Check if day_end_timestamp exists - Manual day detection
+        $dayEndTimestamp = \Illuminate\Support\Facades\Cache::get('day_end_timestamp');
+        
+        // Default to today's start if no cache exists - show actual today's data
+        $defaultStartDate = \Carbon\Carbon::today()->startOfDay();
+
+        // Determine the effective start time for today queries
+        // If day_end_timestamp exists, only query transactions AFTER that timestamp
+        // If no cache exists, use today's start to show only today's data
+        $effectiveStartTime = $defaultStartDate;
+        if ($dayEndTimestamp) {
+            $effectiveStartTime = \Carbon\Carbon::parse($dayEndTimestamp);
+        }
+
+        // Calculate current day pharmacy revenue
+        $currentDayPharmacyRevenue = $this->getPharmacyRevenueForDayStatusBanner();
+
         return Inertia::render('Pharmacy/Sales/Index', [
             'sales' => [
                 'data' => $salesItems,
@@ -303,6 +325,15 @@ class SalesController extends Controller
                 'today_revenue' => Sale::whereDate('created_at', today())
                     ->where('status', 'completed')
                     ->sum('grand_total'),
+            ],
+            'currentDayData' => [
+                'appointments_count' => 0, // No appointments in pharmacy
+                'total_revenue' => $currentDayPharmacyRevenue,
+                'appointments_revenue' => 0, // No appointments in pharmacy
+                'pharmacy_revenue' => $currentDayPharmacyRevenue,
+                'laboratory_revenue' => 0, // No laboratory in pharmacy
+                'departments_revenue' => 0, // No departments in pharmacy
+                'source' => 'Pharmacy Dashboard',
             ],
         ]);
     }
@@ -900,4 +931,46 @@ class SalesController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
+    /**
+     * Get pharmacy revenue for a date range.
+     * Calculates from completed sales ONLY using grand_total (includes all discounts and taxes).
+     * Excludes cancelled sales as they don't represent actual revenue.
+     */
+    private function getPharmacyRevenue(\Carbon\Carbon $start, \Carbon\Carbon $end)
+    {
+        // Get completed sales (exclude cancelled sales as they don't represent actual revenue)
+        // FIXED: Use created_at instead of performed_at to match DashboardService logic
+        $sales = \App\Models\Sale::where('status', 'completed')
+            ->whereBetween('created_at', [$start, $end])
+            ->get();
+        
+        return $sales->sum('grand_total');
+    }
+
+    /**
+     * Get current day pharmacy revenue for DayStatusBanner.
+     * Uses the same logic as getPharmacyRevenue but with current day time range.
+     */
+    private function getPharmacyRevenueForDayStatusBanner()
+    {
+        $today = \Carbon\Carbon::today();
+        $tomorrow = \Carbon\Carbon::tomorrow();
+        $todayStr = $today->toDateString();
+
+        // Check if day_end_timestamp exists - Manual day detection
+        $dayEndTimestamp = \Illuminate\Support\Facades\Cache::get('day_end_timestamp');
+        
+        // Default to today's start if no cache exists - show actual today's data
+        $defaultStartDate = \Carbon\Carbon::today()->startOfDay();
+
+        // Determine the effective start time for today queries
+        // If day_end_timestamp exists, only query transactions AFTER that timestamp
+        // If no cache exists, use today's start to show only today's data
+        $effectiveStartTime = $defaultStartDate;
+        if ($dayEndTimestamp) {
+            $effectiveStartTime = \Carbon\Carbon::parse($dayEndTimestamp);
+        }
+
+        return $this->getPharmacyRevenue($effectiveStartTime, $tomorrow);
+    }
 }

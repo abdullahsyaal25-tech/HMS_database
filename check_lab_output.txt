@@ -1,0 +1,72 @@
+Laboratory Department ID: 15
+
+=== getLaboratoryRevenue: Part 1 - lab_test_results ===
+Total Part 1: 0
+
+=== getLaboratoryRevenue: Part 2 - appointment_services (Lab department services) ===
+Total Part 2: 0
+
+=== getLaboratoryRevenue: Part 3 - Lab Department Appointments (DIRECT FEES) ===
+ID: 1, Date: 2026-02-23 15:17:00, Fee: 80.00, Discount: 0.00, Revenue: 80
+ID: 2, Date: 2026-02-23 15:21:00, Fee: 800.00, Discount: 0.00, Revenue: 800
+ID: 4, Date: 2026-02-23 16:22:00, Fee: 1400.00, Discount: 0.00, Revenue: 1400
+ID: 5, Date: 2026-02-23 16:37:00, Fee: 150.00, Discount: 50.00, Revenue: 100
+ID: 8, Date: 2026-02-23 18:50:00, Fee: 600.00, Discount: 300.00, Revenue: 300
+ID: 9, Date: 2026-02-23 18:52:00, Fee: 800.00, Discount: 780.00, Revenue: 20
+ID: 12, Date: 2026-02-23 19:07:00, Fee: 600.00, Discount: 0.00, Revenue: 600
+ID: 16, Date: 2026-02-23 19:27:00, Fee: 300.00, Discount: 300.00, Revenue: 0
+ID: 17, Date: 2026-02-23 19:28:00, Fee: 600.00, Discount: 400.00, Revenue: 200
+ID: 18, Date: 2026-02-23 19:31:00, Fee: 600.00, Discount: 100.00, Revenue: 500
+ID: 19, Date: 2026-02-23 19:31:00, Fee: 600.00, Discount: 100.00, Revenue: 500
+ID: 22, Date: 2026-02-23 20:07:00, Fee: 150.00, Discount: 50.00, Revenue: 100
+ID: 23, Date: 2026-02-23 20:08:00, Fee: 800.00, Discount: 300.00, Revenue: 500
+ID: 24, Date: 2026-02-23 20:13:00, Fee: 300.00, Discount: 100.00, Revenue: 200
+ID: 25, Date: 2026-02-24 13:33:00, Fee: 50.00, Discount: 0.00, Revenue: 50
+ID: 26, Date: 2026-02-24 13:35:00, Fee: 50.00, Discount: 0.00, Revenue: 50
+ID: 27, Date: 2026-02-24 15:31:00, Fee: 80.00, Discount: 0.00, Revenue: 80
+ID: 28, Date: 2026-02-24 15:36:00, Fee: 50.00, Discount: 0.00, Revenue: 50
+ID: 29, Date: 2026-02-24 20:04:00, Fee: 250.00, Discount: 0.00, Revenue: 250
+ID: 30, Date: 2026-02-24 20:53:00, Fee: 80.00, Discount: 2.00, Revenue: 78
+ID: 33, Date: 2026-02-25 06:44:00, Fee: 600.00, Discount: 0.00, Revenue: 600
+ID: 34, Date: 2026-02-25 07:37:00, Fee: 600.00, Discount: 0.00, Revenue: 600
+ID: 38, Date: 2026-02-25 08:17:00, Fee: 150.00, Discount: 0.00, Revenue: 150
+ID: 41, Date: 2026-02-25 15:45:00, Fee: 80.00, Discount: 0.00, Revenue: 80
+ID: 42, Date: 2026-02-25 20:45:00, Fee: 100.00, Discount: 0.00, Revenue: 100
+ID: 50, Date: 2026-02-26 07:57:00, Fee: 600.00, Discount: 0.00, Revenue: 600
+ID: 55, Date: 2026-02-26 11:14:00, Fee: 150.00, Discount: 0.00, Revenue: 150
+ID: 58, Date: 2026-02-26 15:01:00, Fee: 280.00, Discount: 0.00, Revenue: 280
+ID: 59, Date: 2026-02-26 15:11:00, Fee: 600.00, Discount: 0.00, Revenue: 600
+ID: 60, Date: 2026-02-26 15:13:00, Fee: 600.00, Discount: 0.00, Revenue: 600
+ID: 61, Date: 2026-02-26 15:25:00, Fee: 150.00, Discount: 0.00, Revenue: 150
+ID: 62, Date: 2026-02-26 16:42:00, Fee: 250.00, Discount: 0.00, Revenue: 250
+ID: 63, Date: 2026-02-26 16:49:00, Fee: 150.00, Discount: 0.00, Revenue: 150
+ID: 65, Date: 2026-02-26 16:59:00, Fee: 150.00, Discount: 0.00, Revenue: 150
+ID: 66, Date: 2026-02-26 17:07:00, Fee: 150.00, Discount: 0.00, Revenue: 150
+ID: 67, Date: 2026-02-26 20:06:00, Fee: 600.00, Discount: 0.00, Revenue: 600
+ID: 69, Date: 2026-02-26 21:07:00, Fee: 280.00, Discount: 0.00, Revenue: 280
+ID: 70, Date: 2026-02-27 06:27:00, Fee: 180.00, Discount: 0.00, Revenue: 180
+ID: 71, Date: 2026-02-27 06:42:00, Fee: 800.00, Discount: 0.00, Revenue: 800
+ID: 72, Date: 2026-02-27 06:56:00, Fee: 280.00, Discount: 0.00, Revenue: 280
+ID: 73, Date: 2026-02-27 07:58:00, Fee: 80.00, Discount: 0.00, Revenue: 80
+ID: 74, Date: 2026-02-27 08:00:00, Fee: 300.00, Discount: 0.00, Revenue: 300
+ID: 75, Date: 2026-02-27 08:21:00, Fee: 150.00, Discount: 0.00, Revenue: 150
+ID: 76, Date: 2026-02-27 08:41:00, Fee: 150.00, Discount: 0.00, Revenue: 150
+ID: 77, Date: 2026-02-27 08:45:00, Fee: 360.00, Discount: 0.00, Revenue: 360
+ID: 78, Date: 2026-02-27 09:08:00, Fee: 50.00, Discount: 0.00, Revenue: 50
+ID: 79, Date: 2026-02-27 09:11:00, Fee: 50.00, Discount: 0.00, Revenue: 50
+ID: 80, Date: 2026-02-27 09:12:00, Fee: 120.00, Discount: 0.00, Revenue: 120
+ID: 81, Date: 2026-02-27 09:25:00, Fee: 50.00, Discount: 0.00, Revenue: 50
+ID: 82, Date: 2026-02-27 12:29:00, Fee: 150.00, Discount: 0.00, Revenue: 150
+ID: 83, Date: 2026-02-27 15:09:00, Fee: 50.00, Discount: 0.00, Revenue: 50
+ID: 84, Date: 2026-02-27 15:10:00, Fee: 50.00, Discount: 0.00, Revenue: 50
+ID: 85, Date: 2026-02-27 15:32:00, Fee: 120.00, Discount: 0.00, Revenue: 120
+Total Part 3 (NO DATE FILTER): 14288
+Total Part 3 (WITH DATE FILTER - CORRECT): 220
+
+=== SUMMARY ===
+Part 1 (lab_test_results): 0
+Part 2 (appointment_services): 0
+Part 3 as-is (NO date filter - BUG): 14288
+Part 3 with date filter (CORRECT): 220
+TOTAL (with bug): 14288
+TOTAL (correct): 220

@@ -341,7 +341,7 @@ class DayStatusService
                 $query->whereBetween('lab_test_results.performed_at', [$start, $end])
                       ->orWhere(function ($q) {
                           $q->whereNull('lab_test_results.performed_at')
-                            ->where('lab_test_results.status', 'completed');
+                            ->whereIn('lab_test_results.status', ['completed', 'verified']);
                       });
             })
             ->sum('lab_tests.cost');

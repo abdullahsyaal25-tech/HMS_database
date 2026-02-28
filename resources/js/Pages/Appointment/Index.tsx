@@ -13,10 +13,10 @@ import { Badge } from '@/components/ui/badge';
 import Heading from '@/components/heading';
 import { AppointmentPrintModal } from '@/components/appointment/AppointmentPrintModal';
 import { Calendar, User, Stethoscope, PlusCircle, Search, Clock, Eye, Edit, CalendarDays, DollarSign, AlertTriangle, Clock as ClockIcon } from 'lucide-react';
-import { DayStatusBanner } from '@/components/DayStatusBanner';
-import { useDayStatus } from '@/hooks/useDayStatus';
 import { useState, useEffect } from 'react';
 import HospitalLayout from '@/layouts/HospitalLayout';
+import { DayStatusBanner } from '@/components/DayStatusBanner';
+import { useDayStatus } from '@/hooks/useDayStatus';
 
 interface Patient {
     id: number;
@@ -86,9 +86,18 @@ interface AppointmentIndexProps {
         cancelled_count: number;
         total_count: number;
     };
+    currentDayData?: {
+        appointments_count: number;
+        total_revenue: number;
+        appointments_revenue: number;
+        pharmacy_revenue: number;
+        laboratory_revenue: number;
+        departments_revenue: number;
+        source: string;
+    };
 }
 
-export default function AppointmentIndex({ appointments, stats }: AppointmentIndexProps) {
+export default function AppointmentIndex({ appointments, stats, currentDayData }: AppointmentIndexProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [printAppointment, setPrintAppointment] = useState<unknown>(null);
@@ -166,6 +175,18 @@ export default function AppointmentIndex({ appointments, stats }: AppointmentInd
         <HospitalLayout>
             <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 md:p-8">
                 <Head title="Appointments" />
+
+                {/* Smart Day Detection Banner */}
+                <DayStatusBanner
+                    dayStatus={dayStatus}
+                    yesterdaySummary={yesterdaySummary}
+                    currentDayData={currentDayData}
+                    onArchiveDay={archiveDay}
+                    isLoading={isDayStatusLoading}
+                    showActionButton={false}
+                    moduleType="all"
+                    hidePharmacy={true}
+                />
                 
                 {/* Header Section with gradient */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6">
@@ -183,22 +204,6 @@ export default function AppointmentIndex({ appointments, stats }: AppointmentInd
                         </Button>
                     </Link>
                 </div>
-
-                {/* Smart Day Detection Banner */}
-                <DayStatusBanner 
-                    dayStatus={dayStatus} 
-                    yesterdaySummary={yesterdaySummary} 
-                    onArchiveDay={archiveDay} 
-                    isLoading={isDayStatusLoading} 
-                    showActionButton={false}
-                    isAdmin={(() => {
-                        const auth = (usePage().props as any).auth;
-                        if (!auth?.user) return false;
-                        const adminRoles = ['Super Admin', 'Sub Super Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Reception Admin'];
-                        return adminRoles.includes(auth.user.role) || (auth.user.permissions?.includes('manage-wallet') ?? false);
-                    })()}
-                    moduleType="appointments"
-                />
 
                 {/* Stats Cards - Row 1 */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">

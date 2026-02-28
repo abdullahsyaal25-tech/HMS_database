@@ -136,9 +136,16 @@ class DepartmentServiceController extends Controller
             // Get the Laboratory department ID to exclude
             $labDepartmentId = Department::where('name', 'Laboratory')->first()?->id;
 
-            $baseQuery = fn() => Appointment::with(['patient', 'services'])
+            // Load appointments with services that have doctor_percentage > 0
+            $baseQuery = fn() => Appointment::with(['patient', 'services' => function($query) {
+                // Only load services where doctor has a percentage assigned
+                $query->where('doctor_percentage', '>', 0);
+            }])
                 ->where('doctor_id', $doctorFilter)
-                ->has('services')
+                ->whereHas('services', function($query) {
+                    // Only include appointments that have services with doctor_percentage > 0
+                    $query->where('doctor_percentage', '>', 0);
+                })
                 ->when($labDepartmentId, fn($query) => $query->where('department_id', '!=', $labDepartmentId))
                 ->orderBy('appointment_date', 'desc');
 
@@ -163,13 +170,18 @@ class DepartmentServiceController extends Controller
                     'patient_id' => $appt->patient->patient_id,
                     'full_name' => trim($appt->patient->first_name),
                 ] : null,
-                'services' => $appt->services->map(fn($svc) => [
-                    'id' => $svc->id,
-                    'name' => $svc->name,
-                    'custom_cost' => (float) $svc->pivot->custom_cost,
-                    'discount_percentage' => (float) $svc->pivot->discount_percentage,
-                    'final_cost' => (float) $svc->pivot->final_cost,
-                ])->toArray(),
+                // Only include services where doctor has percentage > 0
+                'services' => $appt->services
+                    ->filter(fn($svc) => $svc->doctor_percentage > 0)
+                    ->map(fn($svc) => [
+                        'id' => $svc->id,
+                        'name' => $svc->name,
+                        'custom_cost' => (float) $svc->pivot->custom_cost,
+                        'discount_percentage' => (float) $svc->pivot->discount_percentage,
+                        'final_cost' => (float) $svc->pivot->final_cost,
+                        'doctor_percentage' => (float) $svc->doctor_percentage,
+                        'doctor_amount' => (float) $svc->doctor_amount,
+                    ])->values()->toArray(),
             ];
 
             $appointments = [

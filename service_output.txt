@@ -1,0 +1,18 @@
+=== DayStatusService getYesterdaySummary() result ===
+
+Array
+(
+    [date] => 2026-02-27T14:44:16.639356Z
+    [date_formatted] => Feb 27, 2026
+    [time_range] => Feb 27, 2026 14:44 - Feb 28, 2026 01:52
+    [business_day_start] => 2026-02-27T14:44:16.639356Z
+    [business_day_end] => 2026-02-28T01:52:04.751882Z
+    [appointments_count] => 3
+    [total_revenue] => 220
+    [appointments_revenue] => 0
+    [pharmacy_revenue] => 0
+    [laboratory_revenue] => 220
+    [departments_revenue] => 0
+    [source] => calculated
+    [is_current_business_day] => 1
+)

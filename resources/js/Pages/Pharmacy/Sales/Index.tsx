@@ -12,11 +12,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FilterBar, type FilterConfig, type FilterState } from '@/components/pharmacy/FilterBar';
 import Heading from '@/components/heading';
-import { 
-    Currency, 
-    Calendar, 
-    User, 
-    PlusCircle, 
+import {
+    Currency,
+    Calendar,
+    User,
+    PlusCircle,
     Search,
     FileDown,
     Printer,
@@ -103,6 +103,15 @@ interface SaleIndexProps {
         today_sales: number;
         today_revenue: number;
     };
+    currentDayData?: {
+        appointments_count: number;
+        total_revenue: number;
+        appointments_revenue: number;
+        pharmacy_revenue: number;
+        laboratory_revenue: number;
+        departments_revenue: number;
+        source: string;
+    };
 }
 
 // Helper to get the seller name from different possible response formats
@@ -115,7 +124,7 @@ const getSellerName = (sale: SaleWithItems): string => {
     return 'N/A';
 };
 
-export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps) {
+export default function SaleIndex({ sales, filters = {}, stats, currentDayData }: SaleIndexProps) {
     const [localFilters, setLocalFilters] = useState<FilterState>({
         query: filters.query || '',
         status: filters.status || '',
@@ -304,6 +313,17 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
         <PharmacyLayout>
             <div className="space-y-6">
                 <Head title="Pharmacy Sales" />
+
+                {/* Smart Day Detection Banner */}
+                <DayStatusBanner
+                    dayStatus={dayStatus}
+                    yesterdaySummary={yesterdaySummary}
+                    currentDayData={currentDayData}
+                    onArchiveDay={archiveDay}
+                    isLoading={isDayStatusLoading}
+                    showActionButton={false}
+                    moduleType="pharmacy"
+                />
                 
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -327,17 +347,6 @@ export default function SaleIndex({ sales, filters = {}, stats }: SaleIndexProps
                         </Link>
                     </div>
                 </div>
-
-                {/* Smart Day Detection Banner */}
-                <DayStatusBanner 
-                    dayStatus={dayStatus} 
-                    yesterdaySummary={yesterdaySummary} 
-                    onArchiveDay={archiveDay} 
-                    isLoading={isDayStatusLoading} 
-                    showActionButton={false}
-                    isAdmin={isAdmin()}
-                    moduleType="pharmacy"
-                />
 
                 {/* Statistics Cards */}
                 {stats && (

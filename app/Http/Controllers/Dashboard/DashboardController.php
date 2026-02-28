@@ -32,17 +32,23 @@ class DashboardController extends Controller
                 abort(403, 'Unauthorized access');
             }
 
-            // Get period from request (today, week, month, year)
+            // Get period from request (today, week, month, year, all-time)
             $period = $request->input('period', 'today');
 
             // Validate period
-            $validPeriods = ['today', 'week', 'month', 'year'];
+            $validPeriods = ['today', 'week', 'month', 'year', 'all-time'];
             if (!in_array($period, $validPeriods)) {
                 $period = 'today';
             }
 
             // Get comprehensive dashboard data
             $dashboardData = $this->dashboardService->getDashboardStats($period);
+            
+            // Get all-time statistics
+            $allTimeStats = $this->dashboardService->getAllTimeStats();
+            
+            // Get discount statistics
+            $discountStats = $this->dashboardService->getDiscountStats();
             
             // Get admin activities and stats for admin users
             $adminData = [];
@@ -58,14 +64,13 @@ class DashboardController extends Controller
                 $adminData = [];
             }
             
-            // Debug: Log what we're sending to the frontend
-            Log::info('DashboardController - Data being sent:', [
-                'summary' => $dashboardData['summary'] ?? 'missing',
-                'patients_total' => $dashboardData['patients']['total'] ?? 'missing',
-                'has_data' => !empty($dashboardData['summary']['total_patients']),
+            // Merge all data for the response
+            $responseData = array_merge($dashboardData, $adminData, [
+                'all_time_stats' => $allTimeStats,
+                'discount_stats' => $discountStats,
             ]);
-
-            return Inertia::render('Dashboard', array_merge($dashboardData, $adminData));
+            
+            return Inertia::render('Dashboard', $responseData);
         } catch (\Exception $e) {
             Log::error('Dashboard index error: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
@@ -84,6 +89,7 @@ class DashboardController extends Controller
                     'total_revenue' => 0,
                     'appointment_revenue' => 0,
                     'pharmacy_revenue' => 0,
+                    'laboratory_revenue' => 0,
                     'pending_bills' => 0,
                     'outstanding_amount' => 0,
                 ],

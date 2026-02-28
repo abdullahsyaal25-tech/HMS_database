@@ -1,0 +1,32 @@
+=== Appointments on Feb 27 afternoon/evening ===
+ID: 83, Date: 2026-02-27 15:09:00, Status: completed, Fee: 50.00, Discount: 0.00, DeptID: 15
+ID: 84, Date: 2026-02-27 15:10:00, Status: completed, Fee: 50.00, Discount: 0.00, DeptID: 15
+ID: 85, Date: 2026-02-27 15:32:00, Status: completed, Fee: 120.00, Discount: 0.00, DeptID: 15
+
+=== Appointment services on Feb 27 afternoon ===
+
+=== Departments ===
+ID: 1, Name: ECG
+ID: 2, Name: Neurology
+ID: 3, Name: Orthopedics
+ID: 4, Name: Pediatrics
+ID: 5, Name: Dermatology
+ID: 6, Name: General Medicine
+ID: 7, Name: Consultation
+ID: 8, Name: Ophthalmology
+ID: 9, Name: Psychiatry
+ID: 10, Name: Radiology
+ID: 11, Name: Emergency Medicine
+ID: 12, Name: Oncology
+ID: 13, Name: Gynecology
+ID: 14, Name: ENT
+ID: 15, Name: Laboratory
+ID: 16, Name: OPD
+
+=== Simulating getAppointmentRevenue() ===
+Appointments matching getAppointmentRevenue criteria:
+Total: 0
+
+=== Simulating getLaboratoryRevenue() - Lab Test Results ===
+Lab test results:
+Total: 0

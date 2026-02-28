@@ -85,6 +85,28 @@ class LabTestController extends Controller
             ->whereIn('status', ['pending', 'in_progress'])
             ->count();
 
+        // Get current day laboratory revenue data for DayStatusBanner
+        $today = \Carbon\Carbon::today();
+        $tomorrow = \Carbon\Carbon::tomorrow();
+        $todayStr = $today->toDateString();
+
+        // Check if day_end_timestamp exists - Manual day detection
+        $dayEndTimestamp = \Illuminate\Support\Facades\Cache::get('day_end_timestamp');
+        
+        // Default to today's start if no cache exists - show actual today's data
+        $defaultStartDate = \Carbon\Carbon::today()->startOfDay();
+
+        // Determine the effective start time for today queries
+        // If day_end_timestamp exists, only query transactions AFTER that timestamp
+        // If no cache exists, use today's start to show only today's data
+        $effectiveStartTime = $defaultStartDate;
+        if ($dayEndTimestamp) {
+            $effectiveStartTime = \Carbon\Carbon::parse($dayEndTimestamp);
+        }
+
+        // Calculate current day laboratory revenue
+        $currentDayLaboratoryRevenue = $this->getLaboratoryRevenueForDayStatusBanner();
+
         return Inertia::render('Laboratory/Index', [
             'stats' => [
                 'totalTests' => $totalTests,
@@ -101,6 +123,15 @@ class LabTestController extends Controller
             'activities' => $activities,
             'criticalResults' => $criticalResults,
             'statRequests' => $statRequests,
+            'currentDayData' => [
+                'appointments_count' => 0, // Laboratory doesn't have appointments
+                'total_revenue' => $currentDayLaboratoryRevenue, // Total is just laboratory revenue
+                'appointments_revenue' => 0, // No appointments in laboratory
+                'pharmacy_revenue' => 0, // No pharmacy in laboratory
+                'laboratory_revenue' => $currentDayLaboratoryRevenue,
+                'departments_revenue' => 0, // No departments in laboratory
+                'source' => 'Laboratory Dashboard',
+            ],
         ]);
     }
 
@@ -512,5 +543,95 @@ if (!$user->isSuperAdmin() && !$user->hasPermission('view-laboratory')) {
 
         return redirect()->route('laboratory.lab-tests.edit', $duplicatedLabTest)
             ->with('success', 'Lab test duplicated successfully. You can now edit the copy.');
+    }
+
+    /**
+     * Get laboratory revenue for a date range.
+     * Includes:
+     * 1. Lab test results that are completed or performed
+     * 2. Laboratory services from appointments (department services from Laboratory department)
+     * 3. Laboratory department appointments (appointments where department is Laboratory)
+     */
+    private function getLaboratoryRevenue(\Carbon\Carbon $start, \Carbon\Carbon $end)
+    {
+        // Get lab test results that are completed OR have been performed
+        // FIXED: Use performed_at instead of created_at to match DashboardService
+        $labTestResultsRevenue = \Illuminate\Support\Facades\DB::table('lab_test_results')
+            ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
+            ->whereBetween('lab_test_results.performed_at', [$start, $end])
+            ->sum('lab_tests.cost');
+
+        // DEBUG: Log the raw query results
+        $labTestResults = \Illuminate\Support\Facades\DB::table('lab_test_results')
+            ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
+            ->whereBetween('lab_test_results.performed_at', [$start, $end])
+            ->select('lab_tests.cost', 'lab_test_results.performed_at', 'lab_test_results.status')
+            ->get();
+        
+        \Illuminate\Support\Facades\Log::info('LabTestController getLaboratoryRevenue - Lab Test Results Query', [
+            'start' => $start->toISOString(),
+            'end' => $end->toISOString(),
+            'count' => $labTestResults->count(),
+            'results' => $labTestResults->toArray(),
+        ]);
+
+        // Get laboratory services from appointments (department services)
+        // Uses appointment_date for joining with appointments
+        $appointmentLabServicesRevenue = \Illuminate\Support\Facades\DB::table('appointment_services')
+            ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+            ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+            ->join('departments', 'department_services.department_id', '=', 'departments.id')
+            ->whereIn('appointments.status', ['completed', 'confirmed'])
+            ->where('departments.name', '=', 'Laboratory')  // Only laboratory department services
+            ->whereBetween('appointments.appointment_date', [$start, $end])
+            ->sum('appointment_services.final_cost');
+
+        // Get laboratory department appointments (appointments where department=Laboratory and no services attached)
+        // These are standalone lab appointments created through the department selection
+        // Uses appointment_date to track when the appointment was scheduled
+        $labDepartmentAppointmentsRevenue = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
+            ->whereBetween('appointment_date', [$start, $end])
+            ->whereDoesntHave('services')  // Only appointments without attached services
+            ->where(function ($query) {
+                // Include only Laboratory department appointments
+                $query->whereIn('department_id', function ($subQuery) {
+                    $subQuery->select('id')
+                             ->from('departments')
+                             ->where('name', 'Laboratory');
+                });
+            })
+            ->get()
+            ->sum(function ($appointment) {
+                return max(0, ($appointment->fee ?? 0) - ($appointment->discount ?? 0));
+            });
+
+        return $labTestResultsRevenue + $appointmentLabServicesRevenue + $labDepartmentAppointmentsRevenue;
+    }
+
+    /**
+     * Get current day laboratory revenue for DayStatusBanner.
+     * Uses the same logic as getLaboratoryRevenue but with current day time range.
+     */
+    private function getLaboratoryRevenueForDayStatusBanner()
+    {
+        $today = \Carbon\Carbon::today();
+        $tomorrow = \Carbon\Carbon::tomorrow();
+        $todayStr = $today->toDateString();
+
+        // Check if day_end_timestamp exists - Manual day detection
+        $dayEndTimestamp = \Illuminate\Support\Facades\Cache::get('day_end_timestamp');
+        
+        // Default to today's start if no cache exists - show actual today's data
+        $defaultStartDate = \Carbon\Carbon::today()->startOfDay();
+
+        // Determine the effective start time for today queries
+        // If day_end_timestamp exists, only query transactions AFTER that timestamp
+        // If no cache exists, use today's start to show only today's data
+        $effectiveStartTime = $defaultStartDate;
+        if ($dayEndTimestamp) {
+            $effectiveStartTime = \Carbon\Carbon::parse($dayEndTimestamp);
+        }
+
+        return $this->getLaboratoryRevenue($effectiveStartTime, $tomorrow);
     }
 }

@@ -214,26 +214,10 @@ class WalletController extends Controller
      */
     private function getLaboratoryRevenue(Carbon $start, Carbon $end)
     {
-        // Get lab test results that are completed OR have been performed
-        // FIXED: Use performed_at instead of created_at to match DashboardService
-        $labTestResultsRevenue = DB::table('lab_test_results')
-            ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
-            ->whereBetween('lab_test_results.performed_at', [$start, $end])
-            ->sum('lab_tests.cost');
-
-        // DEBUG: Log the raw query results
-        $labTestResults = DB::table('lab_test_results')
-            ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
-            ->whereBetween('lab_test_results.performed_at', [$start, $end])
-            ->select('lab_tests.cost', 'lab_test_results.performed_at', 'lab_test_results.status')
-            ->get();
-        
-        Log::info('WalletController getLaboratoryRevenue - Lab Test Results Query', [
-            'start' => $start->toISOString(),
-            'end' => $end->toISOString(),
-            'count' => $labTestResults->count(),
-            'results' => $labTestResults->toArray(),
-        ]);
+        // Laboratory revenue now only includes:
+        // 1. Laboratory services from appointments (department services)
+        // 2. Laboratory department appointments (without services attached)
+        // NOTE: Lab test results revenue has been removed to match DashboardService
 
         // Get laboratory services from appointments (department services)
         // Uses appointment_date for joining with appointments
@@ -244,7 +228,7 @@ class WalletController extends Controller
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '=', 'Laboratory')  // Only laboratory department services
             ->whereBetween('appointments.appointment_date', [$start, $end])
-            ->sum('appointment_services.final_cost');
+            ->sum('appointment_services.final_cost') ?? 0;
 
         // Get laboratory department appointments (appointments where department=Laboratory and no services attached)
         // These are standalone lab appointments created through the department selection
@@ -265,7 +249,7 @@ class WalletController extends Controller
                 return max(0, ($appointment->fee ?? 0) - ($appointment->discount ?? 0));
             });
 
-        return $labTestResultsRevenue + $appointmentLabServicesRevenue + $labDepartmentAppointmentsRevenue;
+        return $appointmentLabServicesRevenue + $labDepartmentAppointmentsRevenue;
     }
 
     /**
@@ -466,5 +450,128 @@ class WalletController extends Controller
             ],
             'timestamp' => now()->toISOString(),
         ]);
+    }
+
+    /**
+     * Get revenue with discount breakdown for a date range.
+     * Returns gross revenue, discounts applied, and net revenue for each source.
+     */
+    public function getRevenueWithDiscounts(Carbon $start, Carbon $end): array
+    {
+        // Pharmacy Revenue with discounts
+        $pharmacyGross = Sale::whereBetween('created_at', [$start, $end])
+            ->where('status', 'completed')
+            ->sum(DB::raw('total_amount + tax')); // Before discount
+        $pharmacyDiscounts = Sale::whereBetween('created_at', [$start, $end])
+            ->where('status', 'completed')
+            ->sum('discount');
+        $pharmacyNet = Sale::whereBetween('created_at', [$start, $end])
+            ->where('status', 'completed')
+            ->sum('grand_total'); // After discount
+
+        // Appointment Revenue with discounts
+        $appointments = Appointment::whereIn('status', ['completed', 'confirmed'])
+            ->whereBetween('appointment_date', [$start, $end])
+            ->whereDoesntHave('services')
+            ->where(function ($query) {
+                $query->whereNull('department_id')
+                      ->orWhereNotIn('department_id', function ($subQuery) {
+                          $subQuery->select('id')
+                                   ->from('departments')
+                                   ->where('name', 'Laboratory');
+                      });
+            })
+            ->get();
+        $appointmentGross = $appointments->sum('fee');
+        $appointmentDiscounts = $appointments->sum('discount');
+        $appointmentNet = $appointments->sum(function ($apt) {
+            return max(0, ($apt->fee ?? 0) - ($apt->discount ?? 0));
+        });
+
+        // Department Services Revenue with discounts
+        $servicesGross = DB::table('appointment_services')
+            ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+            ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+            ->join('departments', 'department_services.department_id', '=', 'departments.id')
+            ->whereIn('appointments.status', ['completed', 'confirmed'])
+            ->where('departments.name', '!=', 'Laboratory')
+            ->whereBetween('appointments.appointment_date', [$start, $end])
+            ->sum('department_services.base_cost');
+        $servicesNet = DB::table('appointment_services')
+            ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+            ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+            ->join('departments', 'department_services.department_id', '=', 'departments.id')
+            ->whereIn('appointments.status', ['completed', 'confirmed'])
+            ->where('departments.name', '!=', 'Laboratory')
+            ->whereBetween('appointments.appointment_date', [$start, $end])
+            ->sum('appointment_services.final_cost');
+        $servicesDiscounts = $servicesGross - $servicesNet;
+
+        // Laboratory Revenue with discounts
+        $labServicesGross = DB::table('appointment_services')
+            ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+            ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+            ->join('departments', 'department_services.department_id', '=', 'departments.id')
+            ->whereIn('appointments.status', ['completed', 'confirmed'])
+            ->where('departments.name', '=', 'Laboratory')
+            ->whereBetween('appointments.appointment_date', [$start, $end])
+            ->sum('department_services.base_cost') ?? 0;
+        $labServicesNet = DB::table('appointment_services')
+            ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+            ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+            ->join('departments', 'department_services.department_id', '=', 'departments.id')
+            ->whereIn('appointments.status', ['completed', 'confirmed'])
+            ->where('departments.name', '=', 'Laboratory')
+            ->whereBetween('appointments.appointment_date', [$start, $end])
+            ->sum('appointment_services.final_cost') ?? 0;
+        
+        $labAppointments = Appointment::whereIn('status', ['completed', 'confirmed'])
+            ->whereBetween('appointment_date', [$start, $end])
+            ->whereDoesntHave('services')
+            ->where(function ($query) {
+                $query->whereIn('department_id', function ($subQuery) {
+                    $subQuery->select('id')
+                             ->from('departments')
+                             ->where('name', 'Laboratory');
+                });
+            })
+            ->get();
+        $labAppointmentGross = $labAppointments->sum('fee');
+        $labAppointmentDiscounts = $labAppointments->sum('discount');
+        $labAppointmentNet = $labAppointments->sum(function ($apt) {
+            return max(0, ($apt->fee ?? 0) - ($apt->discount ?? 0));
+        });
+
+        $laboratoryGross = $labServicesGross + $labAppointmentGross;
+        $laboratoryDiscounts = ($labServicesGross - $labServicesNet) + $labAppointmentDiscounts;
+        $laboratoryNet = $labServicesNet + $labAppointmentNet;
+
+        return [
+            'pharmacy' => [
+                'gross' => $pharmacyGross ?? 0,
+                'discounts' => $pharmacyDiscounts ?? 0,
+                'net' => $pharmacyNet ?? 0,
+            ],
+            'appointments' => [
+                'gross' => $appointmentGross ?? 0,
+                'discounts' => $appointmentDiscounts ?? 0,
+                'net' => $appointmentNet ?? 0,
+            ],
+            'departments' => [
+                'gross' => $servicesGross ?? 0,
+                'discounts' => $servicesDiscounts ?? 0,
+                'net' => $servicesNet ?? 0,
+            ],
+            'laboratory' => [
+                'gross' => $laboratoryGross ?? 0,
+                'discounts' => $laboratoryDiscounts ?? 0,
+                'net' => $laboratoryNet ?? 0,
+            ],
+            'total' => [
+                'gross' => ($pharmacyGross + $appointmentGross + $servicesGross + $laboratoryGross) ?? 0,
+                'discounts' => ($pharmacyDiscounts + $appointmentDiscounts + $servicesDiscounts + $laboratoryDiscounts) ?? 0,
+                'net' => ($pharmacyNet + $appointmentNet + $servicesNet + $laboratoryNet) ?? 0,
+            ],
+        ];
     }
 }

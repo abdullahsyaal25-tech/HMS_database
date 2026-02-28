@@ -3,10 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { 
-  Users, 
-  Stethoscope, 
-  Calendar, 
+import {
+  Users,
+  Stethoscope,
+  Calendar,
   AlertCircle,
   TrendingUp,
   TrendingDown,
@@ -21,11 +21,12 @@ import {
   UserCheck,
   Building2,
   Activity as ActivityIcon,
-  ChevronLeft,
-  ChevronRight
+  DollarSign,
+  Percent,
+  BarChart3
 } from 'lucide-react';
 import HospitalLayout from '@/layouts/HospitalLayout';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { PageProps } from '@/types';
 
 // ============================================================================
@@ -82,11 +83,12 @@ interface DashboardProps extends PageProps {
     new_patients: number;
     total_doctors: number;
     total_departments: number;
-  total_appointments: number;
-  completed_appointments: number;
-  total_revenue: number;
-  appointment_revenue: number;
-  pharmacy_revenue: number;
+    total_appointments: number;
+    completed_appointments: number;
+    total_revenue: number;
+    appointment_revenue: number;
+    pharmacy_revenue: number;
+    laboratory_revenue: number;
   };
   financial: {
     total_revenue: number;
@@ -109,6 +111,7 @@ interface DashboardProps extends PageProps {
     expiring_count: number;
     expired_count: number;
     pending_prescriptions: number;
+    total_medicines: number;
   };
   laboratory: {
     total_today: number;
@@ -129,6 +132,28 @@ interface DashboardProps extends PageProps {
   period: string;
   last_updated: string;
   error?: string;
+  all_time_stats?: {
+    total_patients: number;
+    total_appointments: number;
+    total_revenue: number;
+    pharmacy_revenue: number;
+    pharmacy_profit: number;
+    today_patients: number;
+    today_appointments: number;
+    today_revenue: number;
+    today_appointment_revenue: number;
+    today_pharmacy_profit: number;
+  };
+  discount_stats?: {
+    appointment_discounts: number;
+    pharmacy_discounts: number;
+    service_discounts: number;
+    total_discounts: number;
+    today_appointment_discounts: number;
+    today_pharmacy_discounts: number;
+    today_service_discounts: number;
+    today_total_discounts: number;
+  };
 }
 
 // ============================================================================
@@ -286,19 +311,34 @@ export default function Dashboard({
   period,
   last_updated,
   error,
-  auth
+  auth,
+  all_time_stats,
+  discount_stats
 }: DashboardProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activityPage, setActivityPage] = useState(0);
-  const activitiesPerPage = 6;
+  const [selectedPeriod, setSelectedPeriod] = useState(period || 'today');
   const isSuperAdmin = auth?.user?.is_super_admin;
   const canViewAdminActivities = isSuperAdmin || auth?.user?.permissions?.includes('view-admin-activities');
+
+  // Real-time polling every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.reload({ only: ['summary', 'appointments', 'pharmacy', 'laboratory', 'all_time_stats', 'discount_stats'] });
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
     router.reload({
       onFinish: () => setIsRefreshing(false),
     });
+  };
+
+  const handlePeriodChange = (newPeriod: string) => {
+    setSelectedPeriod(newPeriod);
+    router.get('/dashboard', { period: newPeriod });
   };
 
   return (
@@ -316,6 +356,22 @@ export default function Dashboard({
               </p>
             </div>
             <div className="flex items-center gap-3">
+              {/* Period Selector */}
+              <div className="flex bg-gray-100 rounded-lg p-1">
+                {['today', 'week', 'month', 'year', 'all-time'].map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => handlePeriodChange(p)}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                      selectedPeriod === p
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    {p === 'all-time' ? 'All Time' : p.charAt(0).toUpperCase() + p.slice(1)}
+                  </button>
+                ))}
+              </div>
               <Button 
                 variant="outline" 
                 onClick={handleRefresh}
@@ -335,7 +391,7 @@ export default function Dashboard({
           )}
 
           {/* Revenue Overview - Prominent Display */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <RevenueCard
               title="Total Revenue"
               amount={summary?.total_revenue || 0}
@@ -357,13 +413,13 @@ export default function Dashboard({
               icon={<Package className="h-6 w-6 text-green-600" />}
               bgColor="bg-green-100"
             />
-            {/* <RevenueCard
-              title="Outstanding Amount"
-              amount={summary?.outstanding_amount || 0}
-              subtitle="Pending bill payments"
-              icon={<CreditCard className="h-6 w-6 text-red-600" />}
-              bgColor="bg-red-100"
-            /> */}
+            <RevenueCard
+              title="Laboratory Revenue"
+              amount={summary?.laboratory_revenue || 0}
+              subtitle="Revenue from lab tests"
+              icon={<FlaskConical className="h-6 w-6 text-cyan-600" />}
+              bgColor="bg-cyan-100"
+            />
           </div>
 
           {/* Main Stats - Vertical Layout */}
@@ -565,127 +621,27 @@ export default function Dashboard({
             </div>
           )}
 
-          {/* Recent Activities */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Activity className="h-5 w-5" />
-                    Recent System Activities
-                  </CardTitle>
-                  <CardDescription>Latest activities across all modules</CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    {recent_activities?.length || 0} total
-                  </span>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Scrollable container with fixed height */}
-              <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 rounded-lg border">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-1">
-                  {recent_activities && recent_activities.length > 0 ? (
-                    (
-                      recent_activities
-                        .slice(activityPage * activitiesPerPage, (activityPage + 1) * activitiesPerPage)
-                        .map((activity) => (
-                          <div 
-                            key={activity.id} 
-                            className="flex items-start gap-3 p-4 bg-gradient-to-r from-gray-50 to-white rounded-lg hover:from-blue-50 hover:to-blue-50/30 transition-all duration-200 border border-gray-100 hover:border-blue-200 shadow-sm hover:shadow-md"
-                          >
-                            <div className={`p-2.5 rounded-full ${
-                              activity.type === 'patient' ? 'bg-blue-100 text-blue-600' :
-                              activity.type === 'appointment' ? 'bg-yellow-100 text-yellow-600' :
-                              activity.type === 'billing' ? 'bg-purple-100 text-purple-600' :
-                              activity.type === 'pharmacy' ? 'bg-green-100 text-green-600' :
-                              activity.type === 'laboratory' ? 'bg-cyan-100 text-cyan-600' :
-                              activity.type === 'doctors' ? 'bg-red-100 text-red-600' :
-                              'bg-gray-100 text-gray-600'
-                            }`}>
-                              {activity.type === 'patient' && <Users className="h-4 w-4" />}
-                              {activity.type === 'appointment' && <Calendar className="h-4 w-4" />}
-                              {activity.type === 'billing' && <CreditCard className="h-4 w-4" />}
-                              {activity.type === 'pharmacy' && <Package className="h-4 w-4" />}
-                              {activity.type === 'laboratory' && <FlaskConical className="h-4 w-4" />}
-                              {activity.type === 'doctors' && <Stethoscope className="h-4 w-4" />}
-                              {activity.type === 'system' && <ActivityIcon className="h-4 w-4" />}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-1">
-                                <p className="font-semibold text-sm text-gray-900">{activity.title}</p>
-                              </div>
-                              <p className="text-sm text-muted-foreground truncate mb-2">{activity.description}</p>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                                  <Shield className="h-3 w-3 mr-1" />
-                                  {activity.user_name || 'System'}
-                                </Badge>
-                                <Badge variant="secondary" className="text-xs">
-                                  {activity.user_role || 'System'}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {activity.time}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                    )
-                  ) : (
-                    <p className="text-center text-muted-foreground py-8 col-span-2">No recent activities</p>
-                  )}
-                </div>
-              </div>
-              
-              {/* Pagination Controls */}
-              {recent_activities && recent_activities.length > activitiesPerPage && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <div className="text-sm text-muted-foreground">
-                    Showing {activityPage * activitiesPerPage + 1} to {Math.min((activityPage + 1) * activitiesPerPage, recent_activities.length)} of {recent_activities.length}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setActivityPage(activityPage - 1)}
-                      disabled={activityPage === 0}
-                      className="gap-1"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Previous
-                    </Button>
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: Math.ceil(recent_activities.length / activitiesPerPage) }, (_, i) => (
-                        <Button
-                          key={i}
-                          variant={activityPage === i ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setActivityPage(i)}
-                          className="w-8 h-8 p-0"
-                        >
-                          {i + 1}
-                        </Button>
-                      ))}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setActivityPage(activityPage + 1)}
-                      disabled={(activityPage + 1) * activitiesPerPage >= recent_activities.length}
-                      className="gap-1"
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Pharmacy Profits Section */}
+          <div className="mt-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Pharmacy Profits</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <RevenueCard
+                title="Today Pharmacy Profit"
+                amount={all_time_stats?.today_pharmacy_profit || 0}
+                subtitle="Profit from today's sales"
+                icon={<DollarSign className="h-6 w-6 text-emerald-600" />}
+                bgColor="bg-emerald-100"
+              />
+              <RevenueCard
+                title="All-Time Pharmacy Profit"
+                amount={all_time_stats?.pharmacy_profit || 0}
+                subtitle="Total profit since start"
+                icon={<DollarSign className="h-6 w-6 text-blue-600" />}
+                bgColor="bg-blue-100"
+              />
+            </div>
+          </div>
+
         </div>
       </div>
     </HospitalLayout>

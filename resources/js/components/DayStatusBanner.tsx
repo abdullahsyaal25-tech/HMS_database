@@ -44,25 +44,39 @@ interface DayStatusBannerProps {
         source: string;
         is_current_business_day?: boolean;
     } | null;
+    // New props for current day data consistency
+    currentDayData?: {
+        appointments_count: number;
+        total_revenue: number;
+        appointments_revenue: number;
+        pharmacy_revenue: number;
+        laboratory_revenue: number;
+        departments_revenue: number;
+        source: string;
+    } | null;
     onArchiveDay: () => Promise<boolean> | void;
     isLoading: boolean;
+    moduleType?: 'all' | 'appointments' | 'pharmacy' | 'laboratory' | 'departments';
     showActionButton?: boolean;
     isAdmin?: boolean;
-    moduleType?: 'all' | 'appointments' | 'pharmacy' | 'laboratory';
+    hidePharmacy?: boolean;
 }
 
-export function DayStatusBanner({ 
-    dayStatus, 
-    yesterdaySummary, 
-    onArchiveDay, 
+export function DayStatusBanner({
+    dayStatus,
+    yesterdaySummary,
+    currentDayData,
+    onArchiveDay,
     isLoading,
-    showActionButton = false,
+    moduleType = 'all',
+    showActionButton = true,
     isAdmin = false,
-    moduleType = 'all'
+    hidePharmacy = false
 }: DayStatusBannerProps) {
     
-    // For non-admins, hide banner if no new day is available
-    if (!dayStatus || (!dayStatus.new_day_available && !isAdmin)) {
+    // Always render the banner if dayStatus is available
+    // The "Start New Day" button is now a permanent manual control
+    if (!dayStatus) {
         return null;
     }
 
@@ -75,17 +89,17 @@ export function DayStatusBanner({
         });
     };
 
-    // Check if we're in "current business day started" mode (admin + no pending archive)
-    const isCurrentDayActive = !dayStatus.new_day_available && isAdmin;
+    // Check if we're in "current business day" mode (no pending new day)
+    const isCurrentDayActive = !dayStatus.new_day_available;
 
     const getBannerVariant = () => {
-        // When new_day_available is false but user is admin, show "Current Business Day Started"
+        // When new_day_available is false, show "Current Business Day Started"
         if (isCurrentDayActive) {
             return {
                 className: 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200',
                 icon: CheckCircle,
-                title: 'Current Business Day Started',
-                description: 'The current business day is active. You can manually start a new day if needed.'
+                title: 'Current Business Day Active',
+                description: 'The current business day is active. Use the button below to start a new day when ready.'
             };
         }
         switch (dayStatus.status) {
@@ -128,6 +142,8 @@ export function DayStatusBanner({
                 return { title: 'Pharmacy Sales', revenueLabel: 'Pharmacy Revenue' };
             case 'laboratory':
                 return { title: 'Laboratory', revenueLabel: 'Lab Revenue' };
+            case 'departments':
+                return { title: 'Departments', revenueLabel: 'Departments Revenue' };
             default:
                 return { title: dayLabel, revenueLabel: 'Total Revenue' };
         }
@@ -135,10 +151,55 @@ export function DayStatusBanner({
 
     const moduleLabels = getModuleLabels();
 
-    // Get the appropriate revenue based on module type
+    // DIAGNOSTIC LOG: Track revenue calculation
+    console.log('[DayStatusBanner] Revenue Calculation Debug:', {
+        moduleType,
+        isCurrentDayActive,
+        hasCurrentDayData: !!currentDayData,
+        currentDayDataRevenues: currentDayData ? {
+            total: currentDayData.total_revenue,
+            appointments: currentDayData.appointments_revenue,
+            pharmacy: currentDayData.pharmacy_revenue,
+            laboratory: currentDayData.laboratory_revenue,
+            departments: currentDayData.departments_revenue,
+        } : null,
+        hasYesterdaySummary: !!yesterdaySummary,
+        yesterdaySummaryRevenues: yesterdaySummary ? {
+            total: yesterdaySummary.total_revenue,
+            appointments: yesterdaySummary.appointments_revenue,
+            pharmacy: yesterdaySummary.pharmacy_revenue,
+            laboratory: yesterdaySummary.laboratory_revenue,
+            departments: yesterdaySummary.departments_revenue,
+        } : null,
+    });
+
+    // Get the appropriate revenue based on module type and current state
     const getDisplayRevenue = () => {
-        if (!yesterdaySummary) return 0;
+        // For current business day active state, prefer current day data if available
+        if (isCurrentDayActive && currentDayData) {
+            console.log('[DayStatusBanner] Using currentDayData for module:', moduleType);
+            switch (moduleType) {
+                case 'appointments':
+                    return currentDayData.appointments_revenue;
+                case 'pharmacy':
+                    return currentDayData.pharmacy_revenue;
+                case 'laboratory':
+                    return currentDayData.laboratory_revenue;
+                case 'departments':
+                    return currentDayData.departments_revenue;
+                case 'all':
+                default:
+                    return currentDayData.total_revenue;
+            }
+        }
         
+        // Fall back to yesterday summary for other states
+        if (!yesterdaySummary) {
+            console.log('[DayStatusBanner] yesterdaySummary is null, returning 0');
+            return 0;
+        }
+        
+        console.log('[DayStatusBanner] Using yesterdaySummary for module:', moduleType);
         switch (moduleType) {
             case 'appointments':
                 return yesterdaySummary.appointments_revenue;
@@ -146,6 +207,8 @@ export function DayStatusBanner({
                 return yesterdaySummary.pharmacy_revenue;
             case 'laboratory':
                 return yesterdaySummary.laboratory_revenue;
+            case 'departments':
+                return yesterdaySummary.departments_revenue;
             case 'all':
             default:
                 return yesterdaySummary.total_revenue;
@@ -174,22 +237,47 @@ export function DayStatusBanner({
 
     // Render detailed breakdown for moduleType 'all' (Wallet page)
     const renderDetailedBreakdown = () => {
-        if (!yesterdaySummary || moduleType !== 'all') return null;
+        if (moduleType !== 'all') return null;
 
         const theme = getThemeColors();
-        const isCurrentBusinessDay = yesterdaySummary?.is_current_business_day;
+        
+        // Always use current day data when available for comprehensive display
+        // Fall back to yesterday summary only if current day data is not available
+        const displayData = currentDayData 
+            ? {
+                appointments_count: currentDayData.appointments_count,
+                appointments_revenue: currentDayData.appointments_revenue,
+                pharmacy_revenue: currentDayData.pharmacy_revenue,
+                laboratory_revenue: currentDayData.laboratory_revenue,
+                departments_revenue: currentDayData.departments_revenue,
+                total_revenue: currentDayData.total_revenue,
+                source: currentDayData.source,
+                label: "Current Business Day"
+              }
+            : yesterdaySummary && {
+                appointments_count: yesterdaySummary.appointments_count,
+                appointments_revenue: yesterdaySummary.appointments_revenue,
+                pharmacy_revenue: yesterdaySummary.pharmacy_revenue,
+                laboratory_revenue: yesterdaySummary.laboratory_revenue,
+                departments_revenue: yesterdaySummary.departments_revenue,
+                total_revenue: yesterdaySummary.total_revenue,
+                source: yesterdaySummary.source,
+                label: yesterdaySummary.is_current_business_day ? "Current Business Day" : "Revenue Breakdown"
+              };
+
+        if (!displayData) return null;
 
         return (
             <div className={`bg-white/50 rounded-lg p-3 border ${theme.border}`}>
                 <div className="flex items-center gap-2 mb-3">
                     <DollarSign className={`h-4 w-4 ${theme.icon}`} />
                     <span className={`text-sm font-medium ${theme.text}`}>
-                        {isCurrentBusinessDay ? "Current Business Day" : "Revenue Breakdown"}
+                        {displayData.label}
                     </span>
                 </div>
                 
-                {/* Time Range Display */}
-                {yesterdaySummary.time_range && (
+                {/* Time Range Display - only show for yesterday summary */}
+                {!currentDayData && yesterdaySummary?.time_range && (
                     <div className={`${theme.bg}/50 rounded px-2 py-1 mb-3 text-xs ${theme.textMuted} flex items-center gap-1`}>
                         <Clock className="h-3 w-3" />
                         <span>From {yesterdaySummary.time_range}</span>
@@ -204,22 +292,24 @@ export function DayStatusBanner({
                             <span className={theme.textMuted}>Appointments:</span>
                         </div>
                         <div className="text-right">
-                            <span className="font-medium text-blue-600 mr-2">{yesterdaySummary.appointments_count}</span>
+                            <span className="font-medium text-blue-600 mr-2">{displayData.appointments_count}</span>
                             <span className="font-semibold text-emerald-600">
-                                {formatCurrency(yesterdaySummary.appointments_revenue)}
+                                {formatCurrency(displayData.appointments_revenue)}
                             </span>
                         </div>
                     </div>
-                    {/* Pharmacy */}
+                    {/* Pharmacy - hidden when hidePharmacy is true */}
+                    {!hidePharmacy && (
                     <div className="flex justify-between items-center py-1 border-b border-amber-100">
                         <div className="flex items-center gap-2">
                             <DollarSign className="h-3 w-3 text-purple-500" />
                             <span className={theme.textMuted}>Pharmacy:</span>
                         </div>
                         <span className="font-semibold text-emerald-600">
-                            {formatCurrency(yesterdaySummary.pharmacy_revenue)}
+                            {formatCurrency(displayData.pharmacy_revenue)}
                         </span>
                     </div>
+                    )}
                     {/* Laboratory */}
                     <div className="flex justify-between items-center py-1 border-b border-amber-100">
                         <div className="flex items-center gap-2">
@@ -227,7 +317,7 @@ export function DayStatusBanner({
                             <span className={theme.textMuted}>Laboratory:</span>
                         </div>
                         <span className="font-semibold text-emerald-600">
-                            {formatCurrency(yesterdaySummary.laboratory_revenue)}
+                            {formatCurrency(displayData.laboratory_revenue)}
                         </span>
                     </div>
                     {/* Departments */}
@@ -237,19 +327,19 @@ export function DayStatusBanner({
                             <span className={theme.textMuted}>Departments:</span>
                         </div>
                         <span className="font-semibold text-emerald-600">
-                            {formatCurrency(yesterdaySummary.departments_revenue)}
+                            {formatCurrency(displayData.departments_revenue)}
                         </span>
                     </div>
                     {/* Total */}
                     <div className={`flex justify-between items-center py-2 ${theme.bg}/50 rounded mt-2 px-2`}>
-                        <span className={`font-bold ${isCurrentDayActive ? 'text-green-800' : 'text-amber-800'}`}>Total:</span>
+                        <span className={`font-bold ${currentDayData ? 'text-green-800' : 'text-amber-800'}`}>Total:</span>
                         <span className="font-bold text-emerald-700 text-lg">
-                            {formatCurrency(yesterdaySummary.total_revenue)}
+                            {formatCurrency(displayData.total_revenue)}
                         </span>
                     </div>
                 </div>
-                <div className={`text-xs ${isCurrentDayActive ? 'text-green-500' : 'text-amber-500'} mt-2`}>
-                    Source: {yesterdaySummary.source}
+                <div className={`text-xs ${currentDayData ? 'text-green-500' : 'text-amber-500'} mt-2`}>
+                    Source: {displayData.source}
                 </div>
             </div>
         );
@@ -276,7 +366,7 @@ export function DayStatusBanner({
                 )}
             </AlertTitle>
             <AlertDescription className="mt-2">
-                <div className={`grid grid-cols-1 ${moduleType === 'all' ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
+                <div className={`grid grid-cols-1 ${moduleType === 'all' ? 'md:grid-cols-2' : showActionButton ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
                     {/* Yesterday's Summary - Detailed breakdown for 'all' moduleType */}
                     {moduleType === 'all' ? (
                         renderDetailedBreakdown()
@@ -348,8 +438,8 @@ export function DayStatusBanner({
                         </div>
                     </div>
 
-                    {/* Action - Show for admins or when showActionButton is true */}
-                    {(showActionButton || isAdmin) && (
+                    {/* Action - Only show when showActionButton is true */}
+                    {showActionButton && (
                     <div className={`bg-white/50 rounded-lg p-3 border ${theme.border}`}>
                         <div className="flex items-center gap-2 mb-2">
                             <RefreshCw className={`h-4 w-4 ${theme.icon}`} />
@@ -359,15 +449,15 @@ export function DayStatusBanner({
                         </div>
                         <div className="space-y-2">
                             <p className={`text-sm ${theme.textMuted}`}>
-                                {dayStatus.new_day_available 
+                                {dayStatus.new_day_available
                                     ? "Click below to archive yesterday's data and start fresh for today."
                                     : "Click below to manually start a new business day."}
                             </p>
-                            <Button 
+                            <Button
                                 onClick={onArchiveDay}
                                 disabled={isLoading}
                                 className={`w-full font-semibold shadow-md hover:shadow-lg transition-all duration-200 ${
-                                    dayStatus.new_day_available 
+                                    dayStatus.new_day_available
                                         ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
                                         : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white'
                                 }`}

@@ -1,0 +1,19 @@
+=== Tables and row counts ===
+appointments: 84
+sales: 4
+lab_test_results: 14
+appointment_services: 21
+department_services: 73
+departments: 16
+
+Appointment dates: 2026-02-23 00:00:00 to 2026-02-27 15:32:00
+Sales dates: 2026-02-24 03:31:46 to 2026-02-26 08:20:26
+Lab test results dates: 2026-02-24 00:00:00 to 2026-02-27 00:00:00
+
+=== Revenue for time range: 2026-02-27 14:44:16 to 2026-02-28 01:46:31 ===
+1. Appointments Revenue (no services, non-Lab): 0 (count: 0)
+2. Pharmacy Revenue: 0.00 (count: 0)
+3. Lab Test Results Revenue: 0.00 (count: 0)
+4. Lab Services Revenue (from appointments): 0.00 (count: 0)
+5. Lab Department Appointments Revenue: 220.00 (count: 3)
+6. Department Revenue (non-Lab): 0.00 (count: 0)

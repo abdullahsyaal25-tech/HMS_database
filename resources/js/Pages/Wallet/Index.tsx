@@ -361,6 +361,15 @@ export default function Index({ wallet: initialWallet, displayBalance: initialDi
                 <DayStatusBanner 
                     dayStatus={dayStatus} 
                     yesterdaySummary={yesterdaySummary} 
+                    currentDayData={{
+                        appointments_count: safeRevenueData.today.appointments,
+                        total_revenue: safeRevenueData.today.total,
+                        appointments_revenue: safeRevenueData.today.appointments,
+                        pharmacy_revenue: safeRevenueData.today.pharmacy,
+                        laboratory_revenue: safeRevenueData.today.laboratory,
+                        departments_revenue: safeRevenueData.today.departments,
+                        source: 'wallet-page'
+                    }}
                     onArchiveDay={archiveDay} 
                     isLoading={isDayStatusLoading}
                     showActionButton={true}

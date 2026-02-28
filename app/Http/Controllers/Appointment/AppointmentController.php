@@ -29,6 +29,77 @@ class AppointmentController extends Controller
     }
 
     /**
+     * Get pharmacy revenue for a date range
+     */
+    private function getPharmacyRevenue($start, $end): float
+    {
+        return \App\Models\Sale::where('status', 'completed')
+            ->whereBetween('created_at', [$start, $end])
+            ->sum('grand_total') ?? 0;
+    }
+
+    /**
+     * Get laboratory revenue for a date range
+     */
+    private function getLaboratoryRevenue($start, $end): float
+    {
+        // Get lab test results that are completed OR have been performed
+        $labTestResultsRevenue = \Illuminate\Support\Facades\DB::table('lab_test_results')
+            ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
+            ->where(function ($query) use ($start, $end) {
+                $query->whereBetween('lab_test_results.performed_at', [$start, $end])
+                      ->orWhere(function ($q) {
+                          $q->whereNull('lab_test_results.performed_at')
+                            ->whereIn('lab_test_results.status', ['completed', 'verified']);
+                      });
+            })
+            ->sum('lab_tests.cost') ?? 0;
+
+        // Get laboratory services from appointments (department services)
+        $appointmentLabServicesRevenue = \Illuminate\Support\Facades\DB::table('appointment_services')
+            ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+            ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+            ->join('departments', 'department_services.department_id', '=', 'departments.id')
+            ->whereIn('appointments.status', ['completed', 'confirmed'])
+            ->where('departments.name', '=', 'Laboratory')
+            ->whereBetween('appointments.appointment_date', [$start, $end])
+            ->sum('appointment_services.final_cost') ?? 0;
+
+        // Get laboratory department appointments
+        $labDepartmentAppointmentsRevenue = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
+            ->whereBetween('appointment_date', [$start, $end])
+            ->whereDoesntHave('services')
+            ->where(function ($query) {
+                $query->whereIn('department_id', function ($subQuery) {
+                    $subQuery->select('id')
+                             ->from('departments')
+                             ->where('name', 'Laboratory');
+                });
+            })
+            ->get()
+            ->sum(function ($appointment) {
+                return max(0, ($appointment->fee ?? 0) - ($appointment->discount ?? 0));
+            });
+
+        return $labTestResultsRevenue + $appointmentLabServicesRevenue + $labDepartmentAppointmentsRevenue;
+    }
+
+    /**
+     * Get department service revenue for a date range (excluding Laboratory)
+     */
+    private function getDepartmentRevenue($start, $end): float
+    {
+        return \Illuminate\Support\Facades\DB::table('appointment_services')
+            ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
+            ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
+            ->join('departments', 'department_services.department_id', '=', 'departments.id')
+            ->whereIn('appointments.status', ['completed', 'confirmed'])
+            ->where('departments.name', '!=', 'Laboratory')
+            ->whereBetween('appointments.appointment_date', [$start, $end])
+            ->sum('appointment_services.final_cost') ?? 0;
+    }
+
+    /**
      * Check if the current user can access appointments
      */
     private function authorizeAppointmentAccess(): void
@@ -111,6 +182,28 @@ class AppointmentController extends Controller
             $totalCount = $todayAppointmentsCount;
         }
 
+        // Get current day appointment revenue data for DayStatusBanner
+        // Check if day_end_timestamp exists - Manual day detection
+        $dayEndTimestamp = Cache::get('day_end_timestamp');
+        
+        // Determine the effective start time for today queries
+        // If day_end_timestamp exists, only query transactions AFTER that timestamp
+        // If no cache exists, use today's start to show only today's data
+        $effectiveStartTime = $dayEndTimestamp 
+            ? \Carbon\Carbon::parse($dayEndTimestamp)
+            : \Carbon\Carbon::today()->startOfDay();
+        
+        $tomorrow = \Carbon\Carbon::tomorrow();
+
+        // Calculate all revenue categories
+        $currentDayAppointmentRevenue = $this->getAppointmentRevenue($effectiveStartTime, $tomorrow);
+        $pharmacyRevenue = $this->getPharmacyRevenue($effectiveStartTime, $tomorrow);
+        $laboratoryRevenue = $this->getLaboratoryRevenue($effectiveStartTime, $tomorrow);
+        $departmentsRevenue = $this->getDepartmentRevenue($effectiveStartTime, $tomorrow);
+        
+        // Calculate total from all sources
+        $totalRevenue = $currentDayAppointmentRevenue + $pharmacyRevenue + $laboratoryRevenue + $departmentsRevenue;
+
         return Inertia::render('Appointment/Index', [
             'appointments' => $appointments,
             'is_super_admin' => $isSuperAdmin,
@@ -121,6 +214,15 @@ class AppointmentController extends Controller
                 'completed_count' => $completedCount,
                 'cancelled_count' => $cancelledCount,
                 'total_count' => $totalCount,
+            ],
+            'currentDayData' => [
+                'appointments_count' => $todayAppointmentsCount,
+                'total_revenue' => round($totalRevenue, 2),
+                'appointments_revenue' => round($currentDayAppointmentRevenue, 2),
+                'pharmacy_revenue' => round($pharmacyRevenue, 2),
+                'laboratory_revenue' => round($laboratoryRevenue, 2),
+                'departments_revenue' => round($departmentsRevenue, 2),
+                'source' => 'Appointments Dashboard',
             ],
         ]);
     }
@@ -443,6 +545,37 @@ class AppointmentController extends Controller
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => 'Failed to delete appointment: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * Get appointment revenue for a date range.
+     * Calculates from completed appointments ONLY using doctor consultation fee (fee - discount).
+     * Services are tracked separately in getDepartmentRevenue().
+     * Excludes laboratory department appointments (counted in laboratory revenue instead).
+     */
+    private function getAppointmentRevenue(\Carbon\Carbon $start, \Carbon\Carbon $end)
+    {
+        // Get completed appointments WITHOUT services AND NOT from Laboratory department
+        // Appointments with services are tracked in department revenue instead
+        // Laboratory appointments (even without services attached) are tracked in laboratory revenue
+        // FIXED: Use appointment_date instead of created_at to match DashboardService logic
+        $appointments = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
+            ->whereBetween('appointment_date', [$start, $end])
+            ->whereDoesntHave('services')  // Only appointments without services
+            ->where(function ($query) {
+                // Exclude appointments where department is Laboratory
+                $query->whereNull('department_id')
+                      ->orWhereNotIn('department_id', function ($subQuery) {
+                          $subQuery->select('id')
+                                   ->from('departments')
+                                   ->where('name', 'Laboratory');
+                      });
+            })
+            ->get();
+        
+        return $appointments->sum(function ($appointment) {
+            return max(0, ($appointment->fee ?? 0) - ($appointment->discount ?? 0));
+        });
     }
 
 }

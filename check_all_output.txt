@@ -1,0 +1,42 @@
+=== VERIFICATION FOR TIME RANGE: 2026-02-27 14:44:16 to 2026-02-28 01:46:31 ===
+
+=== 1. getAppointmentRevenue() ===
+Appointments (non-Lab, no services): 0 (count: 0)
+
+All appointments in time range:
+ID: 83, Date: 2026-02-27 15:09:00, DeptID: 15, Revenue: 50
+ID: 84, Date: 2026-02-27 15:10:00, DeptID: 15, Revenue: 50
+ID: 85, Date: 2026-02-27 15:32:00, DeptID: 15, Revenue: 120
+Total all in range: 220
+This is correct - it excludes Laboratory appointments and those with services.
+
+=== 2. getPharmacyRevenue() ===
+Pharmacy Revenue: 0.00 (count: 0)
+
+All sales:
+ID: 1, Date: 2026-02-24 03:31:46, Status: cancelled, Total: 130.00
+ID: 2, Date: 2026-02-24 04:59:42, Status: completed, Total: 80.00
+ID: 21, Date: 2026-02-26 06:01:21, Status: completed, Total: 55.00
+ID: 23, Date: 2026-02-26 08:20:26, Status: completed, Total: 96.00
+Pharmacy method appears correct.
+
+=== 3. getDepartmentRevenue() ===
+Department Revenue (non-Lab): 0.00 (count: 0)
+
+All appointment services in time range:
+Total: 0
+Department revenue method appears correct.
+
+=== SUMMARY OF CORRECT VALUES ===
+Time range: 2026-02-27 14:44:16 to 2026-02-28 01:46:31
+
+Appointments Revenue (non-Lab, no services): 0.00
+Pharmacy Revenue: 0.00
+Department Revenue (non-Lab): 0.00
+Laboratory Revenue (CORRECT breakdown):
+  - Lab Test Results: 0.00
+  - Lab Services (appointment_services): 0.00
+  - Lab Department Appointments: 220.00
+  - TOTAL Laboratory: 220
+
+TOTAL CORRECT REVENUE: 220

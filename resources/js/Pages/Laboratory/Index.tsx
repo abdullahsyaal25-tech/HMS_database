@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Heading from '@/components/heading';
 import LaboratoryLayout from '@/layouts/LaboratoryLayout';
 import { LabStatusBadge, PriorityBadge } from '@/components/laboratory';
+
 import {
     FlaskConical,
     ClipboardList,
@@ -73,6 +74,7 @@ export default function LaboratoryIndex({
     criticalResults = 0,
     statRequests = 0,
 }: LaboratoryIndexProps) {
+
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             month: 'short',

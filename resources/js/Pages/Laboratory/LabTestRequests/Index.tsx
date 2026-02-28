@@ -4,8 +4,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Heading from '@/components/heading';
 import LaboratoryLayout from '@/layouts/LaboratoryLayout';
-import { DayStatusBanner } from '@/components/DayStatusBanner';
-import { useDayStatus } from '@/hooks/useDayStatus';
 import {
   PriorityBadge,
   LabStatusBadge,
@@ -106,9 +104,6 @@ export default function LabTestRequestIndex({
     date_from: filters.date_from || '',
     date_to: filters.date_to || '',
   });
-
-  // Smart Day Detection
-  const { dayStatus, yesterdaySummary, isLoading: isDayStatusLoading, archiveDay } = useDayStatus();
 
   // Filter configurations
   const filterConfigs: FilterConfig[] = useMemo(() => [
@@ -360,22 +355,6 @@ export default function LabTestRequestIndex({
             </Link>
           </div>
         </div>
-
-        {/* Smart Day Detection Banner */}
-        <DayStatusBanner
-            dayStatus={dayStatus}
-            yesterdaySummary={yesterdaySummary}
-            onArchiveDay={archiveDay}
-            isLoading={isDayStatusLoading}
-            showActionButton={false}
-            isAdmin={(() => {
-                const auth = (usePage().props as any).auth;
-                if (!auth?.user) return false;
-                const adminRoles = ['Super Admin', 'Sub Super Admin', 'Pharmacy Admin', 'Laboratory Admin', 'Reception Admin'];
-                return adminRoles.includes(auth.user.role) || (auth.user.permissions?.includes('manage-wallet') ?? false);
-            })()}
-            moduleType="laboratory"
-        />
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
