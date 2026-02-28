@@ -28,13 +28,6 @@ import {
   TrendingUp,
   Printer,
   Copy,
-  TestTube,
-  Dna,
-  Bacteria,
-  Vial,
-  Droplet,
-  CircleDot,
-  type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LabTest, ReferenceRange, TestParameter } from '@/types/lab-test';
@@ -172,16 +165,8 @@ export default function LabTestShow({ labTest, recentResults = [] }: LabTestShow
       <Head title={`Lab Test - ${labTest.test_id}`} />
       
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <Heading title="Lab Test Details" />
-            <p className="text-muted-foreground mt-1">
-              Viewing test information and recent results
-            </p>
-          </div>
-          
-          <div className="flex flex-wrap gap-2">
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-2">
             <Button
               variant={isActive ? 'destructive' : 'default'}
               onClick={handleStatusToggle}
@@ -215,7 +200,6 @@ export default function LabTestShow({ labTest, recentResults = [] }: LabTestShow
               </Button>
             </Link>
           </div>
-        </div>
 
         {/* Main Test Info Card */}
         <Card className={cn(

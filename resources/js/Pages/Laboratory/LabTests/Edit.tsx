@@ -238,29 +238,20 @@ export default function LabTestEdit({ labTest }: LabTestEditProps) {
       <Head title={`Edit Lab Test - ${labTest.test_code}`} />
       
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <Heading title={`Edit Lab Test`} />
-            <p className="text-muted-foreground mt-1">
-              Updating: <span className="font-medium text-foreground">{labTest.test_code}</span>
-            </p>
-          </div>
-          
-          <div className="flex gap-2">
-            <Link href={`/laboratory/lab-tests/${labTest.id}`}>
-              <Button variant="outline">
-                <Eye className="mr-2 h-4 w-4" />
-                View Details
-              </Button>
-            </Link>
-            <Link href="/laboratory/lab-tests">
-              <Button variant="outline">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Tests
-              </Button>
-            </Link>
-          </div>
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <Link href={`/laboratory/lab-tests/${labTest.id}`}>
+            <Button variant="outline">
+              <Eye className="mr-2 h-4 w-4" />
+              View Details
+            </Button>
+          </Link>
+          <Link href="/laboratory/lab-tests">
+            <Button variant="outline">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Tests
+            </Button>
+          </Link>
         </div>
 
         {/* Test Info Banner */}
