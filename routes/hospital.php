@@ -321,40 +321,34 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/weekly-trend', [ReportController::class, 'weeklyTrend'])->name('reports.weekly-trend');
     });
 
-    // Admin Dashboard
+    // Admin Dashboard - protected with permission middleware
     Route::get('/admin', function () {
-        $user = Auth::user();
-
-        // Check if user has permission to access admin dashboard
-        if (!$user->hasPermission('view-users') && !$user->isSuperAdmin()) {
-            abort(403, 'Unauthorized access');
-        }
-
         return inertia('Admin/Dashboard');
-    })->name('admin.dashboard')->middleware('auth');
+    })->name('admin.dashboard')
+      ->middleware(['auth', 'check.permission:view-admin-dashboard']);
 
     // Admin User Management Routes
     Route::middleware(['check.permission:view-users', 'permission.monitoring'])->prefix('admin')->group(function () {
         Route::prefix('users')->group(function () {
-            Route::get('/', [App\Http\Controllers\Admin\UserController::class, 'index'])->name('admin.users.index')->middleware('auth');
-            Route::get('/create', [App\Http\Controllers\Admin\UserController::class, 'create'])->name('admin.users.create')->middleware('auth');
-            Route::get('/check-username', [App\Http\Controllers\Admin\UserController::class, 'checkUsername'])->name('admin.users.check-username')->middleware('auth');
-            Route::post('/', [App\Http\Controllers\Admin\UserController::class, 'store'])->name('admin.users.store')->middleware('auth');
-            Route::get('/{user}', [App\Http\Controllers\Admin\UserController::class, 'show'])->name('admin.users.show')->middleware('auth');
-            Route::get('/{user}/edit', [App\Http\Controllers\Admin\UserController::class, 'edit'])->name('admin.users.edit')->middleware('auth');
-            Route::put('/{user}', [App\Http\Controllers\Admin\UserController::class, 'update'])->name('admin.users.update')->middleware('auth');
+            Route::get('/', [App\Http\Controllers\Admin\UserController::class, 'index'])->name('admin.users.index');
+            Route::get('/create', [App\Http\Controllers\Admin\UserController::class, 'create'])->name('admin.users.create');
+            Route::get('/check-username', [App\Http\Controllers\Admin\UserController::class, 'checkUsername'])->name('admin.users.check-username');
+            Route::post('/', [App\Http\Controllers\Admin\UserController::class, 'store'])->name('admin.users.store')->middleware('check.permission:create-users');
+            Route::get('/{user}', [App\Http\Controllers\Admin\UserController::class, 'show'])->name('admin.users.show');
+            Route::get('/{user}/edit', [App\Http\Controllers\Admin\UserController::class, 'edit'])->name('admin.users.edit');
+            Route::put('/{user}', [App\Http\Controllers\Admin\UserController::class, 'update'])->name('admin.users.update')->middleware('check.permission:edit-users');
 
             // User Permissions Management
-            Route::get('/{user}/permissions', [App\Http\Controllers\Admin\UserController::class, 'editPermissions'])->name('admin.users.permissions.edit')->middleware('auth');
-            Route::put('/{user}/permissions', [App\Http\Controllers\Admin\UserController::class, 'updatePermissions'])->name('admin.users.permissions.update')->middleware('auth');
-            Route::delete('/{user}/permissions/{permission}', [App\Http\Controllers\Admin\UserController::class, 'revokePermission'])->name('admin.users.permissions.revoke')->middleware('auth');
+            Route::get('/{user}/permissions', [App\Http\Controllers\Admin\UserController::class, 'editPermissions'])->name('admin.users.permissions.edit');
+            Route::put('/{user}/permissions', [App\Http\Controllers\Admin\UserController::class, 'updatePermissions'])->name('admin.users.permissions.update')->middleware('check.permission:manage-user-permissions');
+            Route::delete('/{user}/permissions/{permission}', [App\Http\Controllers\Admin\UserController::class, 'revokePermission'])->name('admin.users.permissions.revoke')->middleware('check.permission:manage-user-permissions');
 
             // Bulk operations and templates
-            Route::post('/bulk-permissions', [App\Http\Controllers\Admin\UserController::class, 'bulkUpdatePermissions'])->name('admin.users.bulk-permissions')->middleware('auth');
-            Route::get('/permission-templates', [App\Http\Controllers\Admin\UserController::class, 'getPermissionTemplates'])->name('admin.users.permission-templates')->middleware('auth');
-            Route::post('/analyze-permission-impact', [App\Http\Controllers\Admin\UserController::class, 'analyzePermissionImpact'])->name('admin.users.analyze-permission-impact')->middleware('auth');
+            Route::post('/bulk-permissions', [App\Http\Controllers\Admin\UserController::class, 'bulkUpdatePermissions'])->name('admin.users.bulk-permissions')->middleware('check.permission:manage-user-permissions');
+            Route::get('/permission-templates', [App\Http\Controllers\Admin\UserController::class, 'getPermissionTemplates'])->name('admin.users.permission-templates')->middleware('check.permission:view-permission-templates');
+            Route::post('/analyze-permission-impact', [App\Http\Controllers\Admin\UserController::class, 'analyzePermissionImpact'])->name('admin.users.analyze-permission-impact')->middleware('check.permission:analyze-permission-impact');
 
-            Route::delete('/{user}', [App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('admin.users.destroy')->middleware('auth');
+            Route::delete('/{user}', [App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('admin.users.destroy')->middleware('check.permission:delete-users');
         });
 
         // Permissions Management Routes
@@ -367,8 +361,16 @@ Route::middleware(['web', 'auth'])->group(function () {
             Route::put('/users/{user}', [App\Http\Controllers\Admin\PermissionsController::class, 'updateUserPermissions'])->name('admin.permissions.users.update');
         });
 
+        // Permission Monitoring Route
+        Route::get('/permission-monitoring', function () {
+            return inertia('Admin/PermissionMonitoring');
+        })->name('admin.permission-monitoring')
+          ->middleware('check.permission:view-permission-monitoring');
+
         // Security Center Route
-        Route::get('/security', [App\Http\Controllers\Admin\SecurityController::class, 'index'])->name('admin.security')->middleware('auth');
+        Route::get('/security', [App\Http\Controllers\Admin\SecurityController::class, 'index'])
+            ->name('admin.security')
+            ->middleware('check.permission:view-security-center');
 
         // Activity Logs Route for Super Admins
         Route::get('/activity-logs', function () {
@@ -385,7 +387,7 @@ Route::middleware(['web', 'auth'])->group(function () {
 });
 
 // Admin API routes for dashboard
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'check.permission:view-admin-dashboard'])->group(function () {
     Route::get('/api/v1/admin/recent-activity', [App\Http\Controllers\API\v1\AdminController::class, 'getRecentActivity']);
     Route::get('/api/v1/admin/audit-logs', [App\Http\Controllers\API\v1\AdminController::class, 'getAuditLogs']);
     Route::get('/api/v1/admin/stats', [App\Http\Controllers\API\v1\AdminController::class, 'getStats']);
@@ -393,13 +395,23 @@ Route::middleware(['auth'])->group(function () {
     // Security Center API routes
     Route::put('/api/v1/admin/change-password', [App\Http\Controllers\API\v1\SecurityController::class, 'updateOwnPassword']);
     Route::put('/api/v1/admin/update-profile', [App\Http\Controllers\API\v1\SecurityController::class, 'updateOwnProfile']);
-    Route::get('/api/v1/admin/users', [App\Http\Controllers\API\v1\SecurityController::class, 'getUsers']);
-    Route::post('/api/v1/admin/users', [App\Http\Controllers\API\v1\SecurityController::class, 'createUser']);
-    Route::put('/api/v1/admin/users/{user}/update-profile', [App\Http\Controllers\API\v1\SecurityController::class, 'updateUserProfile']);
-    Route::put('/api/v1/admin/users/{user}/reset-password', [App\Http\Controllers\API\v1\SecurityController::class, 'resetUserPassword']);
-    Route::delete('/api/v1/admin/users/{user}', [App\Http\Controllers\API\v1\SecurityController::class, 'deleteUser']);
-    Route::put('/api/v1/admin/users/{user}/change-password', [App\Http\Controllers\API\v1\SecurityController::class, 'updateUserPassword']);
-    Route::put('/api/v1/admin/users/{user}/update-username', [App\Http\Controllers\API\v1\SecurityController::class, 'updateUsername']);
+    
+    // User management API routes
+    Route::middleware('check.permission:view-users')->group(function () {
+        Route::get('/api/v1/admin/users', [App\Http\Controllers\API\v1\SecurityController::class, 'getUsers']);
+    });
+    Route::middleware('check.permission:create-users')->group(function () {
+        Route::post('/api/v1/admin/users', [App\Http\Controllers\API\v1\SecurityController::class, 'createUser']);
+    });
+    Route::middleware('check.permission:edit-users')->group(function () {
+        Route::put('/api/v1/admin/users/{user}/update-profile', [App\Http\Controllers\API\v1\SecurityController::class, 'updateUserProfile']);
+        Route::put('/api/v1/admin/users/{user}/reset-password', [App\Http\Controllers\API\v1\SecurityController::class, 'resetUserPassword']);
+        Route::put('/api/v1/admin/users/{user}/change-password', [App\Http\Controllers\API\v1\SecurityController::class, 'updateUserPassword']);
+        Route::put('/api/v1/admin/users/{user}/update-username', [App\Http\Controllers\API\v1\SecurityController::class, 'updateUsername']);
+    });
+    Route::middleware('check.permission:delete-users')->group(function () {
+        Route::delete('/api/v1/admin/users/{user}', [App\Http\Controllers\API\v1\SecurityController::class, 'deleteUser']);
+    });
     
     // Admin RBAC Routes
     Route::middleware(['check.permission:view-rbac-dashboard'])->prefix('admin')->group(function () {

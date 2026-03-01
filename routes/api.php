@@ -55,11 +55,16 @@ Route::prefix('v1')->group(function () {
         Route::put('/appointments/{id}/cancel', [AppointmentController::class, 'cancel']);
         Route::put('/appointments/{id}/complete', [AppointmentController::class, 'complete']);
 
-        // Admin routes
-        Route::get('/admin/recent-activity', [AdminController::class, 'getRecentActivity']);
-        Route::get('/admin/stats', [AdminController::class, 'getStats']);
-        Route::get('/admin/audit-logs', [AdminController::class, 'getAuditLogs']);
-        Route::get('/admin/audit-analytics', [AdminController::class, 'getAuditAnalytics']);
+        // Admin routes - protected with permission checks
+        Route::middleware('check.permission:view-admin-dashboard')->group(function () {
+            Route::get('/admin/recent-activity', [AdminController::class, 'getRecentActivity']);
+            Route::get('/admin/stats', [AdminController::class, 'getStats']);
+        });
+        
+        Route::middleware('check.permission:view-activity-logs')->group(function () {
+            Route::get('/admin/audit-logs', [AdminController::class, 'getAuditLogs']);
+            Route::get('/admin/audit-analytics', [AdminController::class, 'getAuditAnalytics']);
+        });
 
         // Notification routes
         Route::get('/notifications', [NotificationController::class, 'index']);
@@ -69,21 +74,36 @@ Route::prefix('v1')->group(function () {
         Route::put('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
         Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
 
-        // Permission Management routes with additional security middleware
-        Route::middleware(['permission.ip.restriction', 'permission.rate.limit', 'permission.session'])->prefix('admin/permissions')->group(function () {
+        // Permission Management routes with additional security middleware and permission checks
+        Route::middleware([
+            'permission.ip.restriction',
+            'permission.rate.limit',
+            'permission.session',
+            'check.permission:manage-permissions'
+        ])->prefix('admin/permissions')->group(function () {
             // Temporary Permissions
-            Route::post('/grant-temporary', [PermissionsController::class, 'grantTemporaryPermission']);
-            Route::delete('/revoke-temporary/{tempPermissionId}', [PermissionsController::class, 'revokeTemporaryPermission']);
-            Route::get('/temporary-permissions', [PermissionsController::class, 'listTemporaryPermissions']);
-            Route::post('/check-temporary-permission', [PermissionsController::class, 'checkTemporaryPermission']);
+            Route::post('/grant-temporary', [PermissionsController::class, 'grantTemporaryPermission'])
+                ->middleware('check.permission:grant-temporary-permissions');
+            Route::delete('/revoke-temporary/{tempPermissionId}', [PermissionsController::class, 'revokeTemporaryPermission'])
+                ->middleware('check.permission:revoke-temporary-permissions');
+            Route::get('/temporary-permissions', [PermissionsController::class, 'listTemporaryPermissions'])
+                ->middleware('check.permission:view-temporary-permissions');
+            Route::post('/check-temporary-permission', [PermissionsController::class, 'checkTemporaryPermission'])
+                ->middleware('check.permission:view-temporary-permissions');
 
             // Permission Change Requests
-            Route::post('/change-requests', [PermissionsController::class, 'createPermissionChangeRequest']);
-            Route::get('/change-requests', [PermissionsController::class, 'listPermissionChangeRequests']);
-            Route::get('/change-requests/{requestId}', [PermissionsController::class, 'showPermissionChangeRequest']);
-            Route::post('/change-requests/{requestId}/approve', [PermissionsController::class, 'approvePermissionChangeRequest']);
-            Route::post('/change-requests/{requestId}/reject', [PermissionsController::class, 'rejectPermissionChangeRequest']);
-            Route::delete('/change-requests/{requestId}/cancel', [PermissionsController::class, 'cancelPermissionChangeRequest']);
+            Route::post('/change-requests', [PermissionsController::class, 'createPermissionChangeRequest'])
+                ->middleware('check.permission:create-permission-requests');
+            Route::get('/change-requests', [PermissionsController::class, 'listPermissionChangeRequests'])
+                ->middleware('check.permission:view-permission-requests');
+            Route::get('/change-requests/{requestId}', [PermissionsController::class, 'showPermissionChangeRequest'])
+                ->middleware('check.permission:view-permission-requests');
+            Route::post('/change-requests/{requestId}/approve', [PermissionsController::class, 'approvePermissionChangeRequest'])
+                ->middleware('check.permission:approve-permission-requests');
+            Route::post('/change-requests/{requestId}/reject', [PermissionsController::class, 'rejectPermissionChangeRequest'])
+                ->middleware('check.permission:reject-permission-requests');
+            Route::delete('/change-requests/{requestId}/cancel', [PermissionsController::class, 'cancelPermissionChangeRequest'])
+                ->middleware('check.permission:cancel-permission-requests');
         });
 
 
@@ -158,6 +178,19 @@ Route::prefix('v1')->group(function () {
         Route::get('/status', [DayStatusController::class, 'getStatus']);
         Route::post('/archive', [DayStatusController::class, 'archiveDay']);
         Route::get('/yesterday-summary', [DayStatusController::class, 'getYesterdaySummary']);
+    });
+
+    // Permission Monitoring routes - protected with permission checks
+    Route::prefix('permission-monitoring')->middleware(['web', 'auth', 'check.permission:view-permission-monitoring'])->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\API\v1\PermissionMonitoringController::class, 'dashboard']);
+        Route::get('/metrics', [App\Http\Controllers\API\v1\PermissionMonitoringController::class, 'metrics']);
+        Route::get('/alerts', [App\Http\Controllers\API\v1\PermissionMonitoringController::class, 'alerts']);
+        Route::get('/alert-statistics', [App\Http\Controllers\API\v1\PermissionMonitoringController::class, 'alertStatistics']);
+        Route::get('/health-status', [App\Http\Controllers\API\v1\PermissionMonitoringController::class, 'healthStatus']);
+        Route::post('/acknowledge-alert/{alert}', [App\Http\Controllers\API\v1\PermissionMonitoringController::class, 'acknowledgeAlert'])
+            ->middleware('check.permission:manage-permission-alerts');
+        Route::post('/resolve-alert/{alert}', [App\Http\Controllers\API\v1\PermissionMonitoringController::class, 'resolveAlert'])
+            ->middleware('check.permission:manage-permission-alerts');
     });
 });
 

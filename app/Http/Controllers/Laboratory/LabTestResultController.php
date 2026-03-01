@@ -392,7 +392,7 @@ class LabTestResultController extends Controller
             abort(403, 'Unauthorized access');
         }
         
-        // Load relationships
+        // Load relationships - include reference_ranges from test
         $labTestResult->load(['patient', 'test', 'performedBy']);
         
         // Determine permissions - no verification process, always allow editing
