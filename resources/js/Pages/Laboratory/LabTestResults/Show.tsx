@@ -282,69 +282,7 @@ export default function LabTestResultShow({
     >
       <Head title={`Lab Test Result - ${labTestResult.result_id}`} />
 
-      <style>{`
-        @media print {
-          @page {
-            size: A4;
-            margin: 10mm 15mm;
-          }
-          body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-            font-family: 'Segoe UI', Arial, sans-serif;
-          }
-          /* Force all print sections to be visible */
-          .print\:block {
-            display: block !important;
-          }
-          .print\:grid {
-            display: grid !important;
-          }
-          .print\:table-header-group {
-            display: table-header-group !important;
-          }
-          .print\:table-row-group {
-            display: table-row-group !important;
-          }
-          /* Hide non-print elements */
-          .print\:hidden {
-            display: none !important;
-          }
-          .print-header {
-            border-bottom: 3px solid #2563eb;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-            display: block !important;
-          }
-          .print-results-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-          }
-          .print-results-table th {
-            background-color: #f3f4f6 !important;
-            border: 1px solid #d1d5db;
-            padding: 10px 8px;
-            text-align: left;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-          }
-          .print-results-table td {
-            border: 1px solid #e5e7eb;
-            padding: 8px;
-            font-size: 11px;
-          }
-          .print-results-table tr:nth-child(even) {
-            background-color: #f9fafb !important;
-          }
-          .print-status-normal { color: #059669 !important; font-weight: 600; }
-          .print-status-abnormal { color: #d97706 !important; font-weight: 600; }
-          .print-status-critical { color: #dc2626 !important; font-weight: 600; }
-        }
-      `}</style>
-
-      <div className="space-y-6 print:space-y-0">
+      <div className="space-y-6 print:space-y-0 lab-test-result-print">
         {/* Print Header - Only visible when printing */}
         <div className="hidden print:block print-header">
           <div className="flex items-start justify-between">

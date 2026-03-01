@@ -366,7 +366,7 @@ export function DayStatusBanner({
                 )}
             </AlertTitle>
             <AlertDescription className="mt-2">
-                <div className={`grid grid-cols-1 ${moduleType === 'all' ? 'md:grid-cols-2' : showActionButton ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
+                <div className={`grid grid-cols-1 ${moduleType === 'all' ? 'md:grid-cols-2' : showActionButton ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4 pointer-events-auto`}>
                     {/* Yesterday's Summary - Detailed breakdown for 'all' moduleType */}
                     {moduleType === 'all' ? (
                         renderDetailedBreakdown()
@@ -440,7 +440,7 @@ export function DayStatusBanner({
 
                     {/* Action - Only show when showActionButton is true */}
                     {showActionButton && (
-                    <div className={`bg-white/50 rounded-lg p-3 border ${theme.border}`}>
+                    <div className={`bg-white/50 rounded-lg p-3 border ${theme.border} pointer-events-auto`}>
                         <div className="flex items-center gap-2 mb-2">
                             <RefreshCw className={`h-4 w-4 ${theme.icon}`} />
                             <span className={`text-sm font-medium ${theme.text}`}>
@@ -454,9 +454,14 @@ export function DayStatusBanner({
                                     : "Click below to manually start a new business day."}
                             </p>
                             <Button
-                                onClick={onArchiveDay}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    onArchiveDay();
+                                }}
                                 disabled={isLoading}
-                                className={`w-full font-semibold shadow-md hover:shadow-lg transition-all duration-200 ${
+                                type="button"
+                                className={`w-full font-semibold shadow-md hover:shadow-lg transition-all duration-200 pointer-events-auto ${
                                     dayStatus.new_day_available
                                         ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
                                         : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white'

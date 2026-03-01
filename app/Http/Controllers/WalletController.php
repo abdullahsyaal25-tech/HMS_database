@@ -78,7 +78,8 @@ class WalletController extends Controller
         // If no cache exists, use today's start to show only today's data
         $effectiveStartTime = $defaultStartDate;
         if ($dayEndTimestamp) {
-            $effectiveStartTime = Carbon::parse($dayEndTimestamp);
+            // FIXED: Parse timestamp and convert to application timezone
+            $effectiveStartTime = Carbon::parse($dayEndTimestamp)->setTimezone(config('app.timezone'));
             Log::info('WalletController getRevenueData - Day end timestamp found, querying after: ' . $dayEndTimestamp);
         }
 
@@ -154,8 +155,12 @@ class WalletController extends Controller
         // Appointments with services are tracked in department revenue instead
         // Laboratory appointments (even without services attached) are tracked in laboratory revenue
         // FIXED: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
+        // FIXED: Ensure proper timezone handling
+        $startLocal = $start->setTimezone(config('app.timezone'));
+        $endLocal = $end->setTimezone(config('app.timezone'));
+        
         $appointments = Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('created_at', [$start, $end])
+            ->whereBetween('created_at', [$startLocal, $endLocal])
             ->whereDoesntHave('services')  // Only appointments without services
             ->where(function ($query) {
                 // Exclude appointments where department is Laboratory
@@ -184,13 +189,17 @@ class WalletController extends Controller
         // Exclude laboratory department services (those are tracked in laboratory revenue)
         // FIXED: Use appointment_services.created_at instead of appointments.appointment_date
         // to properly support day_end_timestamp filtering
+        // FIXED: Ensure proper timezone handling
+        $startLocal = $start->setTimezone(config('app.timezone'));
+        $endLocal = $end->setTimezone(config('app.timezone'));
+        
         return DB::table('appointment_services')
             ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
             ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '!=', 'Laboratory')  // Exclude laboratory services
-            ->whereBetween('appointment_services.created_at', [$start, $end])
+            ->whereBetween('appointment_services.created_at', [$startLocal, $endLocal])
             ->sum('appointment_services.final_cost');
     }
 
@@ -202,7 +211,11 @@ class WalletController extends Controller
         // Count completed sales as revenue
         // FIXED: Add status filter to match DashboardService
         // Using created_at to track when the sale was actually created in the system
-        return Sale::whereBetween('created_at', [$start, $end])
+        // FIXED: Ensure proper timezone handling
+        $startLocal = $start->setTimezone(config('app.timezone'));
+        $endLocal = $end->setTimezone(config('app.timezone'));
+        
+        return Sale::whereBetween('created_at', [$startLocal, $endLocal])
             ->where('status', 'completed')
             ->sum('grand_total');
     }
@@ -220,6 +233,9 @@ class WalletController extends Controller
         // 1. Laboratory services from appointments (department services)
         // 2. Laboratory department appointments (without services attached)
         // NOTE: Lab test results revenue has been removed to match DashboardService
+        // FIXED: Ensure proper timezone handling
+        $startLocal = $start->setTimezone(config('app.timezone'));
+        $endLocal = $end->setTimezone(config('app.timezone'));
 
         // Get laboratory services from appointments (department services)
         // FIXED: Use appointment_services.created_at instead of appointments.appointment_date
@@ -230,14 +246,14 @@ class WalletController extends Controller
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '=', 'Laboratory')  // Only laboratory department services
-            ->whereBetween('appointment_services.created_at', [$start, $end])
+            ->whereBetween('appointment_services.created_at', [$startLocal, $endLocal])
             ->sum('appointment_services.final_cost') ?? 0;
 
         // Get laboratory department appointments (appointments where department=Laboratory and no services attached)
         // These are standalone lab appointments created through the department selection
         // FIXED: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
         $labDepartmentAppointmentsRevenue = Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('created_at', [$start, $end])
+            ->whereBetween('created_at', [$startLocal, $endLocal])
             ->whereDoesntHave('services')  // Only appointments without attached services
             ->where(function ($query) {
                 // Include only Laboratory department appointments

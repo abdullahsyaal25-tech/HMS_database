@@ -554,17 +554,21 @@ if (!$user->isSuperAdmin() && !$user->hasPermission('view-laboratory')) {
      */
     private function getLaboratoryRevenue(\Carbon\Carbon $start, \Carbon\Carbon $end)
     {
+        // FIXED: Ensure proper timezone handling
+        $startLocal = $start->setTimezone(config('app.timezone'));
+        $endLocal = $end->setTimezone(config('app.timezone'));
+        
         // Get lab test results that are completed OR have been performed
         // FIXED: Use performed_at instead of created_at to match DashboardService
         $labTestResultsRevenue = \Illuminate\Support\Facades\DB::table('lab_test_results')
             ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
-            ->whereBetween('lab_test_results.performed_at', [$start, $end])
+            ->whereBetween('lab_test_results.performed_at', [$startLocal, $endLocal])
             ->sum('lab_tests.cost');
 
         // DEBUG: Log the raw query results
         $labTestResults = \Illuminate\Support\Facades\DB::table('lab_test_results')
             ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
-            ->whereBetween('lab_test_results.performed_at', [$start, $end])
+            ->whereBetween('lab_test_results.performed_at', [$startLocal, $endLocal])
             ->select('lab_tests.cost', 'lab_test_results.performed_at', 'lab_test_results.status')
             ->get();
         
@@ -576,21 +580,21 @@ if (!$user->isSuperAdmin() && !$user->hasPermission('view-laboratory')) {
         ]);
 
         // Get laboratory services from appointments (department services)
-        // Uses appointment_date for joining with appointments
+        // FIXED: Use created_at instead of appointment_date for consistency with day_end_timestamp filtering
         $appointmentLabServicesRevenue = \Illuminate\Support\Facades\DB::table('appointment_services')
             ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
             ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '=', 'Laboratory')  // Only laboratory department services
-            ->whereBetween('appointments.appointment_date', [$start, $end])
+            ->whereBetween('appointment_services.created_at', [$startLocal, $endLocal])
             ->sum('appointment_services.final_cost');
 
         // Get laboratory department appointments (appointments where department=Laboratory and no services attached)
         // These are standalone lab appointments created through the department selection
-        // Uses appointment_date to track when the appointment was scheduled
+        // FIXED: Use created_at instead of appointment_date for consistency with day_end_timestamp filtering
         $labDepartmentAppointmentsRevenue = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('appointment_date', [$start, $end])
+            ->whereBetween('created_at', [$startLocal, $endLocal])
             ->whereDoesntHave('services')  // Only appointments without attached services
             ->where(function ($query) {
                 // Include only Laboratory department appointments
@@ -629,7 +633,8 @@ if (!$user->isSuperAdmin() && !$user->hasPermission('view-laboratory')) {
         // If no cache exists, use today's start to show only today's data
         $effectiveStartTime = $defaultStartDate;
         if ($dayEndTimestamp) {
-            $effectiveStartTime = \Carbon\Carbon::parse($dayEndTimestamp);
+            // FIXED: Parse timestamp and convert to application timezone
+            $effectiveStartTime = \Carbon\Carbon::parse($dayEndTimestamp)->setTimezone(config('app.timezone'));
         }
 
         return $this->getLaboratoryRevenue($effectiveStartTime, $tomorrow);

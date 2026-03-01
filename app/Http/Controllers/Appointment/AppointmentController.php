@@ -33,8 +33,12 @@ class AppointmentController extends Controller
      */
     private function getPharmacyRevenue($start, $end): float
     {
+        // FIXED: Ensure proper timezone handling
+        $startLocal = $start->setTimezone(config('app.timezone'));
+        $endLocal = $end->setTimezone(config('app.timezone'));
+        
         return \App\Models\Sale::where('status', 'completed')
-            ->whereBetween('created_at', [$start, $end])
+            ->whereBetween('created_at', [$startLocal, $endLocal])
             ->sum('grand_total') ?? 0;
     }
 
@@ -43,11 +47,15 @@ class AppointmentController extends Controller
      */
     private function getLaboratoryRevenue($start, $end): float
     {
+        // FIXED: Ensure proper timezone handling
+        $startLocal = $start->setTimezone(config('app.timezone'));
+        $endLocal = $end->setTimezone(config('app.timezone'));
+        
         // Get lab test results that are completed OR have been performed
         $labTestResultsRevenue = \Illuminate\Support\Facades\DB::table('lab_test_results')
             ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
-            ->where(function ($query) use ($start, $end) {
-                $query->whereBetween('lab_test_results.performed_at', [$start, $end])
+            ->where(function ($query) use ($startLocal, $endLocal) {
+                $query->whereBetween('lab_test_results.performed_at', [$startLocal, $endLocal])
                       ->orWhere(function ($q) {
                           $q->whereNull('lab_test_results.performed_at')
                             ->whereIn('lab_test_results.status', ['completed', 'verified']);
@@ -63,13 +71,13 @@ class AppointmentController extends Controller
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '=', 'Laboratory')
-            ->whereBetween('appointment_services.created_at', [$start, $end])
+            ->whereBetween('appointment_services.created_at', [$startLocal, $endLocal])
             ->sum('appointment_services.final_cost') ?? 0;
 
         // Get laboratory department appointments
         // FIXED: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
         $labDepartmentAppointmentsRevenue = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('created_at', [$start, $end])
+            ->whereBetween('created_at', [$startLocal, $endLocal])
             ->whereDoesntHave('services')
             ->where(function ($query) {
                 $query->whereIn('department_id', function ($subQuery) {
@@ -91,6 +99,10 @@ class AppointmentController extends Controller
      */
     private function getDepartmentRevenue($start, $end): float
     {
+        // FIXED: Ensure proper timezone handling
+        $startLocal = $start->setTimezone(config('app.timezone'));
+        $endLocal = $end->setTimezone(config('app.timezone'));
+        
         // FIXED: Use appointment_services.created_at instead of appointments.appointment_date
         // to properly support day_end_timestamp filtering
         return \Illuminate\Support\Facades\DB::table('appointment_services')
@@ -99,7 +111,7 @@ class AppointmentController extends Controller
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '!=', 'Laboratory')
-            ->whereBetween('appointment_services.created_at', [$start, $end])
+            ->whereBetween('appointment_services.created_at', [$startLocal, $endLocal])
             ->sum('appointment_services.final_cost') ?? 0;
     }
 
@@ -564,8 +576,12 @@ class AppointmentController extends Controller
         // Appointments with services are tracked in department revenue instead
         // Laboratory appointments (even without services attached) are tracked in laboratory revenue
         // FIXED: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
+        // FIXED: Ensure proper timezone handling
+        $startLocal = $start->setTimezone(config('app.timezone'));
+        $endLocal = $end->setTimezone(config('app.timezone'));
+        
         $appointments = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('created_at', [$start, $end])
+            ->whereBetween('created_at', [$startLocal, $endLocal])
             ->whereDoesntHave('services')  // Only appointments without services
             ->where(function ($query) {
                 // Exclude appointments where department is Laboratory

@@ -66,13 +66,3 @@ export interface LabMaterialBulkUpdate {
 // Forward declarations - these types are defined in other files and re-exported via index.ts
 type LabTest = import('./lab-test').LabTest;
 type User = import('./index.d').User;
-
-// Export for use in other files
-export type {
-    LabMaterial,
-    LabMaterialFormData,
-    LabMaterialSearchFilters,
-    LabMaterialStatistics,
-    LabMaterialStockUpdate,
-    LabMaterialBulkUpdate,
-};

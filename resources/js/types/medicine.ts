@@ -9,7 +9,6 @@ export interface Medicine {
     expiry_date: string | null;
     stock_quantity: number;
     reorder_level: number;
-    sale_price: number;
     sale_price?: number;
     cost_price?: number;
     barcode?: string | null;

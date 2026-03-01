@@ -940,8 +940,12 @@ class SalesController extends Controller
     {
         // Get completed sales (exclude cancelled sales as they don't represent actual revenue)
         // FIXED: Use created_at instead of performed_at to match DashboardService logic
+        // FIXED: Ensure proper timezone handling
+        $startLocal = $start->setTimezone(config('app.timezone'));
+        $endLocal = $end->setTimezone(config('app.timezone'));
+        
         $sales = \App\Models\Sale::where('status', 'completed')
-            ->whereBetween('created_at', [$start, $end])
+            ->whereBetween('created_at', [$startLocal, $endLocal])
             ->get();
         
         return $sales->sum('grand_total');
@@ -968,7 +972,8 @@ class SalesController extends Controller
         // If no cache exists, use today's start to show only today's data
         $effectiveStartTime = $defaultStartDate;
         if ($dayEndTimestamp) {
-            $effectiveStartTime = \Carbon\Carbon::parse($dayEndTimestamp);
+            // FIXED: Parse timestamp and convert to application timezone
+            $effectiveStartTime = \Carbon\Carbon::parse($dayEndTimestamp)->setTimezone(config('app.timezone'));
         }
 
         return $this->getPharmacyRevenue($effectiveStartTime, $tomorrow);

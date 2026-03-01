@@ -112,89 +112,108 @@ class DayStatusService
     {
         $today = Carbon::today();
         $todayStr = $today->toDateString();
+        $now = now();
         
-        // Check if yesterday has already been archived
-        // Fixed: Now uses correct column name 'snapshot_date' instead of 'date'
-        $existingSnapshot = DailySnapshot::where('snapshot_date', Carbon::yesterday()->toDateString())->first();
+        // Check if we have a day_end_timestamp (meaning today has already been reset before)
+        $dayEndTimestamp = Cache::get('day_end_timestamp');
         
-        Log::info('DayStatusService archiveCurrentDay - Checking for existing snapshot', [
-            'query_date' => Carbon::yesterday()->toDateString(),
-            'existing_snapshot_found' => $existingSnapshot ? true : false,
-            'existing_snapshot_id' => $existingSnapshot?->id,
-        ]);
-        if ($existingSnapshot) {
-            // Yesterday already archived, just reset today's counters
-            Cache::forget('daily_revenue_' . $todayStr);
-            Cache::forget('daily_revenue_calculated_at_' . $todayStr);
+        // If there's an existing timestamp, archive the current period's data (from timestamp to now)
+        if ($dayEndTimestamp) {
+            $periodStart = Carbon::parse($dayEndTimestamp);
+            $periodData = $this->getDataForDateRange($periodStart, $now);
             
-            // Mark today as acknowledged
-            Cache::put('day_acknowledged_' . $todayStr, true, now()->addDays(1));
+            // Only archive if there's actual data in this period
+            if ($periodData['total_revenue'] > 0 || $periodData['appointments_count'] > 0) {
+                // Archive this period's data
+                $snapshot = DailySnapshot::create([
+                    'snapshot_date' => $todayStr,
+                    'appointments_count' => $periodData['appointments_count'],
+                    'appointments_revenue' => $periodData['appointments_revenue'],
+                    'departments_revenue' => $periodData['departments_revenue'],
+                    'pharmacy_revenue' => $periodData['pharmacy_revenue'],
+                    'laboratory_revenue' => $periodData['laboratory_revenue'],
+                    'total_revenue' => $periodData['total_revenue'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                
+                Log::info('DayStatusService archiveCurrentDay - Archived current period data', [
+                    'period_start' => $periodStart->toISOString(),
+                    'period_end' => $now->toISOString(),
+                    'data' => $periodData,
+                    'snapshot_id' => $snapshot->id,
+                ]);
+            }
+        } else {
+            // First time clicking - check if yesterday needs to be archived
+            $existingSnapshot = DailySnapshot::where('snapshot_date', Carbon::yesterday()->toDateString())->first();
             
-            // Set day_end_timestamp to current time when user clicks "Start New Day"
-            // This resets "Today" to show only data AFTER this timestamp
-            Cache::put('day_end_timestamp', now()->toISOString(), now()->addDays(365));
+            if (!$existingSnapshot) {
+                // Archive yesterday's data
+                $yesterdayStart = Carbon::yesterday()->copy()->startOfDay();
+                $yesterdayEnd = Carbon::yesterday()->copy()->endOfDay();
+                $yesterdayData = $this->getDataForDateRange($yesterdayStart, $yesterdayEnd);
+                
+                if ($yesterdayData['total_revenue'] > 0 || $yesterdayData['appointments_count'] > 0) {
+                    DailySnapshot::create([
+                        'snapshot_date' => Carbon::yesterday()->toDateString(),
+                        'appointments_count' => $yesterdayData['appointments_count'],
+                        'appointments_revenue' => $yesterdayData['appointments_revenue'],
+                        'departments_revenue' => $yesterdayData['departments_revenue'],
+                        'pharmacy_revenue' => $yesterdayData['pharmacy_revenue'],
+                        'laboratory_revenue' => $yesterdayData['laboratory_revenue'],
+                        'total_revenue' => $yesterdayData['total_revenue'],
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
             
-            Log::info('DayStatusService archiveCurrentDay (already archived) - Set day_end_timestamp to current time', [
-                'cache_key' => 'day_end_timestamp',
-                'timestamp' => now()->toISOString(),
-            ]);
+            // Archive today's data (before the reset)
+            $todayStart = $today->copy()->startOfDay();
+            $todayData = $this->getDataForDateRange($todayStart, $now);
             
-            return [
-                'success' => true,
-                'message' => 'Day already archived - today reset to 0',
-                'snapshot_id' => $existingSnapshot->id,
-                'date_archived' => Carbon::yesterday()->toDateString(),
-                'data' => null,
-            ];
+            if ($todayData['total_revenue'] > 0 || $todayData['appointments_count'] > 0) {
+                DailySnapshot::create([
+                    'snapshot_date' => $todayStr . '_pre_reset',
+                    'appointments_count' => $todayData['appointments_count'],
+                    'appointments_revenue' => $todayData['appointments_revenue'],
+                    'departments_revenue' => $todayData['departments_revenue'],
+                    'pharmacy_revenue' => $todayData['pharmacy_revenue'],
+                    'laboratory_revenue' => $todayData['laboratory_revenue'],
+                    'total_revenue' => $todayData['total_revenue'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                
+                Log::info('DayStatusService archiveCurrentDay - Archived today data before reset', [
+                    'today_data' => $todayData,
+                ]);
+            }
         }
-        
-        // Get yesterday's data for archiving (from the beginning of yesterday to end of yesterday)
-        $yesterdayStart = Carbon::yesterday()->copy()->startOfDay();
-        $yesterdayEnd = Carbon::yesterday()->copy()->endOfDay();
-        $yesterdayData = $this->getDataForDateRange($yesterdayStart, $yesterdayEnd);
-        
-        // DEBUG: Log the data being archived
-        Log::info('DayStatusService archiveCurrentDay - Archiving data', [
-            'yesterdayStart' => $yesterdayStart->toISOString(),
-            'yesterdayEnd' => $yesterdayEnd->toISOString(),
-            'yesterdayData' => $yesterdayData,
-        ]);
-        
-        // Archive yesterday's data to daily_snapshots table
-        $snapshot = DailySnapshot::create([
-            'snapshot_date' => Carbon::yesterday()->toDateString(),
-            'appointments_count' => $yesterdayData['appointments_count'],
-            'appointments_revenue' => $yesterdayData['appointments_revenue'],
-            'departments_revenue' => $yesterdayData['departments_revenue'],
-            'pharmacy_revenue' => $yesterdayData['pharmacy_revenue'],
-            'laboratory_revenue' => $yesterdayData['laboratory_revenue'],
-            'total_revenue' => $yesterdayData['total_revenue'],
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
         
         // Clear today's cache to start fresh
         Cache::forget('daily_revenue_' . $todayStr);
         Cache::forget('daily_revenue_calculated_at_' . $todayStr);
         
-        // Mark today as acknowledged (user has clicked "Start New Day")
+        // Mark today as acknowledged
         Cache::put('day_acknowledged_' . $todayStr, true, now()->addDays(1));
         
-        // Set day_end_timestamp to current time when user clicks "Start New Day"
-        // This resets "Today" to show only data AFTER this timestamp
-        Cache::put('day_end_timestamp', now()->toISOString(), now()->addDays(365));
+        // Set day_end_timestamp to current time - this is the key!
+        // All data created BEFORE this timestamp is now considered "archived"
+        // Only data created AFTER this timestamp will be shown
+        Cache::put('day_end_timestamp', $now->toISOString(), now()->addDays(365));
         
-        Log::info('DayStatusService archiveCurrentDay - Set day_end_timestamp to current time', [
-            'cache_key' => 'day_end_timestamp',
-            'timestamp' => now()->toISOString(),
+        Log::info('DayStatusService archiveCurrentDay - Reset complete', [
+            'timestamp' => $now->toISOString(),
+            'message' => 'Current period archived, display reset to 0',
         ]);
         
         return [
             'success' => true,
-            'message' => 'Day archived successfully',
-            'snapshot_id' => $snapshot->id,
-            'date_archived' => Carbon::yesterday()->toDateString(),
-            'data' => $yesterdayData,
+            'message' => 'Day reset successfully - display cleared to 0',
+            'timestamp' => $now->toISOString(),
+            'data' => null,
         ];
     }
     
@@ -203,6 +222,10 @@ class DayStatusService
      */
     private function getDataForDateRange($start, $end)
     {
+        // Ensure proper timezone handling
+        $startLocal = $start->setTimezone(config('app.timezone'));
+        $endLocal = $end->setTimezone(config('app.timezone'));
+        
         // Calculate revenue from all sources for the given date range
         $appointmentsRevenue = $this->getAppointmentRevenue($start, $end);
         $departmentsRevenue = $this->getDepartmentRevenue($start, $end);
@@ -211,9 +234,9 @@ class DayStatusService
 
         $totalRevenue = $appointmentsRevenue + $departmentsRevenue + $pharmacyRevenue + $laboratoryRevenue;
         
-        // FIXED: Now correctly calculates appointments_count from database
+        // FIXED: Use created_at instead of appointment_date for consistency
         $appointmentsCount = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('appointment_date', [$start, $end])
+            ->whereBetween('created_at', [$startLocal, $endLocal])
             ->count();
         
         // DEBUG: Log revenue breakdown
@@ -287,8 +310,12 @@ class DayStatusService
     private function getAppointmentRevenue($start, $end)
     {
         // FIXED: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
+        // Also ensure proper timezone handling - convert to application timezone
+        $startLocal = $start->setTimezone(config('app.timezone'));
+        $endLocal = $end->setTimezone(config('app.timezone'));
+        
         $appointments = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('created_at', [$start, $end])
+            ->whereBetween('created_at', [$startLocal, $endLocal])
             ->whereDoesntHave('services')
             ->where(function ($query) {
                 $query->whereNull('department_id')
@@ -312,13 +339,17 @@ class DayStatusService
     {
         // FIXED: Use appointment_services.created_at instead of appointments.appointment_date
         // to properly support day_end_timestamp filtering
+        // Also ensure proper timezone handling
+        $startLocal = $start->setTimezone(config('app.timezone'));
+        $endLocal = $end->setTimezone(config('app.timezone'));
+        
         return \Illuminate\Support\Facades\DB::table('appointment_services')
             ->join('appointments', 'appointment_services.appointment_id', '=', 'appointments.id')
             ->join('department_services', 'appointment_services.department_service_id', '=', 'department_services.id')
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '!=', 'Laboratory')
-            ->whereBetween('appointment_services.created_at', [$start, $end])
+            ->whereBetween('appointment_services.created_at', [$startLocal, $endLocal])
             ->sum('appointment_services.final_cost');
     }
 
@@ -327,8 +358,12 @@ class DayStatusService
      */
     private function getPharmacyRevenue($start, $end)
     {
+        // Ensure proper timezone handling
+        $startLocal = $start->setTimezone(config('app.timezone'));
+        $endLocal = $end->setTimezone(config('app.timezone'));
+        
         return \App\Models\Sale::where('status', 'completed')
-            ->whereBetween('created_at', [$start, $end])
+            ->whereBetween('created_at', [$startLocal, $endLocal])
             ->sum('grand_total');
     }
 
@@ -337,11 +372,15 @@ class DayStatusService
      */
     private function getLaboratoryRevenue($start, $end)
     {
+        // Ensure proper timezone handling
+        $startLocal = $start->setTimezone(config('app.timezone'));
+        $endLocal = $end->setTimezone(config('app.timezone'));
+        
         // Get lab test results that are completed OR have been performed
         $labTestResultsRevenue = \Illuminate\Support\Facades\DB::table('lab_test_results')
             ->join('lab_tests', 'lab_test_results.test_id', '=', 'lab_tests.id')
-            ->where(function ($query) use ($start, $end) {
-                $query->whereBetween('lab_test_results.performed_at', [$start, $end])
+            ->where(function ($query) use ($startLocal, $endLocal) {
+                $query->whereBetween('lab_test_results.performed_at', [$startLocal, $endLocal])
                       ->orWhere(function ($q) {
                           $q->whereNull('lab_test_results.performed_at')
                             ->whereIn('lab_test_results.status', ['completed', 'verified']);
@@ -358,13 +397,13 @@ class DayStatusService
             ->join('departments', 'department_services.department_id', '=', 'departments.id')
             ->whereIn('appointments.status', ['completed', 'confirmed'])
             ->where('departments.name', '=', 'Laboratory')
-            ->whereBetween('appointment_services.created_at', [$start, $end])
+            ->whereBetween('appointment_services.created_at', [$startLocal, $endLocal])
             ->sum('appointment_services.final_cost');
 
         // Get laboratory department appointments
         // FIXED: Use created_at instead of appointment_date to properly support day_end_timestamp filtering
         $labDepartmentAppointmentsRevenue = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
-            ->whereBetween('created_at', [$start, $end])
+            ->whereBetween('created_at', [$startLocal, $endLocal])
             ->whereDoesntHave('services')
             ->where(function ($query) {
                 $query->whereIn('department_id', function ($subQuery) {
@@ -399,8 +438,9 @@ class DayStatusService
         // If we have a day_end_timestamp, use it as the start of current business day
         // Otherwise, fall back to yesterday for backwards compatibility
         if ($dayEndTimestamp) {
-            $businessDayStart = Carbon::parse($dayEndTimestamp);
-            $now = now();
+            // Parse timestamp and convert to application timezone for consistent comparison
+            $businessDayStart = Carbon::parse($dayEndTimestamp)->setTimezone(config('app.timezone'));
+            $now = now()->setTimezone(config('app.timezone'));
             
             // DEBUG: Log the time range being queried
             Log::info('DayStatusService getYesterdaySummary - Calculating fresh data for current business day', [
@@ -409,16 +449,17 @@ class DayStatusService
                 'time_range' => $businessDayStart->format('M d, Y H:i') . ' - ' . $now->format('M d, Y H:i'),
             ]);
             
-            // Calculate revenue from all sources for the current business day (from last button click to now)
+            // IMPORTANT: Use 'created_at' filter to only get records created AFTER the timestamp
+            // This ensures that when "Start New Day" is clicked, only NEW records are counted
+            $appointmentsCount = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
+                ->where('created_at', '>=', $businessDayStart)
+                ->count();
+            
+            // Calculate revenue using the same timestamp-based approach
             $appointmentsRevenue = $this->getAppointmentRevenue($businessDayStart, $now);
             $departmentsRevenue = $this->getDepartmentRevenue($businessDayStart, $now);
             $pharmacyRevenue = $this->getPharmacyRevenue($businessDayStart, $now);
             $laboratoryRevenue = $this->getLaboratoryRevenue($businessDayStart, $now);
-            
-            // Get appointments count
-            $appointmentsCount = \App\Models\Appointment::whereIn('status', ['completed', 'confirmed'])
-                ->whereBetween('appointment_date', [$businessDayStart, $now])
-                ->count();
             
             $totalRevenue = $appointmentsRevenue + $departmentsRevenue + $pharmacyRevenue + $laboratoryRevenue;
             
