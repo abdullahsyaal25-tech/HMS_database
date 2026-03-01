@@ -37,7 +37,7 @@ class RBACSeeder extends Seeder
                 'reporting_structure' => 'Top of hierarchy, reports to board/ownership',
                 'module_access' => [
                     'users', 'roles', 'permissions', 'patients', 'doctors', 
-                    'appointments', 'billing', 'pharmacy', 'laboratory', 'reports'
+                    'appointments', 'pharmacy', 'laboratory', 'reports'
                 ],
                 'data_visibility_scope' => 'All system data across all departments and facilities',
                 'user_management_capabilities' => [
@@ -62,7 +62,7 @@ class RBACSeeder extends Seeder
                 'reporting_structure' => 'Reports to Super Admin, manages Hospital Admin level',
                 'module_access' => [
                     'users', 'roles', 'patients', 'doctors', 'appointments', 
-                    'billing', 'pharmacy', 'laboratory', 'reports'
+                    'pharmacy', 'laboratory', 'reports'
                 ],
                 'data_visibility_scope' => 'All departments within assigned facilities',
                 'user_management_capabilities' => [
@@ -133,8 +133,8 @@ class RBACSeeder extends Seeder
                 ]
             ],
             [
-                'name' => 'Reception',
-                'slug' => 'reception',
+                'name' => 'Reception Admin',
+                'slug' => 'reception-admin',
                 'description' => 'Front-desk personnel for patient interaction',
                 'is_system' => false,
                 'priority' => 60,
@@ -143,7 +143,7 @@ class RBACSeeder extends Seeder
                     'patient_registration', 'appointments', 'basic_patient_info', 'communications'
                 ],
                 'data_visibility_scope' => [
-                    'patient_demographics', 'appointment_schedules', 'basic_billing_info'
+                    'patient_demographics', 'appointment_schedules', ''
                 ],
                 'user_management_capabilities' => [],
                 'system_configuration_access' => [
@@ -155,7 +155,32 @@ class RBACSeeder extends Seeder
                 'role_specific_limitations' => [
                     'no_medical_records', 'no_financial_transactions', 'no_patient_deletion'
                 ]
-            ]
+            ],
+            [
+                'name' => 'Hospital Admin',
+                'slug' => 'hospital-admin',
+                'description' => 'Hospital administrator role with department oversight',
+                'is_system' => true,
+                'priority' => 70,
+                'reporting_structure' => 'Reports to Sub Super Admin, manages hospital operations',
+                'module_access' => [
+                    'users', 'patients', 'doctors', 'appointments', 
+                     'pharmacy', 'laboratory', 'reports', 'departments'
+                ],
+                'data_visibility_scope' => 'All hospital departments and patient data',
+                'user_management_capabilities' => [
+                    'create_users', 'assign_roles', 'reset_passwords'
+                ],
+                'system_configuration_access' => [
+                    'department_settings', 'hospital_config', 'report_templates'
+                ],
+                'reporting_permissions' => [
+                    'department_reports', 'user_activity', 'operational_metrics'
+                ],
+                'role_specific_limitations' => [
+                    'cannot_modify_system_settings', 'cannot_delete_system_roles'
+                ]
+            ],
         ];
 
         foreach ($roles as $roleData) {
@@ -205,6 +230,45 @@ class RBACSeeder extends Seeder
             ['name' => 'manage-role-permissions', 'slug' => 'manage_role_permissions', 'description' => 'Manage role permissions', 'resource' => 'role-permissions', 'action' => 'manage', 'category' => 'RBAC Management', 'module' => 'rbac', 'segregation_group' => 'rbac_management', 'risk_level' => 3, 'requires_approval' => true, 'is_critical' => true],
             ['name' => 'view-permission-matrix', 'slug' => 'view_permission_matrix', 'description' => 'View permission matrix', 'resource' => 'permissions', 'action' => 'view', 'category' => 'RBAC Management', 'module' => 'rbac', 'segregation_group' => 'rbac_management', 'risk_level' => 1],
             ['name' => 'view-activity-logs', 'slug' => 'view_activity_logs', 'description' => 'View audit logs', 'resource' => 'audit-logs', 'action' => 'view', 'category' => 'RBAC Management', 'module' => 'rbac', 'segregation_group' => 'rbac_management', 'risk_level' => 1],
+            
+            // Dashboard
+            ['name' => 'view-dashboard', 'slug' => 'view_dashboard', 'description' => 'View dashboard', 'resource' => 'dashboard', 'action' => 'view', 'category' => 'Dashboard', 'module' => 'dashboard', 'segregation_group' => 'dashboard', 'risk_level' => 1],
+            
+            // Doctor Management
+            ['name' => 'view-doctors', 'slug' => 'view_doctors', 'description' => 'View doctor list', 'resource' => 'doctors', 'action' => 'view', 'category' => 'Doctor Management', 'module' => 'doctors', 'segregation_group' => 'doctor_management', 'risk_level' => 1],
+            ['name' => 'create-doctors', 'slug' => 'create_doctors', 'description' => 'Create new doctors', 'resource' => 'doctors', 'action' => 'create', 'category' => 'Doctor Management', 'module' => 'doctors', 'segregation_group' => 'doctor_management', 'risk_level' => 2],
+            ['name' => 'edit-doctors', 'slug' => 'edit_doctors', 'description' => 'Edit existing doctors', 'resource' => 'doctors', 'action' => 'edit', 'category' => 'Doctor Management', 'module' => 'doctors', 'segregation_group' => 'doctor_management', 'risk_level' => 2],
+            ['name' => 'delete-doctors', 'slug' => 'delete_doctors', 'description' => 'Delete doctors', 'resource' => 'doctors', 'action' => 'delete', 'category' => 'Doctor Management', 'module' => 'doctors', 'segregation_group' => 'doctor_management', 'risk_level' => 3, 'requires_approval' => true],
+            
+            // Appointment Management
+            ['name' => 'view-appointments', 'slug' => 'view_appointments', 'description' => 'View appointment list', 'resource' => 'appointments', 'action' => 'view', 'category' => 'Appointment Management', 'module' => 'appointments', 'segregation_group' => 'appointment_management', 'risk_level' => 1],
+            ['name' => 'create-appointments', 'slug' => 'create_appointments', 'description' => 'Create new appointments', 'resource' => 'appointments', 'action' => 'create', 'category' => 'Appointment Management', 'module' => 'appointments', 'segregation_group' => 'appointment_management', 'risk_level' => 1],
+            ['name' => 'edit-appointments', 'slug' => 'edit_appointments', 'description' => 'Edit existing appointments', 'resource' => 'appointments', 'action' => 'edit', 'category' => 'Appointment Management', 'module' => 'appointments', 'segregation_group' => 'appointment_management', 'risk_level' => 2],
+            ['name' => 'delete-appointments', 'slug' => 'delete_appointments', 'description' => 'Delete appointments', 'resource' => 'appointments', 'action' => 'delete', 'category' => 'Appointment Management', 'module' => 'appointments', 'segregation_group' => 'appointment_management', 'risk_level' => 2],
+            
+            // Medicine Management (individual permissions)
+            ['name' => 'create-medicines', 'slug' => 'create_medicines', 'description' => 'Add new medicines', 'resource' => 'medicines', 'action' => 'create', 'category' => 'Pharmacy Management', 'module' => 'pharmacy', 'segregation_group' => 'pharmacy_operations', 'risk_level' => 2],
+            ['name' => 'edit-medicines', 'slug' => 'edit_medicines', 'description' => 'Edit medicine information', 'resource' => 'medicines', 'action' => 'edit', 'category' => 'Pharmacy Management', 'module' => 'pharmacy', 'segregation_group' => 'pharmacy_operations', 'risk_level' => 2],
+            ['name' => 'delete-medicines', 'slug' => 'delete_medicines', 'description' => 'Delete medicines', 'resource' => 'medicines', 'action' => 'delete', 'category' => 'Pharmacy Management', 'module' => 'pharmacy', 'segregation_group' => 'pharmacy_operations', 'risk_level' => 3, 'requires_approval' => true],
+            
+            // Lab Test Management (individual permissions)
+            ['name' => 'create-lab-tests', 'slug' => 'create_lab_tests', 'description' => 'Create new lab tests', 'resource' => 'lab-tests', 'action' => 'create', 'category' => 'Laboratory Management', 'module' => 'laboratory', 'segregation_group' => 'laboratory_operations', 'risk_level' => 2],
+            ['name' => 'edit-lab-tests', 'slug' => 'edit_lab_tests', 'description' => 'Edit lab tests', 'resource' => 'lab-tests', 'action' => 'edit', 'category' => 'Laboratory Management', 'module' => 'laboratory', 'segregation_group' => 'laboratory_operations', 'risk_level' => 2],
+            ['name' => 'delete-lab-tests', 'slug' => 'delete_lab_tests', 'description' => 'Delete lab tests', 'resource' => 'lab-tests', 'action' => 'delete', 'category' => 'Laboratory Management', 'module' => 'laboratory', 'segregation_group' => 'laboratory_operations', 'risk_level' => 3, 'requires_approval' => true],
+            
+            // Reports
+            ['name' => 'view-reports', 'slug' => 'view_reports', 'description' => 'View reports', 'resource' => 'reports', 'action' => 'view', 'category' => 'Reports', 'module' => 'reports', 'segregation_group' => 'reports', 'risk_level' => 1],
+            
+            // Settings
+            ['name' => 'view-settings', 'slug' => 'view_settings', 'description' => 'View settings', 'resource' => 'settings', 'action' => 'view', 'category' => 'System Configuration', 'module' => 'settings', 'segregation_group' => 'settings', 'risk_level' => 2],
+            
+            // Departments
+            ['name' => 'view-departments', 'slug' => 'view_departments', 'description' => 'View department list', 'resource' => 'departments', 'action' => 'view', 'category' => 'System Configuration', 'module' => 'departments', 'segregation_group' => 'departments', 'risk_level' => 1],
+            ['name' => 'create-departments', 'slug' => 'create_departments', 'description' => 'Create new departments', 'resource' => 'departments', 'action' => 'create', 'category' => 'System Configuration', 'module' => 'departments', 'segregation_group' => 'departments', 'risk_level' => 2],
+            ['name' => 'edit-departments', 'slug' => 'edit_departments', 'description' => 'Edit existing departments', 'resource' => 'departments', 'action' => 'edit', 'category' => 'System Configuration', 'module' => 'departments', 'segregation_group' => 'departments', 'risk_level' => 2],
+            
+            // Wallet/Finance
+            ['name' => 'wallet.view', 'slug' => 'wallet_view', 'description' => 'View wallet and revenue', 'resource' => 'wallet', 'action' => 'view', 'category' => 'Finance', 'module' => 'wallet', 'segregation_group' => 'finance', 'risk_level' => 2],
         ];
 
         foreach ($permissions as $permission) {
@@ -230,24 +294,59 @@ class RBACSeeder extends Seeder
                 'view-rbac-dashboard', 'manage-role-permissions', 'view-permission-matrix', 'view-activity-logs'
             ],
             'sub-super-admin' => [
-                'view-users', 'create-users', 'edit-users',
+                'view-dashboard', 'view-users', 'create-users', 'edit-users',
                 'view-roles', 'edit-roles',
-                'view-patients', 'create-patients', 'edit-patients',
+                'view-patients', 'create-patients', 'edit-patients', 'delete-patients',
+                'view-doctors', 'create-doctors', 'edit-doctors', 'delete-doctors',
+                'view-appointments', 'create-appointments', 'edit-appointments', 'delete-appointments',
+                'view-pharmacy', 'create-medicines', 'edit-medicines',
+                'view-laboratory', 'create-lab-tests', 'edit-lab-tests',
+                'view-reports', 'view-settings', 'view-activity-logs',
+                'view-departments', 'create-departments', 'edit-departments',
+                'wallet.view',
                 'view-pharmacy', 'manage-medicines', 'process-prescriptions',
                 'view-laboratory', 'manage-lab-tests', 'process-test-results',
                 'view-rbac-dashboard', 'view-permission-matrix', 'view-activity-logs'
             ],
             'pharmacy-admin' => [
-                'view-pharmacy', 'manage-medicines', 'process-prescriptions',
-                'view-patients' // Limited view only
+                'view-dashboard',
+                'view-patients',
+                'view-pharmacy', 'create-medicines', 'edit-medicines', 'delete-medicines',
+                'view-reports',
             ],
             'laboratory-admin' => [
-                'view-laboratory', 'manage-lab-tests', 'process-test-results',
-                'view-patients' // Limited view only
+                'view-dashboard',
+                'view-patients',
+                'view-laboratory', 'create-lab-tests', 'edit-lab-tests', 'delete-lab-tests',
+                'view-reports',
             ],
-            'reception' => [
+            'reception-admin' => [
+                'view-dashboard',
                 'view-patients', 'create-patients', 'edit-patients',
+                'view-doctors',
+                'view-appointments', 'create-appointments', 'edit-appointments',
+                'view-reports',
                 'view-users' // Limited view only
+            ],
+            'hospital-admin' => [
+                'view-dashboard', 'view-users',
+                'view-patients', 'create-patients', 'edit-patients',
+                'view-doctors', 'create-doctors', 'edit-doctors',
+                'view-appointments', 'create-appointments', 'edit-appointments',
+                'view-reports', 'view-activity-logs',
+                'view-departments', 'create-departments', 'edit-departments',
+                'wallet.view',
+            ],
+            'doctor' => [
+                'view-dashboard',
+                'view-patients', 'edit-patients',
+                'view-doctors',
+                'view-appointments', 'edit-appointments',
+                'view-laboratory',
+            ],
+            'patient' => [
+                'view-dashboard',
+                'view-appointments',
             ]
         ];
 
@@ -269,7 +368,8 @@ class RBACSeeder extends Seeder
             'sub-super-admin' => 'super-admin',
             'pharmacy-admin' => 'sub-super-admin',
             'laboratory-admin' => 'sub-super-admin',
-            'reception' => 'sub-super-admin',
+            'reception-admin' => 'sub-super-admin',
+            'hospital-admin' => 'sub-super-admin',
         ];
 
         foreach ($hierarchy as $subordinateSlug => $supervisorSlug) {

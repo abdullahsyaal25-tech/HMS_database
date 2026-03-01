@@ -26,14 +26,18 @@ class DashboardController extends Controller
     {
         try {
             $user = Auth::user();
+            Log::info('DashboardController: Starting dashboard load', ['user_id' => $user?->id]);
 
             // Check if user has permission to view dashboard
             if (!$user->hasPermission('view-dashboard')) {
+                Log::warning('DashboardController: User lacks view-dashboard permission', ['user_id' => $user?->id]);
                 abort(403, 'Unauthorized access');
             }
+            Log::info('DashboardController: Permission check passed');
 
             // Get period from request (today, week, month, year, all-time)
             $period = $request->input('period', 'today');
+            Log::info('DashboardController: Period selected', ['period' => $period]);
 
             // Validate period
             $validPeriods = ['today', 'week', 'month', 'year', 'all-time'];
@@ -42,13 +46,19 @@ class DashboardController extends Controller
             }
 
             // Get comprehensive dashboard data
+            Log::info('DashboardController: Fetching dashboard stats');
             $dashboardData = $this->dashboardService->getDashboardStats($period);
+            Log::info('DashboardController: Dashboard stats fetched', ['keys' => array_keys($dashboardData)]);
             
             // Get all-time statistics
+            Log::info('DashboardController: Fetching all-time stats');
             $allTimeStats = $this->dashboardService->getAllTimeStats();
+            Log::info('DashboardController: All-time stats fetched');
             
             // Get discount statistics
+            Log::info('DashboardController: Fetching discount stats');
             $discountStats = $this->dashboardService->getDiscountStats();
+            Log::info('DashboardController: Discount stats fetched');
             
             // Get admin activities and stats for admin users
             $adminData = [];
@@ -82,7 +92,7 @@ class DashboardController extends Controller
                         'role' => $user->roleModel?->name ?? $user->role,
                         'role_id' => $user->role_id,
                         'is_super_admin' => $user->isSuperAdmin(),
-                        'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
+                        'permissions' => $user->getEffectivePermissions(),
                     ],
                 ],
             ]);
@@ -91,7 +101,10 @@ class DashboardController extends Controller
         } catch (\Exception $e) {
             Log::error('Dashboard index error: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'user_id' => Auth::id(),
+                'period' => $period ?? 'today',
             ]);
 
             // Return dashboard with default/empty data on error
@@ -107,7 +120,6 @@ class DashboardController extends Controller
                     'appointment_revenue' => 0,
                     'pharmacy_revenue' => 0,
                     'laboratory_revenue' => 0,
-                    'pending_bills' => 0,
                     'outstanding_amount' => 0,
                 ],
                 'patients' => [
@@ -129,7 +141,6 @@ class DashboardController extends Controller
                     'total_revenue' => 0,
                     'appointment_revenue' => 0,
                     'pharmacy_revenue' => 0,
-                    'bill_revenue' => 0,
                     'payment_methods' => [],
                     'outstanding_bills' => 0,
                     'outstanding_amount' => 0,

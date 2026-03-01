@@ -1156,7 +1156,11 @@ class DashboardService
                 'today_pharmacy_profit' => $todayPharmacyProfit,
             ];
         } catch (\Exception $e) {
-            Log::error('All-time stats error: ' . $e->getMessage());
+            Log::error('All-time stats error: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return [
                 'total_patients' => 0,
                 'total_appointments' => 0,
@@ -1216,7 +1220,11 @@ class DashboardService
                 'today_total_discounts' => $todayTotalDiscounts,
             ];
         } catch (\Exception $e) {
-            Log::error('Discount stats error: ' . $e->getMessage());
+            Log::error('Discount stats error: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return [
                 'appointment_discounts' => 0,
                 'pharmacy_discounts' => 0,

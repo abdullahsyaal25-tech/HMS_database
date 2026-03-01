@@ -18,7 +18,6 @@ class DatabaseSeeder extends Seeder
             DepartmentSeeder::class,
             DepartmentServiceSeeder::class,
             MedicineCategorySeeder::class,
-            LabTestSeeder::class,
             LabReportMasterSeeder::class,
             DefaultUsersSeeder::class,
         ]);

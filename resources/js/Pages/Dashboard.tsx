@@ -318,7 +318,6 @@ export default function Dashboard({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState(period || 'today');
   const isSuperAdmin = auth?.user?.is_super_admin;
-  const canViewAdminActivities = isSuperAdmin || auth?.user?.permissions?.includes('view-admin-activities');
 
   // Real-time polling every 30 seconds
   useEffect(() => {
@@ -542,84 +541,6 @@ export default function Dashboard({
             </div>
           </div>
 
-          {/* Admin Activity Section - Only for Super Admins */}
-          {canViewAdminActivities && admin_stats && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Admin Activities */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Shield className="h-5 w-5" />
-                        Admin Activity Log
-                      </CardTitle>
-                      <CardDescription>Recent administrative actions</CardDescription>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold">{admin_stats.total_activities_24h}</p>
-                      <p className="text-xs text-muted-foreground">Activities (24h)</p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 max-h-80 overflow-y-auto">
-                    {admin_activities && admin_activities.length > 0 ? (
-                      admin_activities.slice(0, 10).map((activity) => (
-                        <ActivityItem key={activity.id} activity={activity} />
-                      ))
-                    ) : (
-                      <p className="text-center text-muted-foreground py-4">No admin activities found</p>
-                    )}
-                  </div>
-                  {isSuperAdmin && (
-                    <div className="mt-4 pt-4 border-t">
-                      <Link href="/admin/activity-logs">
-                        <Button variant="outline" className="w-full">View All Activity Logs</Button>
-                      </Link>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Admin Users */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <UserCheck className="h-5 w-5" />
-                        Admin Users
-                      </CardTitle>
-                      <CardDescription>System administrators status</CardDescription>
-                    </div>
-                    <div className="flex gap-4 text-right">
-                      <div>
-                        <p className="text-2xl font-bold">{admin_stats.total_admins}</p>
-                        <p className="text-xs text-muted-foreground">Total</p>
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-green-600">{admin_stats.online_admins}</p>
-                        <p className="text-xs text-muted-foreground">Online</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 max-h-80 overflow-y-auto">
-                    {admin_stats.admin_users?.map((admin) => (
-                      <AdminUserCard key={admin.id} admin={admin} />
-                    ))}
-                  </div>
-                  <div className="mt-4 pt-4 border-t">
-                    <Link href="/admin/users">
-                      <Button variant="outline" className="w-full">Manage Admin Users</Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
 
           {/* Pharmacy Profits Section */}
           <div className="mt-8">

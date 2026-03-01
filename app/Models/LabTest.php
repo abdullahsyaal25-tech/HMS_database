@@ -15,6 +15,7 @@ class LabTest extends Model
         'description',
         'procedure',
         'sample_type',
+        'sample_volume',
         'cost',
         'turnaround_time',
         'unit',
@@ -23,6 +24,11 @@ class LabTest extends Model
         'category',
         'parameters',
         'reference_ranges',
+        'requires_fasting',
+        'is_panel',
+        'gender_specific',
+        'age_specific',
+        'is_vaccine',
     ];
 
     protected $casts = [
