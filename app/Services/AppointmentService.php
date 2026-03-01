@@ -346,12 +346,14 @@ class AppointmentService
                 'patient_id' => $appointment->patient_id,
                 'doctor_id' => $appointment->doctor_id,
                 'department_id' => $appointment->department_id,
+                'lab_test_id' => $labTest->id,
                 'test_name' => $labTest->name,
                 'test_type' => 'routine', // Default, can be modified later
                 'status' => 'pending',
                 'scheduled_at' => $appointment->appointment_date,
                 'notes' => $appointment->notes,
                 'created_by' => auth()->id(),
+                'cost' => $service['custom_cost'] ?? $labTest->cost ?? 0,
             ]);
         }
 
