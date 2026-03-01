@@ -20,6 +20,7 @@ import {
 import Heading from '@/components/heading';
 import LaboratoryLayout from '@/layouts/LaboratoryLayout';
 import { LabStatusBadge } from '@/components/laboratory';
+import { LabTestResultPrintModal } from '@/components/laboratory/LabTestResultPrintModal';
 import {
   ArrowLeft,
   Edit,
@@ -133,6 +134,7 @@ export default function LabTestResultShow({
   canEmail,
 }: LabTestResultShowProps) {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   const parsedResults = useMemo(() => {
     try {
@@ -324,7 +326,7 @@ export default function LabTestResultShow({
             )}
 
             {canPrint && (
-              <Button variant="outline" onClick={handlePrint}>
+              <Button variant="outline" onClick={() => setIsPrintModalOpen(true)}>
                 <Printer className="mr-2 h-4 w-4" />
                 Print
               </Button>
@@ -767,6 +769,21 @@ export default function LabTestResultShow({
           </div>
         </div>
       </div>
+
+      <LabTestResultPrintModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        labTestResult={{
+          result_id: labTestResult.result_id,
+          patient: labTestResult.patient,
+          labTest: labTestResult.labTest,
+          performedBy: labTestResult.performedBy,
+          performed_at: labTestResult.performed_at,
+          results: labTestResult.results,
+          notes: labTestResult.notes,
+          status: labTestResult.status,
+        }}
+      />
     </LaboratoryLayout>
   );
 }
