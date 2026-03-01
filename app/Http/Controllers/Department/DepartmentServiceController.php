@@ -310,7 +310,14 @@ class DepartmentServiceController extends Controller
                 ->withInput();
         }
 
-        $department->services()->create($validator->validated());
+        $validated = $validator->validated();
+        
+        // Set default values for nullable fields
+        $validated['discount_percentage'] = $validated['discount_percentage'] ?? 0;
+        $validated['doctor_percentage'] = $validated['doctor_percentage'] ?? 0;
+        $validated['doctor_id'] = $validated['doctor_id'] ?? null;
+        
+        $department->services()->create($validated);
 
         return redirect()->back()
             ->with('success', 'Service added to department successfully.');
@@ -338,7 +345,14 @@ class DepartmentServiceController extends Controller
                 ->withInput();
         }
 
-        $service->update($validator->validated());
+        $validated = $validator->validated();
+        
+        // Set default values for nullable fields
+        $validated['discount_percentage'] = $validated['discount_percentage'] ?? 0;
+        $validated['doctor_percentage'] = $validated['doctor_percentage'] ?? 0;
+        $validated['doctor_id'] = $validated['doctor_id'] ?? null;
+        
+        $service->update($validated);
 
         return redirect()->back()
             ->with('success', 'Department service updated successfully.');

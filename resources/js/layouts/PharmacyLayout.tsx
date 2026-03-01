@@ -2,6 +2,7 @@ import { AppShell } from '@/components/app-shell';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
+import { ProfileNav } from '@/components/profile-nav';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +14,6 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
-    SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { usePage } from '@inertiajs/react';
@@ -285,7 +285,7 @@ export default function PharmacyLayout({
                     )}
                    
                     <NavFooter items={footerNavItems} className="mt-auto" />
-                    <NavUser />
+                    <ProfileNav />
                 </SidebarFooter>
             </Sidebar>
             <SidebarInset className="bg-background">

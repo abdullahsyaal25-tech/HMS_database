@@ -366,7 +366,7 @@ export default function DepartmentShow({ department, doctors }: DepartmentShowPr
                                                             <span className="text-muted-foreground text-xs italic">—</span>
                                                         )}
                                                     </TableCell>
-                                                    <TableCell className="font-medium">${service.base_cost}</TableCell>
+                                                    <TableCell className="font-medium">؋{service.base_cost}</TableCell>
                                                     <TableCell>{service.fee_percentage}%</TableCell>
                                                     <TableCell>{service.discount_percentage}%</TableCell>
                                                     <TableCell>
@@ -379,7 +379,7 @@ export default function DepartmentShow({ department, doctors }: DepartmentShowPr
                                                         )}
                                                     </TableCell>
                                                     <TableCell className="font-bold text-green-700">
-                                                        ${service.final_cost}
+                                                        ؋{service.final_cost}
                                                     </TableCell>
                                                     <TableCell>
                                                         <Badge

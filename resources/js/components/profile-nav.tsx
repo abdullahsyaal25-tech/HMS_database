@@ -20,7 +20,7 @@ import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { logout, edit } from '@/routes';
 import { type User } from '@/types';
 import { usePage, Link } from '@inertiajs/react';
-import { ChevronsUpDown, LogOut, Settings, UserCircle, Shield } from 'lucide-react';
+import { ChevronsUpDown, LogOut, UserCircle, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ProfileNavProps {
@@ -64,7 +64,7 @@ export function ProfileNav({ className }: ProfileNavProps) {
     // Get role badge color based on role
     const getRoleBadgeColor = (): string => {
         const role = getUserRole()?.toLowerCase() || '';
-        if (role.includes('admin')) return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
+        if (role.includes('admin')) return 'bg-black-100 text-black-700 dark:bg-black-900/30 dark:text-black-300';
         if (role.includes('doctor')) return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
         if (role.includes('nurse')) return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
         if (role.includes('receptionist')) return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300';
@@ -192,55 +192,6 @@ export function ProfileNav({ className }: ProfileNavProps) {
                                 </div>
                             </div>
                         </DropdownMenuLabel>
-
-                        <DropdownMenuSeparator className="my-2" />
-
-                        {/* Menu items */}
-                        <DropdownMenuGroup>
-                            <DropdownMenuItem 
-                                asChild
-                                className="rounded-lg cursor-pointer focus:bg-accent/80"
-                            >
-                                <Link
-                                    href={edit()}
-                                    as="button"
-                                    prefetch
-                                    onClick={cleanup}
-                                    className="flex items-center gap-3 px-3 py-2.5 w-full"
-                                >
-                                    <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10">
-                                        <UserCircle className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <div className="flex flex-col items-start">
-                                        <span className="text-sm font-medium">Profile</span>
-                                        <span className="text-xs text-muted-foreground">View your profile</span>
-                                    </div>
-                                </Link>
-                            </DropdownMenuItem>
-
-                            <DropdownMenuItem 
-                                asChild
-                                className="rounded-lg cursor-pointer focus:bg-accent/80"
-                            >
-                                <Link
-                                    href={edit()}
-                                    as="button"
-                                    prefetch
-                                    onClick={cleanup}
-                                    className="flex items-center gap-3 px-3 py-2.5 w-full"
-                                >
-                                    <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-muted">
-                                        <Settings className="h-4 w-4 text-muted-foreground" />
-                                    </div>
-                                    <div className="flex flex-col items-start">
-                                        <span className="text-sm font-medium">Settings</span>
-                                        <span className="text-xs text-muted-foreground">Manage preferences</span>
-                                    </div>
-                                </Link>
-                            </DropdownMenuItem>
-                        </DropdownMenuGroup>
-
-                        <DropdownMenuSeparator className="my-2" />
 
                         {/* Logout section */}
                         <DropdownMenuItem 

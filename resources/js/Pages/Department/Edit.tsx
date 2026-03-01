@@ -1,4 +1,4 @@
-import { Head, useForm, Link, router } from '@inertiajs/react';
+import { Head, useForm, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,7 +37,7 @@ interface DepartmentEditProps {
 }
 
 export default function DepartmentEdit({ department, doctors = [] }: DepartmentEditProps) {
-    const { data, setData, processing, errors } = useForm({
+    const { data, setData, put, processing, errors } = useForm({
         name: department.name,
         description: department.description || '',
         head_doctor_id: department.head_doctor_id?.toString() || '',
@@ -54,14 +54,7 @@ export default function DepartmentEdit({ department, doctors = [] }: DepartmentE
             return;
         }
 
-        const updateUrl = `/departments/${department.id}`;
-
-        router.visit(updateUrl, {
-            method: 'post',
-            data: {
-                ...data,
-                _method: 'PUT',
-            },
+        put(`/departments/${department.id}`, {
             preserveScroll: true,
             onSuccess: () => {
                 console.log('Update successful');
