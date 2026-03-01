@@ -16,9 +16,44 @@ import {
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
+import { usePermission } from '@/composables/usePermission';
 
 function getItemId(title: string | undefined, label: string | undefined): string {
     return `nav-${(title || label || '').toLowerCase().replace(/\s+/g, '-')}`;
+}
+
+/**
+ * Filter navigation items based on user permissions
+ */
+function useFilteredNavItems(items: NavItem[]): NavItem[] {
+    const { hasPermission, isSuperAdmin } = usePermission();
+
+    return items.filter((item) => {
+        // Check if user has permission for this item
+        if (item.permission && !isSuperAdmin()) {
+            if (!hasPermission(item.permission)) {
+                return false;
+            }
+        }
+
+        // If item has sub-items, filter them too
+        if (item.items && item.items.length > 0) {
+            const filteredSubItems = item.items.filter((subItem) => {
+                if (subItem.permission && !isSuperAdmin()) {
+                    return hasPermission(subItem.permission);
+                }
+                return true;
+            });
+
+            // Update the items array with filtered sub-items
+            item.items = filteredSubItems;
+
+            // If no sub-items remain after filtering, hide the parent
+            return filteredSubItems.length > 0;
+        }
+
+        return true;
+    });
 }
 
 function NavItemComponent({ item }: { item: NavItem }) {
@@ -88,6 +123,32 @@ function NavItemComponent({ item }: { item: NavItem }) {
     }
 
     // Regular menu item without sub-items
+    // If no href provided, render as non-clickable button
+    if (!item.href) {
+        return (
+            <SidebarMenuItem className="relative">
+                <SidebarMenuButton
+                    data-testid={itemId}
+                    className="group-data-[collapsible=icon]:!justify-center group-data-[collapsible=icon]:!px-2 group-data-[collapsible=icon]:!py-2.5 cursor-default"
+                >
+                    {item.icon && (
+                        <item.icon
+                            aria-hidden="true"
+                            className="size-4 shrink-0 text-sidebar-foreground transition-colors group-data-[collapsible=icon]:size-5"
+                        />
+                    )}
+                    <span className="truncate group-data-[collapsible=icon]:hidden group-data-[collapsible=icon]:absolute">{item.title || item.label}</span>
+                    <span
+                        id={`${itemId}-description`}
+                        className="sr-only"
+                    >
+                        {item.title || item.label} menu section
+                    </span>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+        );
+    }
+
     return (
         <SidebarMenuItem className="relative">
             <SidebarMenuButton
@@ -121,11 +182,13 @@ function NavItemComponent({ item }: { item: NavItem }) {
 }
 
 export function NavMain({ items = [] }: { items: NavItem[] }) {
+    const filteredItems = useFilteredNavItems(items);
+
     return (
         <SidebarGroup className="px-2 py-0">
             <SidebarGroupLabel className="sr-only">Main Navigation</SidebarGroupLabel>
             <SidebarMenu role="navigation" aria-label="Main navigation">
-                {items.map((item) => (
+                {filteredItems.map((item) => (
                     <NavItemComponent key={item.title || item.label} item={item} />
                 ))}
             </SidebarMenu>

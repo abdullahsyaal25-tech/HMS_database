@@ -29,6 +29,7 @@ import {
     Shield,
     Lock,
     CreditCard,
+    Activity,
 } from 'lucide-react';
 import { usePage } from '@inertiajs/react';
 import { type NavItem } from '@/types';
@@ -91,11 +92,7 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                 href: '/dashboard',
                 icon: LayoutGrid,
             },
-            {
-                title: 'Patients',
-                href: '/patients',
-                icon: Users,
-            },
+           
             {
                 title: 'Doctors',
                 href: '/doctors',
@@ -106,13 +103,18 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                 href: '/appointments/dashboard',
                 icon: Calendar,
                 items: [
+                   {
+                title: 'Patients',
+                href: '/patients',
+                icon: Users,
+                   },
                     {
                         title: 'Reception',
                         href: '/appointments',
                         icon: Calendar,
                     },
                     {
-                        title: 'Department Services',
+                        title: 'Reception Dashboard',
                         href: '/departments/services',
                         icon: Package,
                     },
@@ -129,38 +131,6 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                 icon: CreditCard,
                 permission: 'wallet.view',
             },
-            // {
-            //     title: 'Billing',
-            //     href: '/billing',
-            //     icon: Building,
-            //     items: [
-            //         {
-            //             title: 'Dashboard',
-            //             href: '/billing/parts/dashboard',
-            //             icon: LayoutGrid,
-            //         },
-            //         {
-            //             title: 'Create Bill',
-            //             href: '/billing',
-            //             icon: FileText,
-            //         },
-            //         {
-            //             title: 'Bill Parts',
-            //             href: '/billing/parts',
-            //             icon: List,
-            //         },
-            //         {
-            //             title: 'Payments',
-            //             href: '/payments',
-            //             icon: FileText,
-            //         },
-            //         {
-            //             title: 'Reports',
-            //             href: '/reports/billing',
-            //             icon: FileBarChart,
-            //         },
-            //     ],
-            // },
             {
                 title: 'Pharmacy',
                 href: '/pharmacy',
@@ -261,15 +231,18 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                     },
                 ],
             },
-            //  {
-            //     title: 'Reports',
-            //     href: '/reports',
-            //     icon: FileBarChart,
-            // },
+            
             {
                 title: 'Settings',
                 href: '/settings',
                 icon: Settings,
+                items: [
+                    {
+                            title: 'System Health',
+                            href: '/system-health',
+                            icon: Activity,
+                        },   
+                ],                                                   
             },
         ];
         

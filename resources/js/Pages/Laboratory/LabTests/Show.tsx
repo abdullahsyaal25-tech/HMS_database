@@ -30,8 +30,7 @@ import {
   Copy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { LabTest, ReferenceRange, TestParameter } from '@/types/lab-test';
-import { SampleTypeBadge } from '@/components/laboratory/SampleTypeBadge';
+import type { LabTest } from '@/types/lab-test';
 
 interface LabTestShowProps {
   labTest: LabTest;

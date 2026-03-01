@@ -181,30 +181,6 @@ const laboratoryNavItems: (NavItem & { permission?: string })[] = [
     },
 ];
 
-// Quick action buttons for laboratory operations
-const quickActions = [
-    {
-        id: 'new-request',
-        label: 'New Request',
-        href: '/laboratory/lab-test-requests/create',
-        icon: ClipboardList,
-        color: 'bg-blue-600 hover:bg-blue-700',
-    },
-    {
-        id: 'add-result',
-        label: 'Add Result',
-        href: '/laboratory/lab-test-results/create',
-        icon: FileText,
-        color: 'bg-emerald-600 hover:bg-emerald-700',
-    },
-    {
-        id: 'view-queue',
-        label: 'View Queue',
-        href: '/laboratory/lab-test-requests?status=pending',
-        icon: Activity,
-        color: 'bg-purple-600 hover:bg-purple-700',
-    },
-];
 
 const footerNavItems: NavItem[] = [];
 
@@ -365,32 +341,6 @@ export default function LaboratoryLayout({
 
                 {/* Header */}
                 <header className="flex flex-col">
-                    <div className="flex items-center justify-between px-6 py-4">
-                        <div className="flex items-center gap-4">
-                            <SidebarTrigger />
-                            {header}
-                        </div>
-
-                        {/* Quick Action Buttons */}
-                        {showQuickActions && (
-                            <div className="hidden md:flex items-center gap-2">
-                                {quickActions.map((action) => (
-                                    <Link key={action.id} href={action.href}>
-                                        <Button
-                                            size="sm"
-                                            className={cn(
-                                                "text-white gap-1.5 transition-all",
-                                                action.color
-                                            )}
-                                        >
-                                            <action.icon className="h-4 w-4" />
-                                            <span>{action.label}</span>
-                                        </Button>
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
-                    </div>
 
                     {/* Pending/Abnormal Stats Bar */}
                     {((alerts.pendingRequests ?? 0) > 0 || (alerts.abnormalResults ?? 0) > 0) && (

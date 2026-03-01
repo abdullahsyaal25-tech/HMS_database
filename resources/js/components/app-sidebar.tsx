@@ -13,7 +13,20 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { LayoutGrid } from 'lucide-react';
+import {
+    LayoutGrid,
+    Activity,
+    Users,
+    Pill,
+    FlaskConical,
+    Building2,
+    FileText,
+    Calendar,
+    Wallet,
+    Settings,
+    Shield,
+    HeartPulse,
+} from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -22,10 +35,40 @@ const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
+    {
+        title: 'Administration',
+        icon: Settings,
+        items: [
+            {
+                title: 'System Health',
+                href: '/system-health',
+                icon: HeartPulse,
+                permission: 'view-system-health',
+            },
+            {
+                title: 'User Management',
+                href: '/admin/users',
+                icon: Users,
+                permission: 'view-users',
+            },
+            {
+                title: 'Permissions',
+                href: '/admin/permissions',
+                icon: Shield,
+                permission: 'view-rbac-dashboard',
+            },
+            {
+                title: 'Security Center',
+                href: '/admin/security',
+                icon: Shield,
+                permission: 'view-users',
+            },
+        ],
+    },
 ];
 
 const footerNavItems: NavItem[] = [
-  
+
 ];
 
 export function AppSidebar() {
