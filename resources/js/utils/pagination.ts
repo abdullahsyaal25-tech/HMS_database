@@ -221,7 +221,7 @@ export class InfiniteScrollManager {
         this.page++;
       }
     } catch (error) {
-      console.error('Error loading more data:', error);
+      // Error loading more data - silently handle
     } finally {
       this.isLoading = false;
     }

@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -35,64 +36,32 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $userData = null;
-        $user = $request->user();
         
-        // Check if session exists - handle session_not_found error
-        $sessionId = null;
-        try {
-            $sessionId = $request->session()->getId();
-        } catch (\Exception $e) {
-            Log::warning('[HandleInertiaRequests] Failed to get session ID: ' . $e->getMessage());
-            $sessionId = null;
+        // Get the authenticated user
+        $user = Auth::user();
+        
+        if ($user) {
+            // Load roleModel to get proper role name
+            $user->loadMissing('roleModel');
+            
+            // Get permissions
+            $permissions = $this->getUserPermissions($user);
+            
+            $userData = [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'role' => $user->roleModel?->name ?? $user->role,
+                'role_id' => $user->role_id,
+                'is_super_admin' => $user->isSuperAdmin(),
+                'permissions' => $permissions,
+            ];
         }
         
-        Log::debug('[HandleInertiaRequests] Share method', [
-            'has_user' => !!$user,
-            'user_id' => $user?->id,
-            'session_id' => $sessionId,
-        ]);
-        
-        try {
-            // Only check for user, not sessionId - the user being authenticated is enough
-            if ($user) {
-                // Load roleModel to get proper role name
-                $user->loadMissing('roleModel');
-                
-                $userData = [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'username' => $user->username,
-                    'role' => $user->roleModel?->name ?? $user->role,
-                    'role_id' => $user->role_id,
-                    'is_super_admin' => $user->isSuperAdmin(),
-                    'permissions' => $this->getUserPermissions($user),
-                ];
-                Log::debug('[HandleInertiaRequests] User data prepared', [
-                    'user_id' => $user->id,
-                    'is_super_admin' => $userData['is_super_admin'],
-                    'permissions_count' => count($userData['permissions']),
-                ]);
-            } else {
-                Log::debug('[HandleInertiaRequests] No user found in request');
-            }
-        } catch (\Exception $e) {
-            Log::error('[HandleInertiaRequests] Error getting user data: ' . $e->getMessage());
-            report($e);
-            $userData = null;
-        }
-        
-        // Get flash data with diagnostic logging
+        // Get flash data
         $flashSuccess = $request->session()->get('success');
         $flashError = $request->session()->get('error');
         $flashMessage = $request->session()->get('message');
-        
-        Log::debug('[HandleInertiaRequests] Flash data retrieved', [
-            'success' => $flashSuccess ? 'present: ' . substr($flashSuccess, 0, 50) . '...' : 'null',
-            'error' => $flashError ? 'present' : 'null',
-            'message' => $flashMessage ? 'present' : 'null',
-            'request_path' => $request->path(),
-            'is_inertia' => $request->header('X-Inertia'),
-        ]);
         
         return array_merge(parent::share($request), [
             'csrf' => [

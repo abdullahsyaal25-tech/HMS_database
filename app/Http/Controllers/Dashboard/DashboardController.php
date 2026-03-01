@@ -70,6 +70,23 @@ class DashboardController extends Controller
                 'discount_stats' => $discountStats,
             ]);
             
+            // Explicitly share auth data to ensure it's available in the frontend
+            // This is a workaround for HandleInertiaRequests not sharing properly
+            $user->loadMissing('roleModel');
+            Inertia::share([
+                'auth' => [
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'username' => $user->username,
+                        'role' => $user->roleModel?->name ?? $user->role,
+                        'role_id' => $user->role_id,
+                        'is_super_admin' => $user->isSuperAdmin(),
+                        'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
+                    ],
+                ],
+            ]);
+            
             return Inertia::render('Dashboard', $responseData);
         } catch (\Exception $e) {
             Log::error('Dashboard index error: ' . $e->getMessage(), [

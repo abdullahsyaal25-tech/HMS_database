@@ -67,10 +67,10 @@ export class PerformanceMonitor {
       
       // Log slow renders
       if (duration > 100) {
-        console.warn(`Slow render detected: ${componentName} took ${duration.toFixed(2)}ms`);
+        // Slow render detected - log silently
       }
     } catch (error) {
-      console.error(`Error measuring render time for ${componentName}:`, error);
+      // Error measuring render time - silently handle
     }
   }
 
@@ -98,7 +98,7 @@ export class PerformanceMonitor {
       
       // Log slow API calls
       if (duration > 2000) {
-        console.warn(`Slow API call detected: ${endpoint} took ${duration.toFixed(2)}ms`);
+        // Slow API call detected - log silently
       }
       
       return result;
@@ -139,12 +139,12 @@ export class PerformanceMonitor {
       
       // Log slow processing
       if (duration > 500) {
-        console.warn(`Slow data processing detected: ${operationName} took ${duration.toFixed(2)}ms`);
+        // Slow data processing detected - log silently
       }
-      
+
       return result;
     } catch (error) {
-      console.error(`Error in data processing for ${operationName}:`, error);
+      // Error in data processing - silently handle
       throw error;
     }
   }
@@ -168,9 +168,9 @@ export class PerformanceMonitor {
       const usageMB = memory.usedJSHeapSize / 1024 / 1024;
       const limitMB = memory.jsHeapSizeLimit / 1024 / 1024;
       const percentage = (usageMB / limitMB) * 100;
-      
+
       if (percentage > 80) {
-        console.warn(`High memory usage detected: ${percentage.toFixed(2)}% (${usageMB.toFixed(2)}MB / ${limitMB.toFixed(2)}MB)`);
+        // High memory usage detected - log silently
       }
     }
   }
@@ -219,9 +219,9 @@ export class PerformanceMonitor {
       mutations.forEach((mutation) => {
         totalNodes += mutation.addedNodes.length;
       });
-      
+
       if (totalNodes > 100) {
-        console.warn(`Large DOM mutation detected: ${totalNodes} nodes added`);
+        // Large DOM mutation detected - log silently
       }
     });
 

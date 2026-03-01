@@ -230,19 +230,6 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                     },
                 ],
             },
-            
-            {
-                title: 'Settings',
-                href: '/settings',
-                icon: Settings,
-                items: [
-                    {
-                            title: 'System Health',
-                            href: '/system-health',
-                            icon: Activity,
-                        },   
-                ],                                                   
-            },
         ];
         
         // If user is not authenticated, show all navigation items
