@@ -24,7 +24,7 @@ export interface User {
 export interface NavItem {
     label?: string;
     title?: string;
-    href: string;
+    href?: string;
     icon?: React.ComponentType<{ className?: string }>;
     items?: NavItem[]; // Submenu items
     permission?: string; // Required permission to view this item

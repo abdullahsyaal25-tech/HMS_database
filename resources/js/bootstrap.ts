@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { logger } from '@/services/logger';
+import '@/interceptor.js';
 
 // Set up Axios defaults for Sanctum
 axios.defaults.withCredentials = true;
