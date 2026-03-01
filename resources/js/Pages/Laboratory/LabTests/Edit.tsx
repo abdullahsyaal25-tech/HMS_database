@@ -176,7 +176,9 @@ export default function LabTestEdit({ labTest }: LabTestEditProps) {
       data: {
         ...data,
         _method: 'PUT',
-      },
+        parameters: JSON.stringify(data.parameters),
+        reference_ranges: JSON.stringify(data.reference_ranges),
+      } as unknown as Record<string, string | number | boolean>,
       preserveScroll: true,
     });
   };

@@ -140,7 +140,12 @@ export default function LabMaterialIndex({
   };
 
   const handleReset = () => {
-    setActiveFilters({});
+    setActiveFilters({
+      query: '',
+      status: '',
+      lab_test_id: '',
+      stock_status: '',
+    });
     router.get('/laboratory/materials', {}, {
       preserveState: true,
       preserveScroll: true,

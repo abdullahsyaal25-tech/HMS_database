@@ -37,14 +37,35 @@ import type { LabTest } from '@/types/lab-test';
 import type { User } from '@/types/index.d';
 
 interface LabMaterialEditProps {
-  labMaterial: LabMaterial & {
+  labMaterial?: LabMaterial & {
     labTest?: LabTest;
-    createdBy: User;
+    createdBy?: User;
   };
   labTests: LabTest[];
 }
 
 export default function LabMaterialEdit({ labMaterial, labTests = [] }: LabMaterialEditProps) {
+  // Guard clause for undefined labMaterial
+  if (!labMaterial) {
+    return (
+      <LaboratoryLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900">Material Not Found</h2>
+            <p className="text-gray-500 mt-2">The lab material you're looking for doesn't exist.</p>
+            <Link href="/laboratory/materials">
+              <Button className="mt-4">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Materials
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </LaboratoryLayout>
+    );
+  }
+
   const [labTestSearch, setLabTestSearch] = useState(
     labMaterial.labTest ? `${labMaterial.labTest.name} (${labMaterial.labTest.test_code})` : ''
   );
@@ -595,7 +616,7 @@ export default function LabMaterialEdit({ labMaterial, labTests = [] }: LabMater
                       </div>
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>Created By:</span>
-                        <span>{labMaterial.createdBy.name}</span>
+                        <span>{labMaterial.createdBy?.name || 'Unknown'}</span>
                       </div>
                     </div>
                   </div>

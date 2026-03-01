@@ -43,7 +43,6 @@ interface Medicine {
     name: string;
     medicine_id: string;
     stock_quantity: number;
-    sale_price: number;
     cost_price: number;
     sale_price: number;
     form: string | null;

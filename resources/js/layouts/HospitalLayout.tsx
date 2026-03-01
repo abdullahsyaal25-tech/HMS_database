@@ -129,7 +129,6 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                 title: 'Wallet',
                 href: '/wallet',
                 icon: CreditCard,
-                permission: 'wallet.view',
             },
             {
                 title: 'Pharmacy',

@@ -91,7 +91,9 @@ export function useApiPerformance() {
       // Clean up old metrics (keep last 50)
       if (apiMetricsRef.current.size > 50) {
         const firstKey = apiMetricsRef.current.keys().next().value;
-        apiMetricsRef.current.delete(firstKey);
+        if (firstKey) {
+          apiMetricsRef.current.delete(firstKey);
+        }
       }
     }
   }, []);
@@ -144,7 +146,7 @@ export function useVirtualList<T>(
 // Hook for debouncing expensive operations
 export function useDebounce<T>(value: T, delay: number = 300): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     timeoutRef.current = setTimeout(() => {
@@ -167,7 +169,7 @@ export function useThrottle<T extends (...args: any[]) => any>(
   delay: number = 300
 ): T {
   const lastRunRef = useRef<number>(0);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   return useCallback(((...args: Parameters<T>) => {
     const now = Date.now();

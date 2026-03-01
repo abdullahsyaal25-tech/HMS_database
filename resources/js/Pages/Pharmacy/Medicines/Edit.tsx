@@ -58,7 +58,6 @@ export default function MedicineEdit({ medicine, categories }: MedicineEditProps
     batch_number: medicine.batch_number || '',
     barcode: medicine.barcode || '',
     // Send both sale_price (for display) and sale_price/cost_price (for controller validation)
-    sale_price: Number(medicine.sale_price) || 0,
     sale_price: Number(medicine.sale_price) || Number(medicine.sale_price) || 0,
     cost_price: Number(medicine.cost_price) || Number(medicine.sale_price) || 0,
     stock_quantity: medicine.stock_quantity,

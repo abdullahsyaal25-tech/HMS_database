@@ -89,32 +89,28 @@ const pharmacyNavItems: (NavItem & { permission?: string })[] = [
         href: '/pharmacy',
         icon: LayoutGrid,
     },
+     {
+        title: 'Sale Dashboard',
+        href: '/pharmacy/sales/dashboard',
+        icon: BarChart3,
+     },
     {
-        title: 'Point of Sale',
-        href: '/pharmacy/sales/create',
-        icon: ShoppingCart,
-        permission: 'pharmacy.sales.create',
-    },
-    {
-        title: 'Sales',
+        title: 'Sale',
         href: '/pharmacy/sales',
         icon: BarChart3,
         items: [
+           {
+                title: 'New Sale',
+                href: '/pharmacy/sales/create',
+                icon: Plus,
+            },
             {
                 title: 'Sales List',
                 href: '/pharmacy/sales',
                 icon: ShoppingCart,
             },
-            {
-                title: 'Sales Dashboard',
-                href: '/pharmacy/sales/dashboard',
-                icon: BarChart3,
-            },
-            {
-                title: 'New Sale',
-                href: '/pharmacy/sales/create',
-                icon: Plus,
-            },
+           
+           
         ],
     },
     {
@@ -123,15 +119,16 @@ const pharmacyNavItems: (NavItem & { permission?: string })[] = [
         icon: Pill,
         items: [
             {
-                title: 'All Medicines',
-                href: '/pharmacy/medicines',
-                icon: Pill,
-            },
-            {
                 title: 'Add Medicine',
                 href: '/pharmacy/medicines/create',
                 icon: Plus,
             },
+            {
+                title: 'All Medicines',
+                href: '/pharmacy/medicines',
+                icon: Pill,
+            },
+            
             {
                 title: 'Categories',
                 href: '/pharmacy/categories',
@@ -159,11 +156,7 @@ const pharmacyNavItems: (NavItem & { permission?: string })[] = [
                 href: '/pharmacy/stock/adjustments',
                 icon: AlertCircle,
             },
-            // {
-            //     title: 'Valuation',
-            //     href: '/pharmacy/stock/valuation',
-            //     icon: BarChart3,
-            // },
+        
         ],
     },
     {
@@ -215,24 +208,6 @@ const pharmacyNavItems: (NavItem & { permission?: string })[] = [
                 icon: AlertCircle,
             },
         ],
-    },
-];
-
-// Quick action buttons for pharmacy operations
-const quickActions = [
-    {
-        id: 'new-sale',
-        label: 'New Sale',
-        href: '/pharmacy/sales/create',
-        icon: ShoppingCart,
-        color: 'bg-blue-600 hover:bg-blue-700',
-    },
-    {
-        id: 'add-medicine',
-        label: 'Add Medicine',
-        href: '/pharmacy/medicines/create',
-        icon: Pill,
-        color: 'bg-emerald-600 hover:bg-emerald-700',
     },
 ];
 
@@ -316,33 +291,6 @@ export default function PharmacyLayout({
             <SidebarInset className="bg-background">
                 {/* Header */}
                 <header className="flex flex-col border-b">
-                    {/* Main Header */}
-                    <div className="flex items-center justify-between px-6 py-4">
-                        <div className="flex items-center gap-4">
-                            <SidebarTrigger />
-                            {header}
-                        </div>
-
-                        {/* Quick Action Buttons */}
-                        {showQuickActions && (
-                            <div className="hidden md:flex items-center gap-2">
-                                {quickActions.map((action) => (
-                                    <Link key={action.id} href={action.href}>
-                                        <Button
-                                            size="sm"
-                                            className={cn(
-                                                "text-white gap-1.5 transition-all",
-                                                action.color
-                                            )}
-                                        >
-                                            <action.icon className="h-4 w-4" />
-                                            <span>{action.label}</span>
-                                        </Button>
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
-                    </div>
 
                     {/* Alerts Banner */}
                     {(alerts.lowStock || alerts.expiringSoon || alerts.expired) && (

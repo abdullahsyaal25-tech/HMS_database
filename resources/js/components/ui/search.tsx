@@ -448,20 +448,20 @@ export function useSearch<T>(
     // Apply filters
     if (filters?.status?.length) {
       result = result.filter(item =>
-        filters.status?.includes(String(item.status))
+        filters.status?.includes(String((item as T & { status?: string }).status))
       )
     }
 
     if (filters?.departments?.length) {
       result = result.filter(item =>
-        filters.departments?.includes(String(item.department))
+        filters.departments?.includes(String((item as T & { department?: string }).department))
       )
     }
 
     if (filters?.dateRange?.from || filters?.dateRange?.to) {
       const { from, to } = filters.dateRange
       result = result.filter(item => {
-        const date = new Date(String(item.date))
+        const date = new Date(String((item as T & { date?: string }).date))
         if (from && date < from) return false
         if (to && date > to) return false
         return true

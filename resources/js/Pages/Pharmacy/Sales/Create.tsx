@@ -141,7 +141,7 @@ export default function SaleCreate({ medicines, patients: patientsProp }: SaleCr
                 medicine_id:    medicine.id,
                 name:           medicine.name,
                 quantity:       1,
-                sale_price:     medicine.sale_price,
+                sale_price:     medicine.sale_price ?? 0,
                 stock_quantity: medicine.stock_quantity,
                 dosage_form:    medicine.dosage_form,
                 strength:       medicine.strength,

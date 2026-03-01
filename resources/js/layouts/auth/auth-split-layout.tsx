@@ -9,12 +9,19 @@ interface AuthLayoutProps {
     description?: string;
 }
 
+interface Quote {
+    message: string;
+    author: string;
+}
+
 export default function AuthSplitLayout({
     children,
     title,
     description,
 }: PropsWithChildren<AuthLayoutProps>) {
     const { name, quote } = usePage<SharedData>().props;
+    const typedName = name as string;
+    const typedQuote = quote as Quote | undefined;
 
     return (
         <div className="relative grid h-dvh flex-col items-center justify-center px-8 sm:px-0 lg:max-w-none lg:grid-cols-2 lg:px-0">
@@ -25,16 +32,16 @@ export default function AuthSplitLayout({
                     className="relative z-20 flex items-center text-lg font-medium"
                 >
                     <AppLogoIcon className="mr-2 size-8 fill-current text-white" />
-                    {name}
+                    {typedName}
                 </Link>
-                {quote && (
+                {typedQuote && (
                     <div className="relative z-20 mt-auto">
                         <blockquote className="space-y-2">
                             <p className="text-lg">
-                                &ldquo;{quote.message}&rdquo;
+                                &ldquo;{typedQuote.message}&rdquo;
                             </p>
                             <footer className="text-sm text-neutral-300">
-                                {quote.author}
+                                {typedQuote.author}
                             </footer>
                         </blockquote>
                     </div>
