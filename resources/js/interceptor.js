@@ -11,10 +11,15 @@
  * Math.random for non-secure contexts (HTTP instead of HTTPS)
  */
 function generateUUID() {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-        return crypto.randomUUID();
+    // Check if crypto exists and has randomUUID method available in secure context
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        try {
+            return crypto.randomUUID();
+        } catch (e) {
+            // Fall back if crypto.randomUUID is somehow unavailable despite being present
+        }
     }
-    // Fallback for non-secure contexts
+    // Fallback for non-secure contexts or older browsers
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
