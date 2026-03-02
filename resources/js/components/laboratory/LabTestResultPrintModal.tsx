@@ -140,6 +140,9 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
                     max-width: 210mm;
                     margin: 0 auto;
                     padding: 10px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
                 }
                 .header {
                     text-align: center;
@@ -156,6 +159,8 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
                     border-collapse: collapse;
                     margin: 10px 0;
                     font-size: 10px;
+                    margin-left: auto;
+                    margin-right: auto;
                 }
                 .patient-table td {
                     border: 1px solid #000;
@@ -179,6 +184,8 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
                     width: 100%;
                     border-collapse: collapse;
                     font-size: 10px;
+                    margin-left: auto;
+                    margin-right: auto;
                 }
                 .results-table th {
                     border: 1px solid #000;
@@ -227,8 +234,8 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
         const address = labTestResult.patient?.address || 'N/A';
         const receiptNo = labTestResult.result_id || 'N/A';
         const userName = labTestResult.performedBy?.name || 'N/A';
-        const testDate = labTestResult.performed_at ? new Date(labTestResult.performed_at).toLocaleDateString('en-US') : 'N/A';
-        const printDate = new Date().toLocaleDateString('en-US');
+        const testDate = labTestResult.performed_at ? new Date(labTestResult.performed_at).toLocaleString('en-US') : 'N/A';
+        const printDate = new Date().toLocaleString('en-US');
         const testName = labTestResult.labTest?.name || '';
         const notes = labTestResult.notes;
 
@@ -337,8 +344,8 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
     const address = labTestResult.patient?.address || 'N/A';
     const receiptNo = labTestResult.result_id || 'N/A';
     const userName = labTestResult.performedBy?.name || 'N/A';
-    const testDate = labTestResult.performed_at ? new Date(labTestResult.performed_at).toLocaleDateString('en-US') : 'N/A';
-    const printDate = new Date().toLocaleDateString('en-US');
+    const testDate = labTestResult.performed_at ? new Date(labTestResult.performed_at).toLocaleString('en-US') : 'N/A';
+    const printDate = new Date().toLocaleString('en-US');
     const testName = labTestResult.labTest?.name || 'Lab Test';
 
         const referenceRangeText = (min: number, max: number, unit: string) => {

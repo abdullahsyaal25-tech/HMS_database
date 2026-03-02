@@ -361,6 +361,13 @@ Route::middleware(['web', 'auth'])->group(function () {
             Route::put('/users/{user}', [App\Http\Controllers\Admin\PermissionsController::class, 'updateUserPermissions'])->name('admin.permissions.users.update');
         });
 
+        // Role Management Routes
+        Route::middleware(['permission.monitoring', 'check.permission:manage-roles'])->prefix('roles')->group(function () {
+            Route::get('/', [App\Http\Controllers\Admin\RoleController::class, 'index'])->name('admin.roles.index');
+            Route::post('/', [App\Http\Controllers\Admin\RoleController::class, 'store'])->name('admin.roles.store');
+            Route::delete('/{role}', [App\Http\Controllers\Admin\RoleController::class, 'destroy'])->name('admin.roles.destroy');
+        });
+
         // Permission Monitoring Route
         Route::get('/permission-monitoring', function () {
             return inertia('Admin/PermissionMonitoring');
@@ -425,6 +432,7 @@ Route::middleware(['auth', 'check.permission:view-admin-dashboard'])->group(func
         
         // User Assignments
         Route::get('/rbac/user-assignments', [RBACController::class, 'userAssignments'])->name('admin.rbac.user-assignments');
+        Route::get('/rbac/users-list', [RBACController::class, 'getUsersList'])->name('admin.rbac.users-list');
         Route::put('/rbac/users/{user}/role', [RBACController::class, 'updateUserRole'])
             ->name('admin.rbac.update-user-role')
             ->middleware('check.permission:manage-user-roles');

@@ -35,7 +35,9 @@ class HospitalDashboardService extends BaseService
         $todayStr = $today->toDateString();
 
         // Check if day_end_timestamp exists - Option B: Running Total After Day-End
-        $dayEndTimestamp = Cache::get('day_end_timestamp_' . $todayStr);
+        // FIXED: Use consistent cache key 'day_end_timestamp' (matching RefreshDataController and WalletController)
+        // Previously was using 'day_end_timestamp_' . $todayStr which never matched
+        $dayEndTimestamp = Cache::get('day_end_timestamp');
         
         // Initialize variables
         $cachedAllHistory = null;

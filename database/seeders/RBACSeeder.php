@@ -135,22 +135,24 @@ class RBACSeeder extends Seeder
             [
                 'name' => 'Reception Admin',
                 'slug' => 'reception-admin',
-                'description' => 'Front-desk personnel for patient interaction',
+                'description' => 'Front-desk personnel for patient, appointment and department management',
                 'is_system' => false,
                 'priority' => 60,
-                'reporting_structure' => 'Reports to Hospital Admin, serves as primary patient interface',
+                'reporting_structure' => 'Reports to Hospital Admin, manages reception desk operations',
                 'module_access' => [
-                    'patient_registration', 'appointments', 'basic_patient_info', 'communications'
+                    'patients', 'appointments', 'departments', 'doctors', 'queue', 'scheduling'
                 ],
                 'data_visibility_scope' => [
-                    'patient_demographics', 'appointment_schedules', ''
+                    'patient_demographics', 'appointment_schedules', 'department_data', 'doctor_schedules'
                 ],
-                'user_management_capabilities' => [],
+                'user_management_capabilities' => [
+                    'manage_reception_staff'
+                ],
                 'system_configuration_access' => [
-                    'appointment_preferences', 'communication_templates'
+                    'appointment_preferences', 'communication_templates', 'department_settings'
                 ],
                 'reporting_permissions' => [
-                    'daily_schedules', 'patient_flow_reports', 'reception_metrics'
+                    'daily_schedules', 'patient_flow_reports', 'reception_metrics', 'appointment_reports'
                 ],
                 'role_specific_limitations' => [
                     'no_medical_records', 'no_financial_transactions', 'no_patient_deletion'
@@ -219,17 +221,27 @@ class RBACSeeder extends Seeder
             ['name' => 'view-pharmacy', 'slug' => 'view_pharmacy', 'description' => 'View pharmacy section', 'resource' => 'pharmacy', 'action' => 'view', 'category' => 'Pharmacy Management', 'module' => 'pharmacy', 'segregation_group' => 'pharmacy_operations', 'risk_level' => 1],
             ['name' => 'manage-medicines', 'slug' => 'manage_medicines', 'description' => 'Manage medicine inventory', 'resource' => 'medicines', 'action' => 'manage', 'category' => 'Pharmacy Management', 'module' => 'pharmacy', 'segregation_group' => 'pharmacy_operations', 'risk_level' => 2],
             ['name' => 'process-prescriptions', 'slug' => 'process_prescriptions', 'description' => 'Process prescriptions', 'resource' => 'prescriptions', 'action' => 'process', 'category' => 'Pharmacy Management', 'module' => 'pharmacy', 'segregation_group' => 'pharmacy_operations', 'risk_level' => 2],
+            ['name' => 'manage-prescriptions', 'slug' => 'manage_prescriptions', 'description' => 'Manage prescriptions workflow', 'resource' => 'prescriptions', 'action' => 'manage', 'category' => 'Pharmacy Management', 'module' => 'pharmacy', 'segregation_group' => 'pharmacy_operations', 'risk_level' => 2],
+            ['name' => 'inventory-management', 'slug' => 'inventory_management', 'description' => 'Manage pharmacy inventory', 'resource' => 'inventory', 'action' => 'manage', 'category' => 'Pharmacy Management', 'module' => 'pharmacy', 'segregation_group' => 'pharmacy_operations', 'risk_level' => 2],
             
             // Laboratory Management
             ['name' => 'view-laboratory', 'slug' => 'view_laboratory', 'description' => 'View laboratory section', 'resource' => 'laboratory', 'action' => 'view', 'category' => 'Laboratory Management', 'module' => 'laboratory', 'segregation_group' => 'laboratory_operations', 'risk_level' => 1],
             ['name' => 'manage-lab-tests', 'slug' => 'manage_lab_tests', 'description' => 'Manage lab tests', 'resource' => 'lab-tests', 'action' => 'manage', 'category' => 'Laboratory Management', 'module' => 'laboratory', 'segregation_group' => 'laboratory_operations', 'risk_level' => 2],
             ['name' => 'process-test-results', 'slug' => 'process_test_results', 'description' => 'Process test results', 'resource' => 'lab-test-results', 'action' => 'process', 'category' => 'Laboratory Management', 'module' => 'laboratory', 'segregation_group' => 'laboratory_operations', 'risk_level' => 2],
+            ['name' => 'quality-control', 'slug' => 'quality_control', 'description' => 'Manage lab quality control', 'resource' => 'quality-control', 'action' => 'manage', 'category' => 'Laboratory Management', 'module' => 'laboratory', 'segregation_group' => 'laboratory_operations', 'risk_level' => 2],
             
             // RBAC Management
             ['name' => 'view-rbac-dashboard', 'slug' => 'view_rbac_dashboard', 'description' => 'View RBAC dashboard', 'resource' => 'rbac', 'action' => 'view', 'category' => 'RBAC Management', 'module' => 'rbac', 'segregation_group' => 'rbac_management', 'risk_level' => 1],
             ['name' => 'manage-role-permissions', 'slug' => 'manage_role_permissions', 'description' => 'Manage role permissions', 'resource' => 'role-permissions', 'action' => 'manage', 'category' => 'RBAC Management', 'module' => 'rbac', 'segregation_group' => 'rbac_management', 'risk_level' => 3, 'requires_approval' => true, 'is_critical' => true],
             ['name' => 'view-permission-matrix', 'slug' => 'view_permission_matrix', 'description' => 'View permission matrix', 'resource' => 'permissions', 'action' => 'view', 'category' => 'RBAC Management', 'module' => 'rbac', 'segregation_group' => 'rbac_management', 'risk_level' => 1],
             ['name' => 'view-activity-logs', 'slug' => 'view_activity_logs', 'description' => 'View audit logs', 'resource' => 'audit-logs', 'action' => 'view', 'category' => 'RBAC Management', 'module' => 'rbac', 'segregation_group' => 'rbac_management', 'risk_level' => 1],
+            ['name' => 'manage-roles', 'slug' => 'manage_roles', 'description' => 'Create and manage roles', 'resource' => 'roles', 'action' => 'manage', 'category' => 'RBAC Management', 'module' => 'rbac', 'segregation_group' => 'rbac_management', 'risk_level' => 2],
+            ['name' => 'manage-user-roles', 'slug' => 'manage_user_roles', 'description' => 'Assign roles to users', 'category' => 'RBAC Management', 'module' => 'rbac', 'segregation_group' => 'rbac_management', 'risk_level' => 3],
+            
+            // Permission Template Management
+            ['name' => 'view-permission-templates', 'slug' => 'view_permission_templates', 'description' => 'View permission templates and Apply Template button', 'resource' => 'permission-templates', 'action' => 'view', 'category' => 'RBAC Management', 'module' => 'rbac', 'segregation_group' => 'rbac_management', 'risk_level' => 1],
+            ['name' => 'edit-role-permissions', 'slug' => 'edit_role_permissions', 'description' => 'Apply or copy permissions from templates to roles', 'resource' => 'role-permissions', 'action' => 'edit', 'category' => 'RBAC Management', 'module' => 'rbac', 'segregation_group' => 'rbac_management', 'risk_level' => 3, 'requires_approval' => true],
+            ['name' => 'reset-role-permissions', 'slug' => 'reset_role_permissions', 'description' => 'Reset role permissions to default values', 'resource' => 'role-permissions', 'action' => 'reset', 'category' => 'RBAC Management', 'module' => 'rbac', 'segregation_group' => 'rbac_management', 'risk_level' => 3, 'requires_approval' => true, 'is_critical' => true],
             
             // Dashboard
             ['name' => 'view-dashboard', 'slug' => 'view_dashboard', 'description' => 'View dashboard', 'resource' => 'dashboard', 'action' => 'view', 'category' => 'Dashboard', 'module' => 'dashboard', 'segregation_group' => 'dashboard', 'risk_level' => 1],
@@ -245,6 +257,10 @@ class RBACSeeder extends Seeder
             ['name' => 'create-appointments', 'slug' => 'create_appointments', 'description' => 'Create new appointments', 'resource' => 'appointments', 'action' => 'create', 'category' => 'Appointment Management', 'module' => 'appointments', 'segregation_group' => 'appointment_management', 'risk_level' => 1],
             ['name' => 'edit-appointments', 'slug' => 'edit_appointments', 'description' => 'Edit existing appointments', 'resource' => 'appointments', 'action' => 'edit', 'category' => 'Appointment Management', 'module' => 'appointments', 'segregation_group' => 'appointment_management', 'risk_level' => 2],
             ['name' => 'delete-appointments', 'slug' => 'delete_appointments', 'description' => 'Delete appointments', 'resource' => 'appointments', 'action' => 'delete', 'category' => 'Appointment Management', 'module' => 'appointments', 'segregation_group' => 'appointment_management', 'risk_level' => 2],
+            ['name' => 'manage-queue', 'slug' => 'manage_queue', 'description' => 'Manage patient queue', 'resource' => 'queue', 'action' => 'manage', 'category' => 'Appointment Management', 'module' => 'appointments', 'segregation_group' => 'appointment_management', 'risk_level' => 1],
+            ['name' => 'cancel-appointments', 'slug' => 'cancel_appointments', 'description' => 'Cancel appointments', 'resource' => 'appointments', 'action' => 'cancel', 'category' => 'Appointment Management', 'module' => 'appointments', 'segregation_group' => 'appointment_management', 'risk_level' => 2],
+            ['name' => 'reschedule-appointments', 'slug' => 'reschedule_appointments', 'description' => 'Reschedule appointments', 'resource' => 'appointments', 'action' => 'reschedule', 'category' => 'Appointment Management', 'module' => 'appointments', 'segregation_group' => 'appointment_management', 'risk_level' => 2],
+            ['name' => 'view-appointment-schedule', 'slug' => 'view_appointment_schedule', 'description' => 'View appointment schedule', 'resource' => 'appointment-schedule', 'action' => 'view', 'category' => 'Appointment Management', 'module' => 'appointments', 'segregation_group' => 'appointment_management', 'risk_level' => 1],
             
             // Medicine Management (individual permissions)
             ['name' => 'create-medicines', 'slug' => 'create_medicines', 'description' => 'Add new medicines', 'resource' => 'medicines', 'action' => 'create', 'category' => 'Pharmacy Management', 'module' => 'pharmacy', 'segregation_group' => 'pharmacy_operations', 'risk_level' => 2],
@@ -255,6 +271,10 @@ class RBACSeeder extends Seeder
             ['name' => 'create-lab-tests', 'slug' => 'create_lab_tests', 'description' => 'Create new lab tests', 'resource' => 'lab-tests', 'action' => 'create', 'category' => 'Laboratory Management', 'module' => 'laboratory', 'segregation_group' => 'laboratory_operations', 'risk_level' => 2],
             ['name' => 'edit-lab-tests', 'slug' => 'edit_lab_tests', 'description' => 'Edit lab tests', 'resource' => 'lab-tests', 'action' => 'edit', 'category' => 'Laboratory Management', 'module' => 'laboratory', 'segregation_group' => 'laboratory_operations', 'risk_level' => 2],
             ['name' => 'delete-lab-tests', 'slug' => 'delete_lab_tests', 'description' => 'Delete lab tests', 'resource' => 'lab-tests', 'action' => 'delete', 'category' => 'Laboratory Management', 'module' => 'laboratory', 'segregation_group' => 'laboratory_operations', 'risk_level' => 3, 'requires_approval' => true],
+            ['name' => 'view-lab-results', 'slug' => 'view_lab_results', 'description' => 'View lab test results', 'resource' => 'lab-results', 'action' => 'view', 'category' => 'Laboratory Management', 'module' => 'laboratory', 'segregation_group' => 'laboratory_operations', 'risk_level' => 1],
+            ['name' => 'create-lab-results', 'slug' => 'create_lab_results', 'description' => 'Create lab test results', 'resource' => 'lab-results', 'action' => 'create', 'category' => 'Laboratory Management', 'module' => 'laboratory', 'segregation_group' => 'laboratory_operations', 'risk_level' => 2],
+            ['name' => 'edit-lab-results', 'slug' => 'edit_lab_results', 'description' => 'Edit lab test results', 'resource' => 'lab-results', 'action' => 'edit', 'category' => 'Laboratory Management', 'module' => 'laboratory', 'segregation_group' => 'laboratory_operations', 'risk_level' => 2],
+            ['name' => 'manage-lab-materials', 'slug' => 'manage_lab_materials', 'description' => 'Manage lab materials and supplies', 'resource' => 'lab-materials', 'action' => 'manage', 'category' => 'Laboratory Management', 'module' => 'laboratory', 'segregation_group' => 'laboratory_operations', 'risk_level' => 2],
             
             // Reports
             ['name' => 'view-reports', 'slug' => 'view_reports', 'description' => 'View reports', 'resource' => 'reports', 'action' => 'view', 'category' => 'Reports', 'module' => 'reports', 'segregation_group' => 'reports', 'risk_level' => 1],
@@ -294,8 +314,8 @@ class RBACSeeder extends Seeder
                 'view-rbac-dashboard', 'manage-role-permissions', 'view-permission-matrix', 'view-activity-logs'
             ],
             'sub-super-admin' => [
-                'view-dashboard', 'view-users', 'create-users', 'edit-users',
-                'view-roles', 'edit-roles',
+                'view-dashboard', 'view-users', 'create-users', 'edit-users', 'delete-users',
+                'view-roles', 'create-roles', 'edit-roles', 'manage-roles', 'manage-role-permissions', 'manage-user-roles',
                 'view-patients', 'create-patients', 'edit-patients', 'delete-patients',
                 'view-doctors', 'create-doctors', 'edit-doctors', 'delete-doctors',
                 'view-appointments', 'create-appointments', 'edit-appointments', 'delete-appointments',
@@ -306,36 +326,46 @@ class RBACSeeder extends Seeder
                 'wallet.view',
                 'view-pharmacy', 'manage-medicines', 'process-prescriptions',
                 'view-laboratory', 'manage-lab-tests', 'process-test-results',
-                'view-rbac-dashboard', 'view-permission-matrix', 'view-activity-logs'
+                'view-rbac-dashboard', 'view-permission-matrix', 'view-activity-logs',
+                'view-permission-templates', 'edit-role-permissions', 'reset-role-permissions'
             ],
             'pharmacy-admin' => [
                 'view-dashboard',
                 'view-patients',
                 'view-pharmacy', 'create-medicines', 'edit-medicines', 'delete-medicines',
+                'manage-prescriptions', 'inventory-management',
                 'view-reports',
             ],
             'laboratory-admin' => [
                 'view-dashboard',
                 'view-patients',
                 'view-laboratory', 'create-lab-tests', 'edit-lab-tests', 'delete-lab-tests',
+                'process-test-results', 'quality-control',
+                'view-lab-results', 'create-lab-results', 'edit-lab-results',
+                'manage-lab-materials',
                 'view-reports',
             ],
             'reception-admin' => [
                 'view-dashboard',
                 'view-patients', 'create-patients', 'edit-patients',
                 'view-doctors',
-                'view-appointments', 'create-appointments', 'edit-appointments',
+                'view-departments', 'create-departments', 'edit-departments',
+                'view-appointments', 'create-appointments', 'edit-appointments', 'delete-appointments',
+                'cancel-appointments', 'reschedule-appointments',
+                'manage-queue', 'view-appointment-schedule',
                 'view-reports',
                 'view-users' // Limited view only
             ],
             'hospital-admin' => [
                 'view-dashboard', 'view-users',
+                'view-roles', 'create-roles', 'edit-roles', 'manage-roles', 'manage-user-roles',
                 'view-patients', 'create-patients', 'edit-patients',
                 'view-doctors', 'create-doctors', 'edit-doctors',
                 'view-appointments', 'create-appointments', 'edit-appointments',
                 'view-reports', 'view-activity-logs',
                 'view-departments', 'create-departments', 'edit-departments',
                 'wallet.view',
+                'view-permission-templates', 'edit-role-permissions', 'reset-role-permissions'
             ],
             'doctor' => [
                 'view-dashboard',

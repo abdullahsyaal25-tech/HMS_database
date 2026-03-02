@@ -137,6 +137,11 @@ class RBACController extends Controller
             $role = Role::findOrFail($validated['role_id']);
             $permissionIds = $validated['permission_ids'] ?? [];
             
+            // RBAC: Allow admins to assign ANY permissions to any role
+            // The scope concept is removed - admins should be able to add/remove
+            // any permissions they need for a role, not limited to current assignments
+            // This enables selecting new permissions that weren't previously assigned
+            
             // Validate permission dependencies
             $errors = $this->rbacService->validatePermissionDependencies($permissionIds);
             if (!empty($errors)) {
@@ -205,6 +210,56 @@ class RBACController extends Controller
         return Inertia::render('Admin/RBAC/UserAssignments', [
             'users' => $users,
             'roles' => $roles,
+        ]);
+    }
+
+    /**
+     * Get users list for role assignment (API endpoint).
+     */
+    public function getUsersList(Request $request)
+    {
+        $currentUser = \Illuminate\Support\Facades\Auth::user();
+        if (!$currentUser->isSuperAdmin()) {
+            $this->authorize('manage-user-roles');
+        }
+
+        // Roles to exclude from user assignments
+        $excludedRoles = ['Patient', 'Doctor', 'patient', 'doctor'];
+        $protectedRoles = ['Super Admin', 'Sub Super Admin', 'sub super admin', 'super admin'];
+
+        $users = User::with(['roleModel'])
+            ->where(function ($query) use ($excludedRoles) {
+                $query->whereHas('roleModel', function ($q) use ($excludedRoles) {
+                    $q->whereNotIn('name', $excludedRoles);
+                })
+                ->orWhere(function ($q) {
+                    $q->whereNull('role_id')
+                      ->where('is_super_admin', false);
+                });
+            })
+            ->where('is_super_admin', false)
+            ->when($request->search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('name')
+            ->limit(50)
+            ->get(['id', 'name', 'email', 'role_id'])
+            ->map(function ($user) use ($protectedRoles) {
+                // Filter out users with protected roles
+                $userRole = $user->roleModel?->name ?? $user->role;
+                if (in_array($userRole, $protectedRoles)) {
+                    return null;
+                }
+                return $user;
+            })
+            ->filter()
+            ->values();
+
+        return response()->json([
+            'users' => $users,
         ]);
     }
 

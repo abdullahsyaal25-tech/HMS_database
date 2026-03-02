@@ -26,6 +26,7 @@ interface AppointmentPrintModalProps {
         fee: number;
         discount: number;
         grand_total?: number;
+        authorized_by?: string;
         created_at?: string;
     } | null;
 }
@@ -149,7 +150,7 @@ export function AppointmentPrintModal({ isOpen, onClose, appointment }: Appointm
                         <img src="/logo.png" alt="Hospital Logo" class="logo" />
                         <div class="hospital-name">کامران معالیجوي روغتون</div>
                         <div class="hospital-name">Kamran Curative Hospital</div>
-                        <div class="receipt-title">Appointment Receipt</div>
+                        ${appointment?.authorized_by ? `<div class="receipt-title"> ${appointment.authorized_by}</div>` : ''}
                     </div>
                     
                     <div class="info-section">
@@ -178,16 +179,12 @@ export function AppointmentPrintModal({ isOpen, onClose, appointment }: Appointm
                             <span class="info-value">Dr. ${doctorName}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Department:</span>
+                            <span class="info-label">Location:</span>
                             <span class="info-value">${deptName}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Created Date:</span>
                             <span class="info-value">${formatDate(createdDate)}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Doctor Token:</span>
-                            <span class="info-value">${appointment?.daily_sequence || '#' + appointmentId}</span>
                         </div>
                     </div>
                     <div class="financial-section">
@@ -243,13 +240,6 @@ export function AppointmentPrintModal({ isOpen, onClose, appointment }: Appointm
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <Printer className="h-5 w-5" />
-                        Appointment Receipt Preview
-                    </DialogTitle>
-                </DialogHeader>
-
                 <div ref={printRef} className="bg-white p-4 border rounded-lg">
                     <div className="text-center border-b-2 border-gray-800 pb-4 mb-4">
                         <img 
@@ -260,13 +250,11 @@ export function AppointmentPrintModal({ isOpen, onClose, appointment }: Appointm
                                 (e.target as HTMLImageElement).style.display = 'none';
                             }}
                         />
-                        <h2 className="text-xl font-bold">Hospital Management System</h2>
+                        <h2 className="text-xl font-bold">Kamran Crative Hospital</h2>
                         <p className="text-sm text-gray-600">Appointment Receipt</p>
-                    </div>
-
-                    <div className="bg-gray-100 p-4 text-center rounded-lg mb-4">
-                        <p className="text-sm text-gray-600 mb-1">Token Number</p>
-                        <p className="text-2xl font-bold text-gray-800">{appointment.appointment_id}</p>
+                        {appointment.authorized_by && (
+                            <p className="text-xs text-gray-500 mt-1">Authorized by: {appointment.authorized_by}</p>
+                        )}
                     </div>
 
                     <div className="space-y-2 mb-4">
@@ -296,7 +284,7 @@ export function AppointmentPrintModal({ isOpen, onClose, appointment }: Appointm
                             <span className="font-medium">Dr. {appointment.doctor?.full_name || 'N/A'}</span>
                         </div>
                         <div className="flex justify-between py-1">
-                            <span className="text-gray-600">Department:</span>
+                            <span className="text-gray-600">Location:</span>
                             <span className="font-medium">{appointment.department?.name || 'N/A'}</span>
                         </div>
                         <div className="flex justify-between py-1">

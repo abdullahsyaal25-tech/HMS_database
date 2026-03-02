@@ -61,8 +61,8 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
         : 0;
 
     const calculatedGrandTotal = appointment && appointment.services && appointment.services.length > 0
-        ? Math.max(0, servicesFinalTotal)  // Use final_cost directly as it already includes service discounts
-        : Math.max(0, consultationFee - additionalDiscount);  // Apply discount only for simple appointments
+        ? Math.max(0, servicesFinalTotal - additionalDiscount)  // Apply additional discount to services total
+        : Math.max(0, consultationFee - additionalDiscount);
 
     const grandTotal = appointment && typeof appointment.grand_total === 'number' ? appointment.grand_total : calculatedGrandTotal;
 
@@ -90,6 +90,7 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                     padding: 15px;
                 }
                 .header {
+                    width: 100%;
                     text-align: center;
                     border-bottom: 2px solid #000;
                     padding-bottom: 10px;
@@ -248,10 +249,6 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                                 <span>${formatCurrency(grandTotal)}</span>
                             </div>
                         ` : `
-                            <div class="financial-row">
-                                <span>Consultation Fee:</span>
-                                <span>${formatCurrency(consultationFee)}</span>
-                            </div>
                             ${additionalDiscount > 0 ? `
                             <div class="financial-row discount-row">
                                 <span>Additional Discount:</span>
@@ -312,7 +309,7 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                 </DialogHeader>
 
                 <div ref={printRef} className="bg-white p-4 border rounded-lg">
-                    <div className="text-center border-b-2 border-gray-800 pb-4 mb-4">
+                    <div className="w-full text-center border-b-2 border-gray-800 pb-4 mb-4">
                         <img 
                             src="/Logo.png" 
                             alt="Hospital Logo" 
@@ -321,8 +318,8 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                                 (e.target as HTMLImageElement).style.display = 'none';
                             }}
                         />
-                        <h2 className="text-xl font-bold">Hospital Management System</h2>
-                        <p className="text-sm text-gray-600">Appointment Receipt</p>
+                        <h2 className="text-xl font-bold">Kamran Curative Hospital</h2>
+                        <p className="text-sm text-gray-600">کامران معالیجوي روغتون</p>
                         {appointment.authorized_by && (
                             <p className="text-xs text-gray-500 mt-1">Authorized by: {appointment.authorized_by}</p>
                         )}
@@ -401,10 +398,6 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                             </>
                         ) : (
                             <>
-                                <div className="flex justify-between py-1">
-                                    <span className="text-gray-600">Consultation Fee:</span>
-                                    <span className="font-medium">{formatCurrency(consultationFee)}</span>
-                                </div>
                                 {additionalDiscount > 0 && (
                                     <div className="flex justify-between py-1 text-green-600">
                                         <span>Additional Discount:</span>

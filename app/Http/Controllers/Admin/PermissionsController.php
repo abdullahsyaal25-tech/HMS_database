@@ -36,20 +36,41 @@ class PermissionsController extends Controller
         $categories = Permission::distinct()->pluck('category')->filter()->values();
         $modules = Permission::distinct()->pluck('module')->filter()->values();
         
+        // Get all permission IDs for scope - admins can assign ANY permission to ANY role
+        $allPermissionIds = $permissions->pluck('id')->toArray();
+        
         // Get role permissions mapping
         $rolePermissions = [];
+        $rolePermissionScopes = [];
         foreach ($roles as $role) {
             $rolePermissions[$role->id] = $role->permissions->pluck('id')->toArray();
+            // RBAC: Scope includes ALL permissions - admins can assign any permission to any role
+            // This allows selecting new permissions that weren't previously assigned
+            $rolePermissionScopes[$role->id] = $allPermissionIds;
         }
 
         // Legacy roles mapping for backward compatibility
         $legacyRoles = RolePermission::select('role')->distinct()->pluck('role');
         $legacyRolePermissions = [];
+        $legacyRolePermissionScopes = [];
         foreach ($legacyRoles as $lRole) {
             $legacyRolePermissions[$lRole] = RolePermission::where('role', $lRole)
                 ->pluck('permission_id')
                 ->toArray();
+            // RBAC: Scope includes ALL permissions for legacy roles as well
+            $legacyRolePermissionScopes[$lRole] = $allPermissionIds;
         }
+
+        // Get user count per role (excluding protected roles)
+        $excludedRoles = ['Patient', 'Doctor', 'patient', 'doctor'];
+        $roleUserCounts = \App\Models\User::whereNotNull('role_id')
+            ->whereHas('roleModel', function ($query) use ($excludedRoles) {
+                $query->whereNotIn('name', $excludedRoles);
+            })
+            ->select('role_id', \Illuminate\Support\Facades\DB::raw('count(*) as count'))
+            ->groupBy('role_id')
+            ->pluck('count', 'role_id')
+            ->toArray();
 
         return Inertia::render('Admin/Permissions/Index', [
             'permissions' => $permissions,
@@ -59,6 +80,10 @@ class PermissionsController extends Controller
             'modules' => $modules,
             'legacyRoles' => $legacyRoles,
             'legacyRolePermissions' => $legacyRolePermissions,
+            'roleUserCounts' => $roleUserCounts,
+            // RBAC: Include permission scopes for each role
+            'rolePermissionScopes' => $rolePermissionScopes,
+            'legacyRolePermissionScopes' => $legacyRolePermissionScopes,
         ]);
     }
 
@@ -84,9 +109,17 @@ class PermissionsController extends Controller
      */
     public function updateRolePermissions(Request $request, string $roleIdentifier)
     {
+        // RBAC: Validate that all permissions being set belong to this role's scope
+        $requestedPermissions = $request->permissions ?? [];
+        
+        // Get the role and its scope
         $role = \App\Models\Role::find($roleIdentifier) ?? \App\Models\Role::where('name', $roleIdentifier)->first();
         
-        if (!$role) {
+        $roleScope = [];
+        if ($role) {
+            // For normalized roles, get permissions from the role_permission_mappings table
+            $roleScope = $role->permissions->pluck('id')->toArray();
+        } else {
             // Check legacy RolePermission
             $legacyRole = RolePermission::where('role', $roleIdentifier)->first();
             if (!$legacyRole) {
@@ -95,7 +128,17 @@ class PermissionsController extends Controller
                 }
                 return redirect()->back()->with('error', 'Invalid role specified.');
             }
-            
+            // For legacy roles, scope is all permissions that exist in the system
+            // (legacy roles can have any permission)
+            $roleScope = Permission::all()->pluck('id')->toArray();
+        }
+        
+        // RBAC: Validate that all requested permissions are within the role's scope
+        // Allow admins to assign ANY permissions - removed restrictive scope check
+        // Admins should be able to select any permission for any role
+        $user = Auth::user();
+        
+        if (!$role) {
             // Handle legacy role sync
             RolePermission::where('role', $roleIdentifier)->delete();
             if ($request->has('permissions') && is_array($request->permissions)) {
