@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import Heading from '@/components/heading';
 import { ArrowLeft, Save, AlertCircle, CheckCircle2, User, Phone, MapPin, Droplet, Users } from 'lucide-react';
 import HospitalLayout from '@/layouts/HospitalLayout';
+import { useToast } from '@/components/Toast';
 
 interface Patient {
     id: number;
@@ -31,6 +32,7 @@ interface PatientEditProps {
 }
 
 export default function PatientEdit({ patient, flash }: PatientEditProps) {
+    const { showSuccess, showError } = useToast();
     const { data, setData, processing, errors } = useForm({
         first_name: patient.first_name || '',
         father_name: patient.father_name || '',
@@ -60,10 +62,11 @@ export default function PatientEdit({ patient, flash }: PatientEditProps) {
             },
             preserveScroll: true,
             onSuccess: () => {
-                console.log('Update successful');
+                showSuccess('Patient Updated', 'The patient information has been updated successfully.');
             },
             onError: (errors) => {
                 console.error('Update failed:', errors);
+                showError('Update Failed', Object.values(errors).join(', '));
             },
         });
     };

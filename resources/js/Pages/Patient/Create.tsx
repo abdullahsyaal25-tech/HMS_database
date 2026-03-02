@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import Heading from '@/components/heading';
 import { ArrowLeft, Save, AlertCircle, CheckCircle2, User, Phone, MapPin, Droplet, Users } from 'lucide-react';
 import { Link } from '@inertiajs/react';
+import { useToast } from '@/components/Toast';
 import HospitalLayout from '@/layouts/HospitalLayout';
 import { PatientFormData } from '@/types/patient';
 
@@ -20,6 +21,7 @@ interface PatientCreateProps {
 }
 
 export default function PatientCreate({ flash }: PatientCreateProps) {
+    const { showSuccess, showError } = useToast();
     const { data, setData, post, processing, errors } = useForm<PatientFormData>({
         first_name: '',
         father_name: '',
@@ -34,6 +36,12 @@ export default function PatientCreate({ flash }: PatientCreateProps) {
         e.preventDefault();
         post('/patients', {
             preserveScroll: true,
+            onSuccess: () => {
+                showSuccess('Patient Created', 'The patient has been registered successfully.');
+            },
+            onError: (errors) => {
+                showError('Validation Error', Object.values(errors).join(', '));
+            },
         });
     };
 

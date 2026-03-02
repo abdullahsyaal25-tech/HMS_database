@@ -132,7 +132,9 @@ class DashboardService
         $totalRevenue = 0;
         
         // Check if day_end_timestamp exists - Option B: Running Total After Day-End
-        $dayEndTimestamp = Cache::get('day_end_timestamp_' . $todayStr);
+        // FIXED: Use consistent cache key 'day_end_timestamp' (matching RefreshDataController and WalletController)
+        // Previously was using 'day_end_timestamp_' . $todayStr which never matched
+        $dayEndTimestamp = Cache::get('day_end_timestamp');
         
         // Determine effective start time for today queries
         $effectiveStart = $start;
@@ -506,8 +508,9 @@ class DashboardService
         
         // Check if this is "today" period and day_end_timestamp exists
         $isToday = $start->isToday() && $end->isToday();
-        $todayStr = Carbon::today()->toDateString();
-        $dayEndTimestamp = Cache::get('day_end_timestamp_' . $todayStr);
+        // FIXED: Use consistent cache key 'day_end_timestamp' (matching RefreshDataController and WalletController)
+        // Previously was using 'day_end_timestamp_' . $todayStr which never matched
+        $dayEndTimestamp = Cache::get('day_end_timestamp');
         
         // Determine effective start time for today queries
         $effectiveStart = $start;

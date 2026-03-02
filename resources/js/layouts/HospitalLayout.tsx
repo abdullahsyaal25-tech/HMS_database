@@ -218,11 +218,11 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                         href: '/admin/permissions',
                         icon: Lock,
                     },
-                    {
-                        title: 'User Assignments',
-                        href: '/admin/rbac/user-assignments',
-                        icon: Users,
-                    },
+                    // {
+                    //     title: 'User Assignments',
+                    //     href: '/admin/rbac/user-assignments',
+                    //     icon: Users,
+                    // },
                     {
                         title: 'Audit Logs',
                         href: '/admin/rbac/audit-logs',

@@ -29,6 +29,7 @@ import {
     X,
 } from 'lucide-react';
 import { useState, useMemo, useCallback, useRef } from 'react';
+import { useToast } from '@/components/Toast';
 import PharmacyLayout from '@/layouts/PharmacyLayout';
 import type { Medicine, CartItem, Patient } from '@/types/pharmacy';
 
@@ -45,6 +46,7 @@ interface QuickPatientForm {
 
 
 export default function SaleCreate({ medicines, patients: patientsProp }: SaleCreateProps) {
+    const { showSuccess, showError } = useToast();
     const patients = patientsProp as Patient[];
 
     const [cartItems, setCartItems]                 = useState<CartItem[]>([]);
@@ -263,6 +265,7 @@ export default function SaleCreate({ medicines, patients: patientsProp }: SaleCr
                 const props = page.props as any;
                 // Try to get from flash data or props
                 const saleId = props.sale?.id || props.flash?.saleId;
+                showSuccess('Sale Completed', 'The sale has been processed successfully.');
                 if (saleId) {
                     setCompletedSaleId(saleId);
                     setSaleComplete(true);
@@ -273,7 +276,7 @@ export default function SaleCreate({ medicines, patients: patientsProp }: SaleCr
             },
             onError: (errors: any) => {
                 console.error('Sale creation failed:', errors);
-                alert('Failed to create sale: ' + Object.values(errors).join(', '));
+                showError('Sale Failed', Object.values(errors).join(', '));
             },
         });
     };

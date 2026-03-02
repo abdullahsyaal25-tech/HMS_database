@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -21,6 +21,7 @@ interface ToastContextType {
     showInfo: (title: string, message?: string, duration?: number) => void;
 }
 
+
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export const useToast = () => {
@@ -35,10 +36,18 @@ interface ToastProviderProps {
     children: ReactNode;
 }
 
+
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     const [toasts, setToasts] = useState<Toast[]>([]);
+    const activeTimeouts = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
     const removeToast = useCallback((id: string) => {
+        // Clear the timeout if exists
+        const timeoutId = activeTimeouts.current.get(id);
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+            activeTimeouts.current.delete(id);
+        }
         setToasts(prev => prev.filter(toast => toast.id !== id));
     }, []);
 
@@ -51,9 +60,10 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
         // Auto-remove toast after duration
         if (toast.duration !== 0) {
             const duration = toast.duration || 5000;
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
                 removeToast(id);
             }, duration);
+            activeTimeouts.current.set(id, timeoutId);
         }
     }, [removeToast]);
 

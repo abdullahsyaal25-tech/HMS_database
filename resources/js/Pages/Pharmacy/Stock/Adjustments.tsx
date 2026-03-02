@@ -33,6 +33,7 @@ import {
     Calculator,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useToast } from '@/components/Toast';
 import { cn } from '@/lib/utils';
 import PharmacyLayout from '@/layouts/PharmacyLayout';
 import type { Medicine } from '@/types/pharmacy';
@@ -86,6 +87,7 @@ interface AdjustmentsProps {
 }
 
 export default function Adjustments({ medicines, recentAdjustments, preselectedMedicineId }: AdjustmentsProps) {
+    const { showSuccess, showError } = useToast();
     const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
     const [previewStock, setPreviewStock] = useState<number | null>(null);
 
@@ -152,9 +154,13 @@ export default function Adjustments({ medicines, recentAdjustments, preselectedM
         e.preventDefault();
         post('/pharmacy/stock/adjust', {
             onSuccess: () => {
+                showSuccess('Stock Adjusted', 'The stock has been adjusted successfully.');
                 reset();
                 setSelectedMedicine(null);
                 setPreviewStock(null);
+            },
+            onError: (errors) => {
+                showError('Adjustment Failed', Object.values(errors).join(', '));
             },
         });
     };

@@ -175,13 +175,19 @@ class DayStatusService
             
             if ($todayData['total_revenue'] > 0 || $todayData['appointments_count'] > 0) {
                 DailySnapshot::create([
-                    'snapshot_date' => $todayStr . '_pre_reset',
+                    // FIXED: Use proper date format for snapshot_date column (date type can't accept _pre_reset suffix)
+                    // Store the actual date, and put the _pre_reset info in metadata instead
+                    'snapshot_date' => $todayStr,
                     'appointments_count' => $todayData['appointments_count'],
                     'appointments_revenue' => $todayData['appointments_revenue'],
                     'departments_revenue' => $todayData['departments_revenue'],
                     'pharmacy_revenue' => $todayData['pharmacy_revenue'],
                     'laboratory_revenue' => $todayData['laboratory_revenue'],
                     'total_revenue' => $todayData['total_revenue'],
+                    'metadata' => [
+                        'pre_reset' => true,
+                        'reset_time' => $now->toISOString(),
+                    ],
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

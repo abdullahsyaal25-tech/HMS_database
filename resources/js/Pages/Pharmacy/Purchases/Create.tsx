@@ -37,6 +37,7 @@ import {
     Building2,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useToast } from '@/components/Toast';
 
 interface Medicine {
     id: number;
@@ -76,6 +77,7 @@ interface Props {
 }
 
 export default function CreatePurchase({ medicines, suppliers, purchaseNumber }: Props) {
+    const { showSuccess, showError } = useToast();
     const [supplierId, setSupplierId] = useState<string>('');
     const [company, setCompany] = useState<string>('');
     const [invoiceNumber, setInvoiceNumber] = useState<string>('');
@@ -88,6 +90,7 @@ export default function CreatePurchase({ medicines, suppliers, purchaseNumber }:
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [medicineSearch, setMedicineSearch] = useState<string>('');
     const [items, setItems] = useState<PurchaseItem[]>([]);
+    const [processing, setProcessing] = useState(false);
 
     // New supplier form
     const [newSupplier, setNewSupplier] = useState({
@@ -169,6 +172,7 @@ export default function CreatePurchase({ medicines, suppliers, purchaseNumber }:
             return;
         }
 
+        setProcessing(true);
         router.post(
             '/pharmacy/purchases',
             {
@@ -189,7 +193,15 @@ export default function CreatePurchase({ medicines, suppliers, purchaseNumber }:
                 })),
             },
             {
-                onError: (errors) => setErrors(errors),
+                onStart: () => setProcessing(true),
+                onFinish: () => setProcessing(false),
+                onSuccess: () => {
+                    showSuccess('Purchase Created', 'The purchase has been saved successfully.');
+                },
+                onError: (errors) => {
+                    setErrors(errors);
+                    showError('Error', Object.values(errors).join(', '));
+                },
             }
         );
     };
@@ -208,6 +220,7 @@ export default function CreatePurchase({ medicines, suppliers, purchaseNumber }:
                     suppliers.push(response.supplier as Supplier);
                 }
                 setShowSupplierDialog(false);
+                showSuccess('Supplier Created', 'The supplier has been added successfully.');
                 setNewSupplier({
                     name: '',
                     company_name: '',
@@ -216,6 +229,9 @@ export default function CreatePurchase({ medicines, suppliers, purchaseNumber }:
                     phone: '',
                     address: '',
                 });
+            },
+            onError: (errors) => {
+                showError('Error', Object.values(errors).join(', '));
             },
         });
     };
@@ -468,9 +484,18 @@ export default function CreatePurchase({ medicines, suppliers, purchaseNumber }:
                                         Cancel
                                     </Button>
                                 </Link>
-                                <Button onClick={handleSubmit}>
-                                    <Save className="size-4 mr-2" />
-                                    Save Purchase
+                                <Button onClick={handleSubmit} disabled={processing || items.length === 0}>
+                                    {processing ? (
+                                        <>
+                                            <span className="animate-spin mr-2">⏳</span>
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save className="size-4 mr-2" />
+                                            Save Purchase
+                                        </>
+                                    )}
                                 </Button>
                             </div>
                         </div>
