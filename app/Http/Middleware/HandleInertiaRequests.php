@@ -70,6 +70,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $userData,
             ],
+            'sidebarOpen' => $request->cookie('sidebar_state') !== 'false',
             'flash' => [
                 'message' => fn () => $flashMessage,
                 'error' => fn () => $flashError,

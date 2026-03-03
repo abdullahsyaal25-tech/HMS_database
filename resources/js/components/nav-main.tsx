@@ -16,7 +16,6 @@ import {
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
-import { usePermission } from '@/composables/usePermission';
 
 function getItemId(title: string | undefined, label: string | undefined): string {
     return `nav-${(title || label || '').toLowerCase().replace(/\s+/g, '-')}`;
@@ -24,36 +23,15 @@ function getItemId(title: string | undefined, label: string | undefined): string
 
 /**
  * Filter navigation items based on user permissions
+ * 
+ * NOTE: This function now returns items as-is since HospitalLayout already
+ * filters navigation items by permissions before passing them to NavMain.
+ * This avoids double filtering which can cause inconsistent behavior.
  */
 function useFilteredNavItems(items: NavItem[]): NavItem[] {
-    const { hasPermission, isSuperAdmin } = usePermission();
-
-    return items.filter((item) => {
-        // Check if user has permission for this item
-        if (item.permission && !isSuperAdmin()) {
-            if (!hasPermission(item.permission)) {
-                return false;
-            }
-        }
-
-        // If item has sub-items, filter them too
-        if (item.items && item.items.length > 0) {
-            const filteredSubItems = item.items.filter((subItem) => {
-                if (subItem.permission && !isSuperAdmin()) {
-                    return hasPermission(subItem.permission);
-                }
-                return true;
-            });
-
-            // Update the items array with filtered sub-items
-            item.items = filteredSubItems;
-
-            // If no sub-items remain after filtering, hide the parent
-            return filteredSubItems.length > 0;
-        }
-
-        return true;
-    });
+    // HospitalLayout already filters items by permissions, so we just return them as-is
+    // This prevents the mutation bug and ensures consistency
+    return items;
 }
 
 function NavItemComponent({ item }: { item: NavItem }) {
