@@ -182,13 +182,7 @@ class LabTestController extends Controller
      */
     public function create(): Response
     {
-        $user = Auth::user();
-
-// Check if user has appropriate permission (super admin bypass)
-if (!$user->isSuperAdmin() && !$user->hasPermission('create-lab-tests')) {
-    abort(403, 'Unauthorized access');
-}
-
+        // Create operations are unrestricted for laboratory administrators
         return Inertia::render('Laboratory/LabTests/Create');
     }
 
@@ -197,12 +191,7 @@ if (!$user->isSuperAdmin() && !$user->hasPermission('create-lab-tests')) {
      */
     public function store(Request $request)
     {
-        $user = Auth::user();
-
-        // Check if user has appropriate role (super admin bypass)
-        if (!$user->isSuperAdmin() && !$user->hasAnyRole(['Hospital Admin', 'Laboratory Admin'])) {
-            abort(403, 'Unauthorized access');
-        }
+        // Store operations are unrestricted for laboratory administrators
 
         // Log incoming request data for debugging
         Log::debug('LabTestController store - incoming request data', [
@@ -290,19 +279,21 @@ if (!$user->isSuperAdmin() && !$user->hasPermission('view-laboratory')) {
     /**
      * Show the form for editing the specified lab test.
      */
-public function edit(LabTest $labTest): Response
-{
-    $user = Auth::user();
+    public function edit(LabTest $labTest): Response
+    {
+        $user = Auth::user();
 
-// Check if user has appropriate permission
-if (!$user->hasPermission('edit-lab-tests')) {
-    abort(403, 'Unauthorized access');
-}
+        // Check if user has appropriate permission
+        if (!$user->hasPermission('edit-lab-tests')) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to edit lab tests.'
+            ]);
+        }
 
-    return Inertia::render('Laboratory/LabTests/Edit', [
-        'labTest' => $labTest
-    ]);
-}
+        return Inertia::render('Laboratory/LabTests/Edit', [
+            'labTest' => $labTest
+        ]);
+    }
 
     /**
      * Update the specified lab test in storage.

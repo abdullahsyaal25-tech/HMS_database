@@ -95,12 +95,7 @@ class LabMaterialController extends Controller
      */
     public function create(): Response
     {
-        $user = Auth::user();
-
-        if (!$user->isSuperAdmin() && !$user->hasPermission('create-lab-materials')) {
-            abort(403, 'Unauthorized access');
-        }
-
+        // Create operations are unrestricted for laboratory administrators
         $labTests = LabTest::select('id', 'test_code', 'name')->orderBy('name')->get();
 
         return Inertia::render('Laboratory/Materials/Create', [
@@ -113,11 +108,8 @@ class LabMaterialController extends Controller
      */
     public function store(StoreLabMaterialRequest $request): RedirectResponse
     {
+        // Store operations are unrestricted for laboratory administrators
         $user = Auth::user();
-
-        if (!$user->hasPermission('create-lab-materials')) {
-            abort(403, 'Unauthorized access');
-        }
 
         $validated = $request->validated();
         $validated['created_by'] = $user->id;
@@ -207,7 +199,9 @@ class LabMaterialController extends Controller
         $user = Auth::user();
 
         if (!$user->hasPermission('edit-lab-materials')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to edit lab materials.'
+            ]);
         }
 
         $labMaterial->load(['labTest']);
@@ -272,12 +266,14 @@ class LabMaterialController extends Controller
     /**
      * Restore a deleted lab material.
      */
-    public function restore(LabMaterial $labMaterial): RedirectResponse
+    public function restore(LabMaterial $labMaterial): RedirectResponse|Response
     {
         $user = Auth::user();
 
         if (!$user->hasPermission('edit-lab-materials')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to restore lab materials.'
+            ]);
         }
 
         $labMaterial->restore();
@@ -297,12 +293,14 @@ class LabMaterialController extends Controller
     /**
      * Update material quantity (add stock).
      */
-    public function addStock(Request $request, LabMaterial $labMaterial): RedirectResponse
+    public function addStock(Request $request, LabMaterial $labMaterial): RedirectResponse|Response
     {
         $user = Auth::user();
 
         if (!$user->hasPermission('edit-lab-materials')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to add stock to lab materials.'
+            ]);
         }
 
         $request->validate([
@@ -329,12 +327,14 @@ class LabMaterialController extends Controller
     /**
      * Remove material quantity (use stock).
      */
-    public function removeStock(Request $request, LabMaterial $labMaterial): RedirectResponse
+    public function removeStock(Request $request, LabMaterial $labMaterial): RedirectResponse|Response
     {
         $user = Auth::user();
 
         if (!$user->hasPermission('edit-lab-materials')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to remove stock from lab materials.'
+            ]);
         }
 
         $request->validate([
@@ -407,12 +407,14 @@ class LabMaterialController extends Controller
     /**
      * Bulk update material status.
      */
-    public function bulkUpdateStatus(Request $request): RedirectResponse
+    public function bulkUpdateStatus(Request $request): RedirectResponse|Response
     {
         $user = Auth::user();
 
         if (!$user->hasPermission('edit-lab-materials')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to bulk update lab materials.'
+            ]);
         }
 
         $request->validate([

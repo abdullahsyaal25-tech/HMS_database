@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ShieldAlert, Lock, ArrowLeft, Home, AlertCircle } from 'lucide-react';
+import { ShieldAlert, Lock, ArrowLeft, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AccessDeniedProps {
@@ -134,16 +134,6 @@ export default function AccessDenied({
                     <ArrowLeft className="w-4 h-4" />
                     Go Back
                   </Button>
-                  
-                  <Link href="/dashboard">
-                    <Button
-                      size="lg"
-                      className="w-full sm:w-auto gap-2 bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-700 hover:to-orange-700 text-white shadow-lg shadow-rose-500/25 dark:shadow-rose-500/10"
-                    >
-                      <Home className="w-4 h-4" />
-                      Go to Dashboard
-                    </Button>
-                  </Link>
                 </div>
 
                 {/* Help Text */}

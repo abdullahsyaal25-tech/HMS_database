@@ -233,7 +233,9 @@ class LabTestRequestController extends Controller
         $user = Auth::user();
 
         if (!$user->hasPermission('edit-lab-test-requests')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to edit lab test requests.'
+            ]);
         }
 
         // Only allow editing if not completed
@@ -348,12 +350,14 @@ class LabTestRequestController extends Controller
     /**
      * Restore a cancelled lab test request.
      */
-    public function restore(LabTestRequest $labTestRequest): RedirectResponse
+    public function restore(LabTestRequest $labTestRequest): RedirectResponse|Response
     {
         $user = Auth::user();
 
         if (!$user->hasPermission('edit-lab-test-requests')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to restore lab test requests.'
+            ]);
         }
 
         if (!$labTestRequest->isCancelled()) {

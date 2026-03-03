@@ -418,7 +418,9 @@ class LabTestResultController extends Controller
         
         // Check if user has appropriate permission
         if (!$user->hasPermission('edit-lab-test-results')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to edit lab test results.'
+            ]);
         }
         
         // Load relationships
@@ -498,7 +500,9 @@ class LabTestResultController extends Controller
         
         // Check if user has appropriate permission
         if (!$user->hasPermission('verify-lab-test-results')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to verify lab test results.'
+            ]);
         }
         
         // Load relationships
@@ -511,17 +515,19 @@ class LabTestResultController extends Controller
 
     /**
      * Verify the specified lab test result.
-     * 
+     *
      * NOTE: This method is kept for backward compatibility but verification
      * is no longer required as results are auto-completed on save.
      */
-    public function verifyPost(Request $request, LabTestResult $labTestResult): RedirectResponse
+    public function verifyPost(Request $request, LabTestResult $labTestResult): RedirectResponse|Response
     {
         $user = Auth::user();
         
         // Check if user has appropriate permission
         if (!$user->hasPermission('verify-lab-test-results')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to verify lab test results.'
+            ]);
         }
         
         // Results are auto-completed on save - no verification needed

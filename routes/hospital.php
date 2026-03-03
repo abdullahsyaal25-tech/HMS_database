@@ -14,6 +14,7 @@ use App\Http\Controllers\Pharmacy\DashboardController as PharmacyDashboardContro
 use App\Http\Controllers\Pharmacy\PurchaseController;
 use App\Http\Controllers\Laboratory\LabTestController;
 use App\Http\Controllers\Laboratory\LabTestResultController;
+use App\Http\Controllers\Laboratory\DashboardController as LaboratoryDashboardController;
 use App\Http\Controllers\Laboratory\QualityControlController;
 use App\Http\Controllers\Department\DepartmentController;
 use App\Http\Controllers\Department\DepartmentServiceController;
@@ -172,7 +173,8 @@ Route::middleware(['web', 'auth'])->group(function () {
     // Laboratory Routes
     Route::middleware('check.permission:view-laboratory')->prefix('laboratory')->group(function () {
         // Laboratory Dashboard
-        Route::get('/', [LabTestController::class, 'dashboard'])->name('laboratory.index');
+        Route::get('/', [LaboratoryDashboardController::class, 'index'])->name('laboratory.index');
+        Route::get('/dashboard', [LaboratoryDashboardController::class, 'index'])->name('laboratory.dashboard');
         
         Route::get('/lab-tests', [LabTestController::class, 'index'])->name('laboratory.lab-tests.index');
         Route::get('/lab-tests/create', [LabTestController::class, 'create'])->name('laboratory.lab-tests.create');
