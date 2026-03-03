@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Services\RBACService;
 use App\Services\MfaEnforcementService;
 use App\Services\SessionTimeoutService;
+use App\Services\AuthorizationService;
 use App\Models\PermissionIpRestriction;
 
 class CheckPermission
@@ -46,16 +47,23 @@ class CheckPermission
     protected SessionTimeoutService $sessionService;
 
     /**
+     * @var AuthorizationService
+     */
+    protected AuthorizationService $authorizationService;
+
+    /**
      * Constructor.
      */
     public function __construct(
         RBACService $rbacService,
         MfaEnforcementService $mfaService,
-        SessionTimeoutService $sessionService
+        SessionTimeoutService $sessionService,
+        AuthorizationService $authorizationService
     ) {
         $this->rbacService = $rbacService;
         $this->mfaService = $mfaService;
         $this->sessionService = $sessionService;
+        $this->authorizationService = $authorizationService;
     }
 
     /**
@@ -199,7 +207,17 @@ class CheckPermission
             // Log detailed breakdown
             $this->logPermissionDenied($requestId, $user, $permission, $request);
 
-            return $this->forbiddenResponse($request, $requestId, 'You do not have permission to access this resource');
+            // Use AuthorizationService for standardized unauthorized access handling
+            return $this->authorizationService->handleUnauthorizedAccess(
+                $request,
+                $permission,
+                $user,
+                [
+                    'reason' => 'permission_denied',
+                    'request_id' => $requestId,
+                    'risk_level' => $this->isCriticalPermission($permission) ? 'critical' : 'medium',
+                ]
+            );
         }
 
         // 8. Clear failed attempts on success
@@ -399,5 +417,22 @@ class CheckPermission
         }
 
         return back()->with('error', $message);
+    }
+
+    /**
+     * Check if permission is considered critical.
+     */
+    protected function isCriticalPermission(string $permission): bool
+    {
+        $criticalPermissions = config('authorization.critical_permissions', [
+            'super-admin',
+            'admin.users.delete',
+            'admin.roles.delete',
+            'system.settings.modify',
+            'billing.refund',
+            'patients.delete',
+        ]);
+
+        return in_array($permission, $criticalPermissions);
     }
 }

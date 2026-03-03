@@ -33,6 +33,7 @@ import {
 import { ReactNode, useMemo, useCallback } from 'react';
 import { Link } from '@inertiajs/react';
 import { cn } from '@/lib/utils';
+import { useAuthorization } from '@/hooks/useAuthorization';
 
 interface PharmacyLayoutProps {
     header?: ReactNode;
@@ -77,13 +78,15 @@ function usePermissionChecker() {
     return { hasPermission, isAuthenticated, user };
 }
 
-// Pharmacy-specific navigation items
-const pharmacyNavItems: (NavItem & { permission?: string })[] = [
-    {
-        title: 'Home',
-        href: '/dashboard',
-        icon: Building2,
-    },
+// Pharmacy-specific navigation items - base items without permission checks
+const getPharmacyNavItems = (hasDashboardPermission: boolean): (NavItem & { permission?: string })[] => [
+    ...(hasDashboardPermission ? [
+        {
+            title: 'Home',
+            href: '/dashboard',
+            icon: Building2,
+        }
+    ] : []),
     {
         title: 'Dashboard',
         href: '/pharmacy',
@@ -220,9 +223,12 @@ export default function PharmacyLayout({
     alerts = {},
 }: PharmacyLayoutProps) {
     const { hasPermission, isAuthenticated } = usePermissionChecker();
+    const { hasPermission: hasAuthPermission } = useAuthorization();
     const totalAlerts = (alerts.lowStock || 0) + (alerts.expiringSoon || 0) + (alerts.expired || 0);
 
     const filteredNavItems = useMemo(() => {
+        const pharmacyNavItems = getPharmacyNavItems(hasAuthPermission('view-dashboard'));
+
         if (!isAuthenticated) {
             return pharmacyNavItems;
         }
@@ -233,7 +239,7 @@ export default function PharmacyLayout({
             }
             return hasPermission(item.permission);
         });
-    }, [hasPermission, isAuthenticated]);
+    }, [hasPermission, isAuthenticated, hasAuthPermission]);
 
     return (
         <AppShell variant="sidebar">

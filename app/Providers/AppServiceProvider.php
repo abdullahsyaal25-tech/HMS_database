@@ -13,6 +13,9 @@ use App\Observers\AppointmentObserver;
 use App\Observers\AppointmentServiceObserver;
 use App\Observers\LabTestRequestObserver;
 use App\Services\SmartCacheService;
+use App\Services\AuthorizationService;
+use App\Services\PermissionAlertService;
+use App\Services\AuditLogService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -26,6 +29,21 @@ class AppServiceProvider extends ServiceProvider
     {
         // Note: Billing services will be registered here when implemented
         // Currently using existing SalesService for payment/billing functionality
+
+        // Register AuthorizationService
+        $this->app->singleton('authorization', function ($app) {
+            return new AuthorizationService(
+                $app->make(PermissionAlertService::class),
+                $app->make(AuditLogService::class)
+            );
+        });
+
+        $this->app->singleton(AuthorizationService::class, function ($app) {
+            return new AuthorizationService(
+                $app->make(PermissionAlertService::class),
+                $app->make(AuditLogService::class)
+            );
+        });
     }
 
     /**

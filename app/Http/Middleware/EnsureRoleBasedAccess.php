@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\RBACService;
 use App\Services\MfaEnforcementService;
 use App\Services\SessionTimeoutService;
+use App\Services\AuthorizationService;
 
 class EnsureRoleBasedAccess
 {
@@ -29,6 +30,11 @@ class EnsureRoleBasedAccess
      * @var SessionTimeoutService
      */
     protected SessionTimeoutService $sessionService;
+
+    /**
+     * @var AuthorizationService
+     */
+    protected AuthorizationService $authorizationService;
 
     /**
      * Critical routes that require additional security checks.
@@ -60,11 +66,13 @@ class EnsureRoleBasedAccess
     public function __construct(
         RBACService $rbacService,
         MfaEnforcementService $mfaService,
-        SessionTimeoutService $sessionService
+        SessionTimeoutService $sessionService,
+        AuthorizationService $authorizationService
     ) {
         $this->rbacService = $rbacService;
         $this->mfaService = $mfaService;
         $this->sessionService = $sessionService;
+        $this->authorizationService = $authorizationService;
     }
 
     /**
@@ -210,12 +218,17 @@ class EnsureRoleBasedAccess
 
                     $this->logAccessDenied($user, $permission, $request, $requestId);
 
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Insufficient permissions',
-                        'required_permission' => $permission,
-                        'debug_request_id' => $requestId,
-                    ], 403);
+                    // Use AuthorizationService for standardized unauthorized access handling
+                    return $this->authorizationService->handleUnauthorizedAccess(
+                        $request,
+                        $permission,
+                        $user,
+                        [
+                            'reason' => 'role_based_permission_denied',
+                            'request_id' => $requestId,
+                            'violation_type' => 'high',
+                        ]
+                    );
                 }
             }
         }

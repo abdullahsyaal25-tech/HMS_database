@@ -83,27 +83,29 @@ class AuthenticatedSessionController extends Controller
         }
         
         // Redirect based on user permissions and role
+        // Using redirect()->to() instead of intended() to ensure role-based redirects
+        // are not overridden by session-stored intended URLs
         if ($user->isSuperAdmin()) {
             // Super admin (Hospital Admin) goes to main dashboard
-            return redirect()->intended(route('dashboard.redirect', absolute: false));
+            return redirect()->to(route('dashboard.redirect', absolute: false));
         } elseif ($user->hasPermission('view-pharmacy')) {
             // Sub-admin with pharmacy permissions
-            return redirect()->intended('/pharmacy/medicines');
+            return redirect()->to('/pharmacy/sales');
         } elseif ($user->hasPermission('view-laboratory')) {
             // Sub-admin with laboratory permissions
-            return redirect()->intended('/laboratory/lab-tests');
+            return redirect()->to('/laboratory/lab-tests');
         } elseif ($user->hasPermission('view-appointments')) {
             // Sub-admin with appointments permissions
-            return redirect()->intended('/appointments');
+            return redirect()->to('/appointments');
         } elseif ($user->hasPermission('view-billing')) {
             // Sub-admin with billing permissions
-            return redirect()->intended('/billing');
+            return redirect()->to('/billing');
         } elseif ($user->hasPermission('view-dashboard')) {
             // Any user with dashboard permission
-            return redirect()->intended(route('dashboard.redirect', absolute: false));
+            return redirect()->to(route('dashboard.redirect', absolute: false));
         } else {
             // Default fallback for users without specific permissions
-            return redirect()->intended(route('dashboard.redirect', absolute: false));
+            return redirect()->to(route('dashboard.redirect', absolute: false));
         }
     }
 

@@ -8,6 +8,7 @@ use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\Supplier;
 use App\Models\StockMovement;
+use App\Services\AuthorizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -213,13 +214,18 @@ class PurchaseController extends Controller
     /**
      * Receive the purchase (update stock).
      */
-    public function receive(Purchase $purchase): RedirectResponse
+    public function receive(Request $request, Purchase $purchase): RedirectResponse
     {
-        $user = Auth::user();
-        
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Super Admin'])) {
-            abort(403, 'Unauthorized access');
+        // Check permission for pharmacy purchase receive
+        if (!Auth::user()->hasPermission('pharmacy.purchase.receive')) {
+            return app(AuthorizationService::class)->handleUnauthorizedAccess(
+                $request,
+                'pharmacy.purchase.receive',
+                Auth::user()
+            );
         }
+        
+        $user = Auth::user();
         
         if (!$purchase->canBeReceived()) {
             return redirect()->back()->with('error', 'This purchase cannot be received.');
@@ -277,13 +283,18 @@ class PurchaseController extends Controller
     /**
      * Cancel the purchase.
      */
-    public function cancel(Purchase $purchase): RedirectResponse
+    public function cancel(Request $request, Purchase $purchase): RedirectResponse
     {
-        $user = Auth::user();
-        
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Super Admin'])) {
-            abort(403, 'Unauthorized access');
+        // Check permission for pharmacy purchase cancel
+        if (!Auth::user()->hasPermission('pharmacy.purchase.cancel')) {
+            return app(AuthorizationService::class)->handleUnauthorizedAccess(
+                $request,
+                'pharmacy.purchase.cancel',
+                Auth::user()
+            );
         }
+        
+        $user = Auth::user();
         
         if (!$purchase->canBeCancelled()) {
             return redirect()->back()->with('error', 'This purchase cannot be cancelled.');

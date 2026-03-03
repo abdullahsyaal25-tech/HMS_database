@@ -33,11 +33,25 @@ import {
 } from 'lucide-react';
 import { usePage } from '@inertiajs/react';
 import { type NavItem } from '@/types';
-import { ReactNode, useMemo, useCallback } from 'react';
+import { ReactNode, useMemo, useCallback, useState, useEffect } from 'react';
+
+// Import new authorization components
+import { UnauthorizedAccessModal, type RiskLevel } from '@/components/UnauthorizedAccessModal';
+import { FlashMessageHandler } from '@/components/FlashMessageHandler';
+import { SecurityAlertListener } from '@/components/SecurityAlertListener';
 
 interface HospitalLayoutProps {
     header?: ReactNode;
     children: ReactNode;
+}
+
+interface ModalConfig {
+    title?: string;
+    message?: string;
+    riskLevel?: RiskLevel;
+    requiredPermission?: string;
+    showRequestAccess?: boolean;
+    redirectUrl?: string;
 }
 
 function usePermissionChecker() {
@@ -82,8 +96,42 @@ const footerNavItems: NavItem[] = [
 
 ];
 
-export default function HospitalLayout({ header, children }: HospitalLayoutProps) {
-    const { hasPermission, isAuthenticated } = usePermissionChecker();
+export default function HospitalLayout({ header, children }: HospitalLayoutProps): ReactNode {
+    const { hasPermission, isAuthenticated, user } = usePermissionChecker();
+    const page = usePage();
+    
+    // State for unauthorized access modal
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalConfig, setModalConfig] = useState<ModalConfig>({
+        title: 'Access Denied',
+        message: 'You do not have permission to access this resource.',
+        riskLevel: 'medium',
+    });
+
+    // Listen for modal trigger data from Inertia props
+    useEffect(() => {
+        const auth = page.props.auth as {
+            showUnauthorizedModal?: boolean;
+            modalConfig?: ModalConfig;
+        } | undefined;
+
+        if (auth?.showUnauthorizedModal) {
+            setModalConfig({
+                title: auth.modalConfig?.title || 'Access Denied',
+                message: auth.modalConfig?.message || 'You do not have permission to access this resource.',
+                riskLevel: auth.modalConfig?.riskLevel || 'medium',
+                requiredPermission: auth.modalConfig?.requiredPermission,
+                showRequestAccess: auth.modalConfig?.showRequestAccess ?? false,
+                redirectUrl: auth.modalConfig?.redirectUrl || '/dashboard',
+            });
+            setIsModalOpen(true);
+        }
+    }, [page.props.auth]);
+
+    // Check if user is admin for security alerts
+    const isAdmin = useMemo(() => {
+        return user?.role === 'Super Admin' || user?.is_super_admin === true;
+    }, [user]);
     
     const filteredNavItems = useMemo(() => {
         const allNavItems: (NavItem & { permission?: string })[] = [
@@ -245,9 +293,38 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
             return hasPermission(item.permission);
         });
     }, [hasPermission, isAuthenticated]);
+
+    // Handle modal close
+    const handleModalClose = useCallback(() => {
+        setIsModalOpen(false);
+    }, []);
     
     return (
         <AppShell variant="sidebar">
+            {/* Flash Message Handler - Displays toast notifications */}
+            <FlashMessageHandler position="top-right" defaultDuration={5000} />
+            
+            {/* Security Alert Listener - Real-time alerts for admins */}
+            {isAdmin && (
+                <SecurityAlertListener 
+                    userId={user?.id} 
+                    isAdmin={isAdmin} 
+                    position="top-right"
+                />
+            )}
+            
+            {/* Unauthorized Access Modal */}
+            <UnauthorizedAccessModal
+                isOpen={isModalOpen}
+                onClose={handleModalClose}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                requiredPermission={modalConfig.requiredPermission}
+                riskLevel={modalConfig.riskLevel}
+                showRequestAccess={modalConfig.showRequestAccess}
+                redirectUrl={modalConfig.redirectUrl}
+            />
+            
             <Sidebar collapsible="icon" variant="inset" className="border-r border-sidebar-border">
                 <SidebarHeader className="border-b border-sidebar-border/50">
                     <SidebarMenu>

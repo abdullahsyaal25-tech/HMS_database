@@ -9,6 +9,7 @@ use App\Models\SalesItem;
 use App\Models\Medicine;
 use App\Models\MedicineCategory;
 use App\Models\Patient;
+use App\Services\AuthorizationService;
 use App\Services\SalesService;
 use App\Services\InventoryService;
 use App\Services\AuditLogService;
@@ -771,14 +772,18 @@ class SalesController extends Controller
     /**
      * Void the specified sale.
      */
-    public function void(string $id)
+    public function void(Request $request, string $id)
     {
-        $user = Auth::user();
-        
-        // Check if user has appropriate permission
-        if (!$user->hasPermission('delete-sales')) {
-            abort(403, 'Unauthorized access');
+        // Check permission for pharmacy sales void/delete
+        if (!Auth::user()->hasPermission('pharmacy.sales.void')) {
+            return app(AuthorizationService::class)->handleUnauthorizedAccess(
+                $request,
+                'pharmacy.sales.void',
+                Auth::user()
+            );
         }
+        
+        $user = Auth::user();
         
         try {
             DB::beginTransaction();

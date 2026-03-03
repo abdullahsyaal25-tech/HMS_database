@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateMedicineRequest;
 use App\Models\Medicine;
 use App\Models\MedicineCategory;
 use App\Models\Sale;
+use App\Services\AuthorizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -342,7 +343,14 @@ class MedicineController extends Controller
      */
     public function update(Request $request, string $id): RedirectResponse
     {
-        $this->authorizeMedicineModify();
+        // Check permission for pharmacy medicine update
+        if (!Auth::user()->hasPermission('pharmacy.medicine.update')) {
+            return app(AuthorizationService::class)->handleUnauthorizedAccess(
+                $request,
+                'pharmacy.medicine.update',
+                Auth::user()
+            );
+        }
         
         $medicineId = filter_var($id, FILTER_VALIDATE_INT);
         if (!$medicineId) {
@@ -400,12 +408,15 @@ class MedicineController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id): RedirectResponse
+    public function destroy(Request $request, string $id): RedirectResponse
     {
-        $this->authorizeMedicineModify();
-        
-        if (!auth()->user()?->hasPermission('delete-medicines')) {
-            abort(403, 'Unauthorized access');
+        // Check permission for pharmacy medicine delete
+        if (!Auth::user()->hasPermission('pharmacy.medicine.delete')) {
+            return app(AuthorizationService::class)->handleUnauthorizedAccess(
+                $request,
+                'pharmacy.medicine.delete',
+                Auth::user()
+            );
         }
         
         $medicineId = filter_var($id, FILTER_VALIDATE_INT);
@@ -448,10 +459,13 @@ class MedicineController extends Controller
      */
     public function updateStock(Request $request, string $id)
     {
-        $user = Auth::user();
-        
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin'])) {
-            abort(403, 'Unauthorized access');
+        // Check permission for pharmacy medicine stock update
+        if (!Auth::user()->hasPermission('pharmacy.medicine.update-stock')) {
+            return app(AuthorizationService::class)->handleUnauthorizedAccess(
+                $request,
+                'pharmacy.medicine.update-stock',
+                Auth::user()
+            );
         }
         
         $medicineId = filter_var($id, FILTER_VALIDATE_INT);

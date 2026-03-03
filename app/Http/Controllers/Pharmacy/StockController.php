@@ -7,6 +7,7 @@ use App\Models\Medicine;
 use App\Models\MedicineCategory;
 use App\Models\Sale;
 use App\Models\StockMovement;
+use App\Services\AuthorizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -184,11 +185,16 @@ class StockController extends Controller
      */
     public function adjust(Request $request): RedirectResponse
     {
-        $user = Auth::user();
-        
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Super Admin'])) {
-            abort(403, 'Unauthorized access');
+        // Check permission for pharmacy stock adjustment
+        if (!Auth::user()->hasPermission('pharmacy.stock.adjust')) {
+            return app(AuthorizationService::class)->handleUnauthorizedAccess(
+                $request,
+                'pharmacy.stock.adjust',
+                Auth::user()
+            );
         }
+        
+        $user = Auth::user();
         
         $validator = Validator::make($request->all(), [
             'medicine_id' => 'required|exists:medicines,id',

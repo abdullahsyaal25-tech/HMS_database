@@ -339,9 +339,9 @@ Route::middleware(['web', 'auth'])->group(function () {
             Route::put('/{user}', [App\Http\Controllers\Admin\UserController::class, 'update'])->name('admin.users.update')->middleware('check.permission:edit-users');
 
             // User Permissions Management
-            Route::get('/{user}/permissions', [App\Http\Controllers\Admin\UserController::class, 'editPermissions'])->name('admin.users.permissions.edit');
-            Route::put('/{user}/permissions', [App\Http\Controllers\Admin\UserController::class, 'updatePermissions'])->name('admin.users.permissions.update')->middleware('check.permission:manage-user-permissions');
-            Route::delete('/{user}/permissions/{permission}', [App\Http\Controllers\Admin\UserController::class, 'revokePermission'])->name('admin.users.permissions.revoke')->middleware('check.permission:manage-user-permissions');
+            Route::get('/{user}/permissions', [App\Http\Controllers\Admin\PermissionsController::class, 'userPermissions'])->name('admin.users.permissions.edit');
+            Route::put('/{user}/permissions', [App\Http\Controllers\Admin\PermissionsController::class, 'updateUserPermissions'])->name('admin.users.permissions.update')->middleware('check.permission:manage-user-permissions');
+            Route::delete('/{user}/permissions/{permission}', [App\Http\Controllers\Admin\PermissionsController::class, 'revokeUserPermission'])->name('admin.users.permissions.revoke')->middleware('check.permission:manage-user-permissions');
 
             // Bulk operations and templates
             Route::post('/bulk-permissions', [App\Http\Controllers\Admin\UserController::class, 'bulkUpdatePermissions'])->name('admin.users.bulk-permissions')->middleware('check.permission:manage-user-permissions');

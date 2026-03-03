@@ -267,6 +267,11 @@ class RBACSeeder extends Seeder
             ['name' => 'edit-medicines', 'slug' => 'edit_medicines', 'description' => 'Edit medicine information', 'resource' => 'medicines', 'action' => 'edit', 'category' => 'Pharmacy Management', 'module' => 'pharmacy', 'segregation_group' => 'pharmacy_operations', 'risk_level' => 2],
             ['name' => 'delete-medicines', 'slug' => 'delete_medicines', 'description' => 'Delete medicines', 'resource' => 'medicines', 'action' => 'delete', 'category' => 'Pharmacy Management', 'module' => 'pharmacy', 'segregation_group' => 'pharmacy_operations', 'risk_level' => 3, 'requires_approval' => true],
             
+            // Sales Management
+            ['name' => 'create-sales', 'slug' => 'create_sales', 'description' => 'Create new pharmacy sales', 'resource' => 'sales', 'action' => 'create', 'category' => 'Pharmacy Management', 'module' => 'pharmacy', 'segregation_group' => 'pharmacy_operations', 'risk_level' => 2],
+            ['name' => 'view-sales', 'slug' => 'view_sales', 'description' => 'View pharmacy sales', 'resource' => 'sales', 'action' => 'view', 'category' => 'Pharmacy Management', 'module' => 'pharmacy', 'segregation_group' => 'pharmacy_operations', 'risk_level' => 1],
+            ['name' => 'delete-sales', 'slug' => 'delete_sales', 'description' => 'Void/delete pharmacy sales', 'resource' => 'sales', 'action' => 'delete', 'category' => 'Pharmacy Management', 'module' => 'pharmacy', 'segregation_group' => 'pharmacy_operations', 'risk_level' => 3, 'requires_approval' => true],
+            
             // Lab Test Management (individual permissions)
             ['name' => 'create-lab-tests', 'slug' => 'create_lab_tests', 'description' => 'Create new lab tests', 'resource' => 'lab-tests', 'action' => 'create', 'category' => 'Laboratory Management', 'module' => 'laboratory', 'segregation_group' => 'laboratory_operations', 'risk_level' => 2],
             ['name' => 'edit-lab-tests', 'slug' => 'edit_lab_tests', 'description' => 'Edit lab tests', 'resource' => 'lab-tests', 'action' => 'edit', 'category' => 'Laboratory Management', 'module' => 'laboratory', 'segregation_group' => 'laboratory_operations', 'risk_level' => 2],
@@ -310,6 +315,7 @@ class RBACSeeder extends Seeder
                 'view-roles', 'create-roles', 'edit-roles', 'delete-roles',
                 'view-patients', 'create-patients', 'edit-patients', 'delete-patients',
                 'view-pharmacy', 'manage-medicines', 'process-prescriptions',
+                'create-sales', 'view-sales', 'delete-sales',
                 'view-laboratory', 'manage-lab-tests', 'process-test-results',
                 'view-rbac-dashboard', 'manage-role-permissions', 'view-permission-matrix', 'view-activity-logs'
             ],
@@ -320,6 +326,7 @@ class RBACSeeder extends Seeder
                 'view-doctors', 'create-doctors', 'edit-doctors', 'delete-doctors',
                 'view-appointments', 'create-appointments', 'edit-appointments', 'delete-appointments',
                 'view-pharmacy', 'create-medicines', 'edit-medicines',
+                'create-sales', 'view-sales', 'delete-sales',
                 'view-laboratory', 'create-lab-tests', 'edit-lab-tests',
                 'view-reports', 'view-settings', 'view-activity-logs',
                 'view-departments', 'create-departments', 'edit-departments',
@@ -333,6 +340,7 @@ class RBACSeeder extends Seeder
                 'view-dashboard',
                 'view-patients',
                 'view-pharmacy', 'create-medicines', 'edit-medicines', 'delete-medicines',
+                'create-sales', 'view-sales', 'delete-sales',
                 'manage-prescriptions', 'inventory-management',
                 'view-reports',
             ],

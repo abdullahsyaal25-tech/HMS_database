@@ -7,6 +7,7 @@ use App\Models\Medicine;
 use App\Models\MedicineCategory;
 use App\Models\MedicineAlert;
 use App\Models\Sale;
+use App\Services\AuthorizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -347,10 +348,13 @@ class ReportController extends Controller
      */
     public function deleteExpired(Request $request): \Illuminate\Http\RedirectResponse
     {
-        $user = Auth::user();
-        
-        if (!$user->hasPermission('delete-medicine')) {
-            abort(403, 'Unauthorized access');
+        // Check permission for pharmacy delete expired medicines
+        if (!Auth::user()->hasPermission('pharmacy.medicine.delete-expired')) {
+            return app(AuthorizationService::class)->handleUnauthorizedAccess(
+                $request,
+                'pharmacy.medicine.delete-expired',
+                Auth::user()
+            );
         }
         
         $deletedCount = Medicine::where('expiry_date', '<', now())->delete();

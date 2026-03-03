@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Pharmacy;
 
 use App\Http\Controllers\Controller;
 use App\Models\MedicineCategory;
+use App\Services\AuthorizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -104,11 +105,13 @@ class MedicineCategoryController extends Controller
      */
     public function update(Request $request, string $id): RedirectResponse
     {
-        $user = Auth::user();
-        
-        // Check if user has appropriate permission
-        if (!$user->hasPermission('edit-medicines')) {
-            abort(403, 'Unauthorized access');
+        // Check permission for pharmacy category update
+        if (!Auth::user()->hasPermission('pharmacy.category.update')) {
+            return app(AuthorizationService::class)->handleUnauthorizedAccess(
+                $request,
+                'pharmacy.category.update',
+                Auth::user()
+            );
         }
         
         $category = MedicineCategory::findOrFail($id);
@@ -134,13 +137,15 @@ class MedicineCategoryController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id): RedirectResponse
+    public function destroy(Request $request, string $id): RedirectResponse
     {
-        $user = Auth::user();
-        
-        // Check if user has appropriate permission
-        if (!$user->hasPermission('delete-medicines')) {
-            abort(403, 'Unauthorized access');
+        // Check permission for pharmacy category delete
+        if (!Auth::user()->hasPermission('pharmacy.category.delete')) {
+            return app(AuthorizationService::class)->handleUnauthorizedAccess(
+                $request,
+                'pharmacy.category.delete',
+                Auth::user()
+            );
         }
         
         $category = MedicineCategory::withCount('medicines')->findOrFail($id);

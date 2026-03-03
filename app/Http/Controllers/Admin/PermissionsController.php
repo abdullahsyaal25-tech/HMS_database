@@ -3,15 +3,20 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdateUserPermissionsRequest;
 use App\Models\Permission;
 use App\Models\PermissionChangeRequest;
 use App\Models\RolePermission;
 use App\Models\TemporaryPermission;
 use App\Models\User;
+use App\Models\UserPermission;
+use App\Services\AuditLogService;
+use App\Services\RBACService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Services\PermissionMonitoringService;
@@ -19,10 +24,17 @@ use App\Services\PermissionMonitoringService;
 class PermissionsController extends Controller
 {
     protected $monitoringService;
+    protected $rbacService;
+    protected $auditLogService;
 
-    public function __construct(PermissionMonitoringService $monitoringService)
-    {
+    public function __construct(
+        PermissionMonitoringService $monitoringService,
+        RBACService $rbacService,
+        AuditLogService $auditLogService
+    ) {
         $this->monitoringService = $monitoringService;
+        $this->rbacService = $rbacService;
+        $this->auditLogService = $auditLogService;
     }
     /**
      * Display the permissions management page.
@@ -207,41 +219,158 @@ class PermissionsController extends Controller
 
     /**
      * Display the user permissions management page.
+     *
+     * GET /admin/users/{user}/permissions
      */
-    public function editUserPermissions(string $userId): Response
+    public function userPermissions(User $user): Response
     {
-        $user = User::with(['userPermissions' => function($query) {
-            $query->where('user_permissions.allowed', true)->with('permission');
-        }])->findOrFail($userId);
+        // Authorization check
+        $currentUser = Auth::user();
+        if (!$currentUser->isSuperAdmin() &&
+            !$currentUser->hasPermission('manage-users') &&
+            !$currentUser->hasPermission('manage-permissions')) {
+            abort(403, 'Unauthorized to view user permissions');
+        }
 
+        // Load user with role and current permissions
+        $user->load(['roleModel.permissions', 'userPermissions.permission']);
+
+        // Get all available permissions grouped by module/category
         $allPermissions = Permission::all();
+        $permissionsByModule = $allPermissions->groupBy('module')->map(function ($permissions) {
+            return $permissions->map(function ($permission) {
+                return [
+                    'id' => $permission->id,
+                    'name' => $permission->name,
+                    'description' => $permission->description,
+                    'resource' => $permission->resource,
+                    'action' => $permission->action,
+                    'category' => $permission->category,
+                    'module' => $permission->module,
+                    'risk_level' => $permission->risk_level,
+                    'requires_approval' => $permission->requires_approval,
+                    'is_critical' => $permission->is_critical,
+                ];
+            });
+        });
 
-        // Get permissions currently assigned to the user
-        $userPermissionIds = $user->userPermissions->pluck('permission_id')->toArray();
+        // Get user's effective permissions (from role + user-specific overrides)
+        $effectivePermissions = $user->getEffectivePermissions();
 
-        return Inertia::render('Admin/Permissions/EditUser', [
-            'user' => $user,
-            'allPermissions' => $allPermissions,
-            'userPermissionIds' => $userPermissionIds,
+        // Get role-based permissions
+        $rolePermissionIds = $user->roleModel ?
+            $user->roleModel->permissions->pluck('id')->toArray() :
+            [];
+
+        // Get user-specific permission overrides (both granted and revoked)
+        $userPermissionOverrides = $user->userPermissions->mapWithKeys(function ($userPermission) {
+            return [$userPermission->permission_id => [
+                'id' => $userPermission->id,
+                'allowed' => $userPermission->allowed,
+                'permission' => [
+                    'id' => $userPermission->permission->id,
+                    'name' => $userPermission->permission->name,
+                    'description' => $userPermission->permission->description,
+                ],
+            ]];
+        })->toArray();
+
+        // Get categories and modules for filtering
+        $categories = Permission::distinct()->pluck('category')->filter()->values();
+        $modules = Permission::distinct()->pluck('module')->filter()->values();
+
+        return Inertia::render('Admin/Permissions/UserPermissions', [
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'role' => $user->role,
+                'role_id' => $user->role_id,
+                'role_name' => $user->roleModel?->name,
+                'is_super_admin' => $user->isSuperAdmin(),
+            ],
+            'permissions' => [
+                'all' => $allPermissions,
+                'by_module' => $permissionsByModule,
+                'categories' => $categories,
+                'modules' => $modules,
+            ],
+            'user_permissions' => [
+                'effective' => $effectivePermissions,
+                'role_based' => $rolePermissionIds,
+                'overrides' => $userPermissionOverrides,
+            ],
         ]);
     }
 
     /**
-     * Update permissions for a specific user.
+     * Update user-specific permissions.
+     *
+     * PUT /admin/users/{user}/permissions
      */
-    public function updateUserPermissions(Request $request, string $userId): RedirectResponse
+    public function updateUserPermissions(UpdateUserPermissionsRequest $request, User $user): RedirectResponse
     {
-        $user = User::findOrFail($userId);
+        $startTime = microtime(true);
+        $currentUser = Auth::user();
 
-        // Clear existing user-specific permissions
-        $user->userPermissions()->delete();
+        // Additional authorization checks
+        if (!$currentUser->isSuperAdmin()) {
+            // Prevent modifying own permissions
+            if ($user->id === $currentUser->id) {
+                return redirect()->back()->with('error', 'You cannot modify your own permissions.');
+            }
 
-        // Add new permissions if provided
-        if ($request->has('permissions') && is_array($request->permissions)) {
-            foreach ($request->permissions as $permissionId) {
+            // Prevent modifying Super Admin permissions
+            if ($user->isSuperAdmin()) {
+                return redirect()->back()->with('error', 'Only Super Admin can modify Super Admin permissions.');
+            }
+        }
+
+        $previousPermissions = $user->userPermissions->pluck('permission_id')->toArray();
+        
+        // Get permissions from request (support both formats)
+        $newPermissions = $request->input('permissions', []);
+        $grantPermissions = $request->input('grant_permissions', []);
+        $revokePermissions = $request->input('revoke_permissions', []);
+
+        // If using the new granular format
+        if (!empty($grantPermissions) || !empty($revokePermissions)) {
+            // Grant new permissions
+            foreach ($grantPermissions as $permissionId) {
+                UserPermission::updateOrCreate(
+                    ['user_id' => $user->id, 'permission_id' => $permissionId],
+                    ['allowed' => true]
+                );
+            }
+
+            // Revoke specific permissions
+            foreach ($revokePermissions as $permissionId) {
+                UserPermission::updateOrCreate(
+                    ['user_id' => $user->id, 'permission_id' => $permissionId],
+                    ['allowed' => false]
+                );
+            }
+        } else {
+            // Legacy format - full sync (delete and recreate)
+            // Validate permission dependencies using RBACService
+            if (!empty($newPermissions)) {
+                $dependencyValidation = $this->rbacService->validatePermissionDependencies($newPermissions);
+                if (!empty($dependencyValidation)) {
+                    return redirect()->back()
+                        ->withErrors(['permissions' => 'Permission dependency validation failed: ' . implode(', ', $dependencyValidation)])
+                        ->withInput();
+                }
+            }
+
+            // Clear existing user-specific permissions
+            $user->userPermissions()->delete();
+
+            // Add new permissions
+            foreach ($newPermissions as $permissionId) {
                 $permission = Permission::find($permissionId);
                 if ($permission) {
-                    $user->userPermissions()->create([
+                    UserPermission::create([
+                        'user_id' => $user->id,
                         'permission_id' => $permission->id,
                         'allowed' => true,
                     ]);
@@ -249,15 +378,120 @@ class PermissionsController extends Controller
             }
         }
 
-        // Log permission change for monitoring
-        $this->monitoringService->logMetric('permission_change', count($request->permissions ?? []), [
+        // Clear user's permission cache
+        $user->clearPermissionCache();
+
+        // Calculate changes for audit log
+        $currentPermissionIds = $user->userPermissions()->where('allowed', true)->pluck('permission_id')->toArray();
+        $addedPermissions = array_diff($currentPermissionIds, $previousPermissions);
+        $removedPermissions = array_diff($previousPermissions, $currentPermissionIds);
+
+        // Build description
+        $description = "Updated permissions for user {$user->name} (ID: {$user->id}). ";
+        if (!empty($addedPermissions)) {
+            $addedNames = Permission::whereIn('id', $addedPermissions)->pluck('name')->toArray();
+            $description .= "Added: " . implode(', ', $addedNames) . ". ";
+        }
+        if (!empty($removedPermissions)) {
+            $removedNames = Permission::whereIn('id', $removedPermissions)->pluck('name')->toArray();
+            $description .= "Removed: " . implode(', ', $removedNames) . ". ";
+        }
+        if (empty($addedPermissions) && empty($removedPermissions)) {
+            $description .= "No effective changes.";
+        }
+
+        // Log using AuditLogService
+        $this->auditLogService->logActivity(
+            'Update User Permissions',
+            'User Management',
+            $description,
+            'medium'
+        );
+
+        // Log to monitoring service
+        $this->monitoringService->logMetric('permission_change', count($currentPermissionIds), [
             'action' => 'user_permissions_updated',
-            'user_id' => $userId,
-            'changed_by' => Auth::id(),
-            'permissions_count' => count($request->permissions ?? []),
+            'user_id' => $user->id,
+            'changed_by' => $currentUser->id,
+            'added_count' => count($addedPermissions),
+            'removed_count' => count($removedPermissions),
+            'response_time' => round((microtime(true) - $startTime) * 1000, 2),
         ]);
 
-        return redirect()->route('admin.users.index')->with('success', 'User permissions updated successfully.');
+        return redirect()
+            ->route('admin.users.permissions.edit', $user->id)
+            ->with('success', 'User permissions updated successfully.');
+    }
+
+    /**
+     * Revoke a specific permission override from a user.
+     *
+     * DELETE /admin/users/{user}/permissions/{permission}
+     */
+    public function revokeUserPermission(Request $request, User $user, Permission $permission): RedirectResponse
+    {
+        $startTime = microtime(true);
+        $currentUser = Auth::user();
+
+        // Authorization check
+        if (!$currentUser->isSuperAdmin() &&
+            !$currentUser->hasPermission('manage-users') &&
+            !$currentUser->hasPermission('manage-permissions')) {
+            abort(403, 'Unauthorized to revoke user permissions');
+        }
+
+        // Additional authorization checks
+        if (!$currentUser->isSuperAdmin()) {
+            if ($user->id === $currentUser->id) {
+                return redirect()->back()->with('error', 'You cannot revoke your own permissions.');
+            }
+
+            if ($user->isSuperAdmin()) {
+                return redirect()->back()->with('error', 'Only Super Admin can modify Super Admin permissions.');
+            }
+        }
+
+        // Find the user permission record
+        $userPermission = UserPermission::where('user_id', $user->id)
+            ->where('permission_id', $permission->id)
+            ->first();
+
+        if (!$userPermission) {
+            return redirect()->back()->with('error', 'User does not have this permission assigned as an override.');
+        }
+
+        if (!$userPermission->allowed) {
+            return redirect()->back()->with('info', 'Permission is already revoked.');
+        }
+
+        // Set allowed to false instead of deleting to maintain audit trail
+        $userPermission->update(['allowed' => false]);
+
+        // Clear user's permission cache
+        $user->clearPermissionCache();
+        \Illuminate\Support\Facades\Cache::forget("user_permission:{$user->id}:{$permission->name}");
+
+        // Log the permission revocation using AuditLogService
+        $this->auditLogService->logActivity(
+            'Revoke User Permission',
+            'User Management',
+            "Revoked permission '{$permission->name}' from user {$user->name} (ID: {$user->id})",
+            'medium'
+        );
+
+        // Log to monitoring service
+        $this->monitoringService->logMetric('permission_revoked', 1, [
+            'action' => 'user_permission_revoked',
+            'user_id' => $user->id,
+            'permission_id' => $permission->id,
+            'permission_name' => $permission->name,
+            'revoked_by' => $currentUser->id,
+            'response_time' => round((microtime(true) - $startTime) * 1000, 2),
+        ]);
+
+        return redirect()
+            ->route('admin.users.permissions.edit', $user->id)
+            ->with('success', "Permission '{$permission->name}' revoked successfully.");
     }
 
     /**
