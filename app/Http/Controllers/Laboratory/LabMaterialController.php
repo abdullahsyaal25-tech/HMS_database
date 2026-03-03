@@ -222,12 +222,13 @@ class LabMaterialController extends Controller
     /**
      * Update the specified lab material in storage.
      */
-    public function update(UpdateLabMaterialRequest $request, LabMaterial $labMaterial): RedirectResponse
+    public function update(UpdateLabMaterialRequest $request, LabMaterial $labMaterial): RedirectResponse|Response
     {
-        $user = Auth::user();
-
-        if (!$user->hasPermission('edit-lab-materials')) {
-            abort(403, 'Unauthorized access');
+        // Check permission for lab material update
+        if (!Auth::user()->hasPermission('laboratory.material.update')) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to update lab materials.'
+            ]);
         }
 
         $validated = $request->validated();
@@ -246,12 +247,13 @@ class LabMaterialController extends Controller
     /**
      * Remove the specified lab material from storage (soft delete).
      */
-    public function destroy(LabMaterial $labMaterial): RedirectResponse
+    public function destroy(LabMaterial $labMaterial): RedirectResponse|Response
     {
-        $user = Auth::user();
-
-        if (!$user->hasPermission('delete-lab-materials')) {
-            abort(403, 'Unauthorized access');
+        // Check permission for lab material delete
+        if (!Auth::user()->hasPermission('laboratory.material.delete')) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to delete lab materials.'
+            ]);
         }
 
         // Soft delete

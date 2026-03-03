@@ -28,12 +28,71 @@ class DoctorController extends Controller
     }
 
     /**
+     * Check if the current user can create doctor records
+     * (Reception admin can create doctors with create-doctors permission)
+     */
+    private function authorizeDoctorCreate(): void
+    {
+        $user = auth()->user();
+        
+        if (!$user) {
+            abort(403, 'Unauthorized access');
+        }
+        
+        // Super admin can always create
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+        
+        // Reception admin and others need create-doctors permission
+        if (!$user->hasPermission('create-doctors')) {
+            abort(403, 'Unauthorized access. You do not have permission to create doctors.');
+        }
+    }
+
+    /**
      * Check if the current user can modify doctor records
+     * (Reception admin should NOT have edit-doctors permission)
      */
     private function authorizeDoctorModify(): void
     {
-        if (!auth()->user()?->hasPermission('edit-doctors')) {
+        $user = auth()->user();
+        
+        if (!$user) {
             abort(403, 'Unauthorized access');
+        }
+        
+        // Super admin can always modify
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+        
+        // Check for explicit edit permission - Reception admin should NOT have this
+        if (!$user->hasPermission('edit-doctors')) {
+            abort(403, 'Unauthorized access. You do not have permission to modify doctors.');
+        }
+    }
+
+    /**
+     * Check if the current user can delete doctor records
+     * (Reception admin should NOT have delete-doctors permission)
+     */
+    private function authorizeDoctorDelete(): void
+    {
+        $user = auth()->user();
+        
+        if (!$user) {
+            abort(403, 'Unauthorized access');
+        }
+        
+        // Super admin can always delete
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+        
+        // Check for explicit delete permission - Reception admin should NOT have this
+        if (!$user->hasPermission('delete-doctors')) {
+            abort(403, 'Unauthorized access. You do not have permission to delete doctors.');
         }
     }
 
@@ -97,7 +156,7 @@ class DoctorController extends Controller
      */
     public function create(): Response
     {
-        $this->authorizeDoctorModify();
+        $this->authorizeDoctorCreate();
         
         // Use cached departments instead of loading all
         $departments = $this->getDepartments();
@@ -111,7 +170,7 @@ class DoctorController extends Controller
      */
     public function store(Request $request)
     {
-        $this->authorizeDoctorModify();
+        $this->authorizeDoctorCreate();
         
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
@@ -275,12 +334,7 @@ class DoctorController extends Controller
      */
     public function destroy(Doctor $doctor): RedirectResponse
     {
-        $this->authorizeDoctorModify();
-        
-        // Prevent deletion if user lacks delete permission specifically
-        if (!auth()->user()?->hasPermission('delete-doctors')) {
-            abort(403, 'Unauthorized access');
-        }
+        $this->authorizeDoctorDelete();
         
         $user = $doctor->user;
 

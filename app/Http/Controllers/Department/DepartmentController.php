@@ -24,6 +24,94 @@ class DepartmentController extends Controller
     }
 
     /**
+     * Check if user can view departments (Super Admin or Reception with view-departments permission)
+     */
+    protected function authorizeDepartmentView(): void
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            abort(403, 'Unauthorized access');
+        }
+
+        // Super admin can always view
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+
+        // Reception admin and others need view-departments permission
+        if (!$user->hasPermission('view-departments')) {
+            abort(403, 'Unauthorized access. You do not have permission to view departments.');
+        }
+    }
+
+    /**
+     * Check if user can create departments (Super Admin or Reception with create-departments permission)
+     */
+    protected function authorizeDepartmentCreate(): void
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            abort(403, 'Unauthorized access');
+        }
+
+        // Super admin can always create
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+
+        // Reception admin and others need create-departments permission
+        if (!$user->hasPermission('create-departments')) {
+            abort(403, 'Unauthorized access. You do not have permission to create departments.');
+        }
+    }
+
+    /**
+     * Check if user can modify departments (Super Admin only - Reception admin cannot modify)
+     */
+    protected function authorizeDepartmentModify(): void
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            abort(403, 'Unauthorized access');
+        }
+
+        // Super admin can always modify
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+
+        // Check for explicit edit permission - Reception admin should NOT have this
+        if (!$user->hasPermission('edit-departments')) {
+            abort(403, 'Unauthorized access. You do not have permission to modify departments.');
+        }
+    }
+
+    /**
+     * Check if user can delete departments (Super Admin only - Reception admin cannot delete)
+     */
+    protected function authorizeDepartmentDelete(): void
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            abort(403, 'Unauthorized access');
+        }
+
+        // Super admin can always delete
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+
+        // Check for explicit delete permission - Reception admin should NOT have this
+        if (!$user->hasPermission('delete-departments')) {
+            abort(403, 'Unauthorized access. You do not have permission to delete departments.');
+        }
+    }
+
+    /**
      * Display a listing of all appointment services with filtering and navigation.
      * Super admins can view all services across all time periods.
      * Sub-admins can only view today's services.
@@ -373,6 +461,8 @@ class DepartmentController extends Controller
      */
     public function index(): Response
     {
+        $this->authorizeDepartmentView();
+        
         $departments = Department::with(['headDoctor'])->withCount(['doctors', 'appointments', 'services'])
             ->paginate(10);
 
@@ -386,6 +476,8 @@ class DepartmentController extends Controller
      */
     public function create(): Response
     {
+        $this->authorizeDepartmentCreate();
+        
         $doctors = Doctor::select('id', 'doctor_id', 'full_name', 'specialization')
             ->orderBy('full_name')
             ->get()
@@ -411,6 +503,8 @@ class DepartmentController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $this->authorizeDepartmentCreate();
+        
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:departments,name',
             'description' => 'nullable|string',
@@ -435,6 +529,8 @@ class DepartmentController extends Controller
      */
     public function show(string $id): Response
     {
+        $this->authorizeDepartmentView();
+        
         $department = Department::with(['headDoctor', 'doctors', 'appointments', 'services.doctor'])->findOrFail($id);
 
         $department->services->each->append(['final_cost', 'doctor_amount']);
@@ -459,6 +555,8 @@ class DepartmentController extends Controller
      */
     public function edit(string $id): Response
     {
+        $this->authorizeDepartmentModify();
+        
         $department = Department::findOrFail($id);
         
         $doctors = Doctor::select('id', 'doctor_id', 'full_name', 'specialization')
@@ -487,6 +585,8 @@ class DepartmentController extends Controller
      */
     public function update(Request $request, string $id): RedirectResponse
     {
+        $this->authorizeDepartmentModify();
+        
         $department = Department::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
@@ -513,6 +613,8 @@ class DepartmentController extends Controller
      */
     public function destroy(string $id): RedirectResponse
     {
+        $this->authorizeDepartmentDelete();
+        
         $department = Department::findOrFail($id);
 
         // Check if department has related records before deletion

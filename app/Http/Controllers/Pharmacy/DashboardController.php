@@ -27,6 +27,13 @@ class DashboardController extends Controller
             abort(403, 'Unauthorized access');
         }
 
+        // Check if user has dashboard view permission
+        if (!$user->hasPermission('view-dashboard')) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to access the pharmacy dashboard.'
+            ]);
+        }
+
         // Get dashboard statistics
         $stats = $this->getDashboardStats();
         

@@ -437,13 +437,15 @@ class LabTestResultController extends Controller
     /**
      * Update the specified lab test result in storage.
      */
-    public function update(Request $request, LabTestResult $labTestResult): RedirectResponse
+    public function update(Request $request, LabTestResult $labTestResult): RedirectResponse|Response
     {
         $user = Auth::user();
-        
-        // Check if user has appropriate permission
-        if (!$user->hasPermission('edit-lab-test-results')) {
-            abort(403, 'Unauthorized access');
+
+        // Check permission for lab test result update
+        if (!$user->hasPermission('laboratory.result.update')) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to update lab test results.'
+            ]);
         }
         
         $validator = Validator::make($request->all(), [
@@ -530,13 +532,13 @@ class LabTestResultController extends Controller
     /**
      * Remove the specified lab test result from storage.
      */
-    public function destroy(LabTestResult $labTestResult): RedirectResponse
+    public function destroy(LabTestResult $labTestResult): RedirectResponse|Response
     {
-        $user = Auth::user();
-        
-        // Check if user has appropriate permission
-        if (!$user->hasPermission('delete-lab-test-results')) {
-            abort(403, 'Unauthorized access');
+        // Check permission for lab test result delete
+        if (!Auth::user()->hasPermission('laboratory.result.delete')) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to delete lab test results.'
+            ]);
         }
         
         $labTestResult->delete();

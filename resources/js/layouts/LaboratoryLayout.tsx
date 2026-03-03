@@ -90,11 +90,13 @@ const laboratoryNavItems: (NavItem & { permission?: string })[] = [
         title: 'Home',
         href: '/dashboard',
         icon: Building2,
+        permission: 'view-dashboard',
     },
     {
         title: 'Dashboard',
         href: '/laboratory',
         icon: LayoutGrid,
+        permission: 'view-dashboard',
     },
         {
             title: 'Laboratory Materials',

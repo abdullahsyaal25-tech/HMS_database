@@ -6,12 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Models\LabTestResult;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class QualityControlController extends Controller
 {
-    public function index()
+    public function index(): Response
     {
+        // Check permission for quality control access
+        if (!Auth::user()->hasPermission('laboratory.qc.update')) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to access quality control.'
+            ]);
+        }
+
         $today = Carbon::today();
         $thisMonth = Carbon::now()->startOfMonth();
         $lastMonth = Carbon::now()->subMonth()->startOfMonth();

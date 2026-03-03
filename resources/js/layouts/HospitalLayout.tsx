@@ -139,17 +139,20 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                 title: 'Dashboard',
                 href: '/dashboard',
                 icon: LayoutGrid,
+                permission: 'view-dashboard',
             },
            
             {
                 title: 'Doctors',
                 href: '/doctors',
                 icon: User,
+                permission: 'view-doctors',
             },
             {
                 title: 'Reception',
                 href: '/appointments/dashboard',
                 icon: Calendar,
+                permission: 'view-appointments',
                 items: [
                    {
                 title: 'Patients',
@@ -172,16 +175,19 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                 title: 'Departments',
                 href: '/departments',
                 icon: Building,
+                permission: 'view-departments',
             },
             {
                 title: 'Wallet',
                 href: '/wallet',
                 icon: CreditCard,
+                permission: 'view-wallet',
             },
             {
                 title: 'Pharmacy',
                 href: '/pharmacy',
                 icon: Pill,
+                permission: 'view-pharmacy',
                 items: [
                     {
                         title: 'Dashboard',
@@ -219,6 +225,7 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                 title: 'Laboratory',
                 href: '/laboratory',
                 icon: FlaskConical,
+                permission: 'view-laboratory',
                 items: [
                     {
                         title: 'Dashboard',
@@ -249,6 +256,7 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                 title: 'RBAC',
                 href: '/admin/rbac',
                 icon: Shield,
+                permission: 'admin.access',
                 items: [
                     {
                         title: 'Dashboard',

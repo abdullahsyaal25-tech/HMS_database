@@ -262,12 +262,13 @@ class LabTestRequestController extends Controller
     /**
      * Update the specified lab test request in storage.
      */
-    public function update(UpdateLabTestRequest $request, LabTestRequest $labTestRequest): RedirectResponse
+    public function update(UpdateLabTestRequest $request, LabTestRequest $labTestRequest): RedirectResponse|Response
     {
-        $user = Auth::user();
-
-        if (!$user->hasPermission('edit-lab-test-requests')) {
-            abort(403, 'Unauthorized access');
+        // Check permission for lab test request update
+        if (!Auth::user()->hasPermission('laboratory.labrequest.update')) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to update lab test requests.'
+            ]);
         }
 
         $validated = $request->validated();
@@ -322,12 +323,13 @@ class LabTestRequestController extends Controller
     /**
      * Remove the specified lab test request from storage (soft delete).
      */
-    public function destroy(LabTestRequest $labTestRequest): RedirectResponse
+    public function destroy(LabTestRequest $labTestRequest): RedirectResponse|Response
     {
-        $user = Auth::user();
-
-        if (!$user->hasPermission('delete-lab-test-requests')) {
-            abort(403, 'Unauthorized access');
+        // Check permission for lab test request delete
+        if (!Auth::user()->hasPermission('laboratory.labrequest.delete')) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to delete lab test requests.'
+            ]);
         }
 
         // Soft delete
@@ -439,7 +441,7 @@ class LabTestRequestController extends Controller
     /**
      * Update status via dedicated endpoint.
      */
-    public function updateStatus(Request $request, LabTestRequest $labTestRequest): RedirectResponse
+    public function updateStatus(Request $request, LabTestRequest $labTestRequest): RedirectResponse|Response
     {
         $user = Auth::user();
 
@@ -452,13 +454,17 @@ class LabTestRequestController extends Controller
         // Check permissions based on status
         if (in_array($newStatus, ['in_progress', 'completed'])) {
             if (!$user->hasPermission('process-lab-test-requests')) {
-                abort(403, 'You do not have permission to process lab test requests');
+                return Inertia::render('Errors/AccessDenied', [
+                    'message' => 'You do not have permission to process lab test requests.'
+                ]);
             }
         }
 
         if ($newStatus === 'cancelled') {
-            if (!$user->hasPermission('delete-lab-test-requests')) {
-                abort(403, 'You do not have permission to cancel lab test requests');
+            if (!Auth::user()->hasPermission('laboratory.labrequest.cancel')) {
+                return Inertia::render('Errors/AccessDenied', [
+                    'message' => 'You do not have permission to cancel lab test requests.'
+                ]);
             }
         }
 

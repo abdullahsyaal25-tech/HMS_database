@@ -17,6 +17,94 @@ use Illuminate\Http\RedirectResponse;
 class PatientController extends Controller
 {
     /**
+     * Check if user can view patients (Super Admin or Reception with view-patients permission)
+     */
+    protected function authorizePatientView(): void
+    {
+        $user = auth()->user();
+        
+        if (!$user) {
+            abort(403, 'Unauthorized access');
+        }
+        
+        // Super admin can always view
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+        
+        // Reception admin and others need view-patients permission
+        if (!$user->hasPermission('view-patients')) {
+            abort(403, 'Unauthorized access. You do not have permission to view patients.');
+        }
+    }
+
+    /**
+     * Check if user can create patients (Super Admin or Reception with create-patients permission)
+     */
+    protected function authorizePatientCreate(): void
+    {
+        $user = auth()->user();
+        
+        if (!$user) {
+            abort(403, 'Unauthorized access');
+        }
+        
+        // Super admin can always create
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+        
+        // Reception admin and others need create-patients permission
+        if (!$user->hasPermission('create-patients')) {
+            abort(403, 'Unauthorized access. You do not have permission to create patients.');
+        }
+    }
+
+    /**
+     * Check if user can modify patients (Super Admin only - Reception admin cannot modify)
+     */
+    protected function authorizePatientModify(): void
+    {
+        $user = auth()->user();
+        
+        if (!$user) {
+            abort(403, 'Unauthorized access');
+        }
+        
+        // Super admin can always modify
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+        
+        // Check for explicit edit permission - Reception admin should NOT have this
+        if (!$user->hasPermission('edit-patients')) {
+            abort(403, 'Unauthorized access. You do not have permission to modify patients.');
+        }
+    }
+
+    /**
+     * Check if user can delete patients (Super Admin only - Reception admin cannot delete)
+     */
+    protected function authorizePatientDelete(): void
+    {
+        $user = auth()->user();
+        
+        if (!$user) {
+            abort(403, 'Unauthorized access');
+        }
+        
+        // Super admin can always delete
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+        
+        // Check for explicit delete permission - Reception admin should NOT have this
+        if (!$user->hasPermission('delete-patients')) {
+            abort(403, 'Unauthorized access. You do not have permission to delete patients.');
+        }
+    }
+
+    /**
      * Blood group validation
      */
     private function validateBloodGroup(?string $bloodGroup): ?string
@@ -78,6 +166,8 @@ class PatientController extends Controller
      */
     public function index(Request $request): Response
     {
+        $this->authorizePatientView();
+        
         $patients = Patient::with('user')->paginate(50);
 
         $patientsData = [
@@ -260,6 +350,8 @@ class PatientController extends Controller
      */
     public function destroy(Patient $patient): RedirectResponse
     {
+        $this->authorizePatientDelete();
+        
         DB::beginTransaction();
         try {
             $patient->delete();

@@ -100,6 +100,10 @@ class AuthenticatedSessionController extends Controller
         } elseif ($user->hasPermission('view-billing')) {
             // Sub-admin with billing permissions
             return redirect()->to('/billing');
+        } elseif ($user->hasPermission('view-patients') && !$user->hasPermission('view-dashboard')) {
+            // Reception admin - has patient access but no full dashboard access
+            // Redirect to patients list as their primary workspace
+            return redirect()->to('/patients');
         } elseif ($user->hasPermission('view-dashboard')) {
             // Any user with dashboard permission
             return redirect()->to(route('dashboard.redirect', absolute: false));

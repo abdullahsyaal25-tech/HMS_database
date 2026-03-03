@@ -307,14 +307,16 @@ if (!$user->hasPermission('edit-lab-tests')) {
     /**
      * Update the specified lab test in storage.
      */
-public function update(Request $request, LabTest $labTest): RedirectResponse
+public function update(Request $request, LabTest $labTest): RedirectResponse|Response
 {
     $user = Auth::user();
 
-// Check if user has appropriate permission
-if (!$user->hasPermission('edit-lab-tests')) {
-    abort(403, 'Unauthorized access');
-}
+    // Check permission for lab test update
+    if (!Auth::user()->hasPermission('laboratory.labtest.update')) {
+        return Inertia::render('Errors/AccessDenied', [
+            'message' => 'You do not have permission to update lab tests.'
+        ]);
+    }
 
     $validator = Validator::make($request->all(), [
         'name' => 'required|string|max:255',
@@ -353,14 +355,14 @@ if (!$user->hasPermission('edit-lab-tests')) {
     /**
      * Remove the specified lab test from storage.
      */
-public function destroy(LabTest $labTest): RedirectResponse
+public function destroy(LabTest $labTest): RedirectResponse|Response
 {
-    $user = Auth::user();
-
-// Check if user has appropriate permission
-if (!$user->hasPermission('delete-lab-tests')) {
-    abort(403, 'Unauthorized access');
-}
+    // Check permission for lab test delete
+    if (!Auth::user()->hasPermission('laboratory.labtest.delete')) {
+        return Inertia::render('Errors/AccessDenied', [
+            'message' => 'You do not have permission to delete lab tests.'
+        ]);
+    }
 
     $labTest->delete();
 

@@ -91,6 +91,7 @@ const getPharmacyNavItems = (hasDashboardPermission: boolean): (NavItem & { perm
         title: 'Dashboard',
         href: '/pharmacy',
         icon: LayoutGrid,
+        permission: 'view-dashboard',
     },
     ...(hasDashboardPermission ? [
         {
