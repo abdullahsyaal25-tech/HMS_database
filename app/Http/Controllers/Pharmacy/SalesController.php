@@ -9,7 +9,6 @@ use App\Models\SalesItem;
 use App\Models\Medicine;
 use App\Models\MedicineCategory;
 use App\Models\Patient;
-use App\Services\AuthorizationService;
 use App\Services\SalesService;
 use App\Services\InventoryService;
 use App\Services\AuditLogService;
@@ -21,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Http\RedirectResponse;
 
 class SalesController extends Controller
 {
@@ -346,8 +346,13 @@ class SalesController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user has appropriate permission
+        // Check if user has appropriate permissions
         if (!$user->hasPermission('view-pharmacy')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        // Check if user has dashboard view permission
+        if (!$user->hasPermission('view-dashboard')) {
             abort(403, 'Unauthorized access');
         }
 
@@ -772,15 +777,13 @@ class SalesController extends Controller
     /**
      * Void the specified sale.
      */
-    public function void(Request $request, string $id)
+    public function void(Request $request, string $id): RedirectResponse|Response
     {
         // Check permission for pharmacy sales void/delete
         if (!Auth::user()->hasPermission('pharmacy.sales.void')) {
-            return app(AuthorizationService::class)->handleUnauthorizedAccess(
-                $request,
-                'pharmacy.sales.void',
-                Auth::user()
-            );
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to void sales.'
+            ]);
         }
         
         $user = Auth::user();

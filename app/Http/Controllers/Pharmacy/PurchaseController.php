@@ -8,7 +8,6 @@ use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\Supplier;
 use App\Models\StockMovement;
-use App\Services\AuthorizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -214,15 +213,13 @@ class PurchaseController extends Controller
     /**
      * Receive the purchase (update stock).
      */
-    public function receive(Request $request, Purchase $purchase): RedirectResponse
+    public function receive(Request $request, Purchase $purchase): RedirectResponse|Response
     {
         // Check permission for pharmacy purchase receive
         if (!Auth::user()->hasPermission('pharmacy.purchase.receive')) {
-            return app(AuthorizationService::class)->handleUnauthorizedAccess(
-                $request,
-                'pharmacy.purchase.receive',
-                Auth::user()
-            );
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to receive purchases.'
+            ]);
         }
         
         $user = Auth::user();
@@ -283,15 +280,13 @@ class PurchaseController extends Controller
     /**
      * Cancel the purchase.
      */
-    public function cancel(Request $request, Purchase $purchase): RedirectResponse
+    public function cancel(Request $request, Purchase $purchase): RedirectResponse|Response
     {
         // Check permission for pharmacy purchase cancel
         if (!Auth::user()->hasPermission('pharmacy.purchase.cancel')) {
-            return app(AuthorizationService::class)->handleUnauthorizedAccess(
-                $request,
-                'pharmacy.purchase.cancel',
-                Auth::user()
-            );
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to cancel purchases.'
+            ]);
         }
         
         $user = Auth::user();

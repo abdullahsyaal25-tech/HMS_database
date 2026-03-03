@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Pharmacy;
 
 use App\Http\Controllers\Controller;
 use App\Models\MedicineCategory;
-use App\Services\AuthorizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -103,15 +102,13 @@ class MedicineCategoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id): RedirectResponse
+    public function update(Request $request, string $id): RedirectResponse|Response
     {
         // Check permission for pharmacy category update
         if (!Auth::user()->hasPermission('pharmacy.category.update')) {
-            return app(AuthorizationService::class)->handleUnauthorizedAccess(
-                $request,
-                'pharmacy.category.update',
-                Auth::user()
-            );
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to update medicine categories.'
+            ]);
         }
         
         $category = MedicineCategory::findOrFail($id);
@@ -137,15 +134,13 @@ class MedicineCategoryController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, string $id): RedirectResponse
+    public function destroy(Request $request, string $id): RedirectResponse|Response
     {
         // Check permission for pharmacy category delete
         if (!Auth::user()->hasPermission('pharmacy.category.delete')) {
-            return app(AuthorizationService::class)->handleUnauthorizedAccess(
-                $request,
-                'pharmacy.category.delete',
-                Auth::user()
-            );
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to delete medicine categories.'
+            ]);
         }
         
         $category = MedicineCategory::withCount('medicines')->findOrFail($id);

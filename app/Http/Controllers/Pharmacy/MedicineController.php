@@ -9,7 +9,6 @@ use App\Http\Requests\UpdateMedicineRequest;
 use App\Models\Medicine;
 use App\Models\MedicineCategory;
 use App\Models\Sale;
-use App\Services\AuthorizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -341,15 +340,13 @@ class MedicineController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id): RedirectResponse
+    public function update(Request $request, string $id): RedirectResponse|Response
     {
         // Check permission for pharmacy medicine update
         if (!Auth::user()->hasPermission('pharmacy.medicine.update')) {
-            return app(AuthorizationService::class)->handleUnauthorizedAccess(
-                $request,
-                'pharmacy.medicine.update',
-                Auth::user()
-            );
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to update medicines.'
+            ]);
         }
         
         $medicineId = filter_var($id, FILTER_VALIDATE_INT);
@@ -408,15 +405,13 @@ class MedicineController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, string $id): RedirectResponse
+    public function destroy(Request $request, string $id): RedirectResponse|Response
     {
         // Check permission for pharmacy medicine delete
         if (!Auth::user()->hasPermission('pharmacy.medicine.delete')) {
-            return app(AuthorizationService::class)->handleUnauthorizedAccess(
-                $request,
-                'pharmacy.medicine.delete',
-                Auth::user()
-            );
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to delete medicines.'
+            ]);
         }
         
         $medicineId = filter_var($id, FILTER_VALIDATE_INT);
@@ -457,15 +452,13 @@ class MedicineController extends Controller
     /**
      * Update stock quantity for a medicine
      */
-    public function updateStock(Request $request, string $id)
+    public function updateStock(Request $request, string $id): RedirectResponse|Response
     {
         // Check permission for pharmacy medicine stock update
         if (!Auth::user()->hasPermission('pharmacy.medicine.update-stock')) {
-            return app(AuthorizationService::class)->handleUnauthorizedAccess(
-                $request,
-                'pharmacy.medicine.update-stock',
-                Auth::user()
-            );
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to update medicine stock.'
+            ]);
         }
         
         $medicineId = filter_var($id, FILTER_VALIDATE_INT);

@@ -7,7 +7,6 @@ use App\Models\Medicine;
 use App\Models\MedicineCategory;
 use App\Models\Sale;
 use App\Models\StockMovement;
-use App\Services\AuthorizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -183,15 +182,13 @@ class StockController extends Controller
     /**
      * Process a stock adjustment.
      */
-    public function adjust(Request $request): RedirectResponse
+    public function adjust(Request $request): RedirectResponse|Response
     {
         // Check permission for pharmacy stock adjustment
         if (!Auth::user()->hasPermission('pharmacy.stock.adjust')) {
-            return app(AuthorizationService::class)->handleUnauthorizedAccess(
-                $request,
-                'pharmacy.stock.adjust',
-                Auth::user()
-            );
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to adjust stock.'
+            ]);
         }
         
         $user = Auth::user();

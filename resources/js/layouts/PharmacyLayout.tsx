@@ -92,11 +92,13 @@ const getPharmacyNavItems = (hasDashboardPermission: boolean): (NavItem & { perm
         href: '/pharmacy',
         icon: LayoutGrid,
     },
-     {
-        title: 'Sale Dashboard',
-        href: '/pharmacy/sales/dashboard',
-        icon: BarChart3,
-     },
+    ...(hasDashboardPermission ? [
+        {
+            title: 'Sale Dashboard',
+            href: '/pharmacy/sales/dashboard',
+            icon: BarChart3,
+        }
+    ] : []),
     {
         title: 'Sale',
         href: '/pharmacy/sales',
