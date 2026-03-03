@@ -341,7 +341,7 @@ Route::middleware(['web', 'auth'])->group(function () {
             Route::put('/{user}', [App\Http\Controllers\Admin\UserController::class, 'update'])->name('admin.users.update')->middleware('check.permission:edit-users');
 
             // User Permissions Management
-            Route::get('/{user}/permissions', [App\Http\Controllers\Admin\PermissionsController::class, 'userPermissions'])->name('admin.users.permissions.edit');
+            Route::get('/{user}/permissions', [App\Http\Controllers\Admin\PermissionsController::class, 'userPermissions'])->name('admin.users.permissions');
             Route::put('/{user}/permissions', [App\Http\Controllers\Admin\PermissionsController::class, 'updateUserPermissions'])->name('admin.users.permissions.update')->middleware('check.permission:manage-user-permissions');
             Route::delete('/{user}/permissions/{permission}', [App\Http\Controllers\Admin\PermissionsController::class, 'revokeUserPermission'])->name('admin.users.permissions.revoke')->middleware('check.permission:manage-user-permissions');
 

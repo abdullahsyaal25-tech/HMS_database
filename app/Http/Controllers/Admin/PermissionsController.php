@@ -235,70 +235,55 @@ class PermissionsController extends Controller
         // Load user with role and current permissions
         $user->load(['roleModel.permissions', 'userPermissions.permission']);
 
-        // Get all available permissions grouped by module/category
-        $allPermissions = Permission::all();
-        $permissionsByModule = $allPermissions->groupBy('module')->map(function ($permissions) {
-            return $permissions->map(function ($permission) {
-                return [
-                    'id' => $permission->id,
-                    'name' => $permission->name,
-                    'description' => $permission->description,
-                    'resource' => $permission->resource,
-                    'action' => $permission->action,
-                    'category' => $permission->category,
-                    'module' => $permission->module,
-                    'risk_level' => $permission->risk_level,
-                    'requires_approval' => $permission->requires_approval,
-                    'is_critical' => $permission->is_critical,
-                ];
-            });
+        // Get all available permissions formatted for frontend
+        $allPermissions = Permission::all()->map(function ($permission) {
+            return [
+                'id' => $permission->id,
+                'name' => $permission->name,
+                'description' => $permission->description,
+                'module' => $permission->module ?? 'System',
+                'risk_level' => $permission->risk_level ?? 'low',
+                'is_critical' => $permission->is_critical ?? false,
+            ];
         });
 
         // Get user's effective permissions (from role + user-specific overrides)
         $effectivePermissions = $user->getEffectivePermissions();
+        
+        // Get effective permission IDs
+        $effectivePermissionIds = Permission::whereIn('name', $effectivePermissions)->pluck('id')->toArray();
 
-        // Get role-based permissions
-        $rolePermissionIds = $user->roleModel ?
-            $user->roleModel->permissions->pluck('id')->toArray() :
-            [];
+        // Get user's permissions from session or calculate
+        $userPermissions = [];
+        if ($currentUser->isSuperAdmin()) {
+            // Super admin has all permissions
+            $userPermissions = Permission::pluck('name')->toArray();
+        } else {
+            // Get effective permissions
+            $userPermissions = $currentUser->getEffectivePermissions();
+        }
 
-        // Get user-specific permission overrides (both granted and revoked)
-        $userPermissionOverrides = $user->userPermissions->mapWithKeys(function ($userPermission) {
-            return [$userPermission->permission_id => [
-                'id' => $userPermission->id,
-                'allowed' => $userPermission->allowed,
-                'permission' => [
-                    'id' => $userPermission->permission->id,
-                    'name' => $userPermission->permission->name,
-                    'description' => $userPermission->permission->description,
-                ],
-            ]];
-        })->toArray();
-
-        // Get categories and modules for filtering
-        $categories = Permission::distinct()->pluck('category')->filter()->values();
-        $modules = Permission::distinct()->pluck('module')->filter()->values();
-
-        return Inertia::render('Admin/Permissions/UserPermissions', [
+        return Inertia::render('Admin/Permissions/EditUser', [
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
+                'email' => $user->email,
                 'username' => $user->username,
                 'role' => $user->role,
                 'role_id' => $user->role_id,
                 'role_name' => $user->roleModel?->name,
                 'is_super_admin' => $user->isSuperAdmin(),
             ],
-            'permissions' => [
-                'all' => $allPermissions,
-                'by_module' => $permissionsByModule,
-                'categories' => $categories,
-                'modules' => $modules,
-            ],
-            'user_permissions' => [
-                'effective' => $effectivePermissions,
-                'role_based' => $rolePermissionIds,
-                'overrides' => $userPermissionOverrides,
+            'allPermissions' => $allPermissions,
+            'userPermissionIds' => $effectivePermissionIds,
+            'auth' => [
+                'user' => [
+                    'id' => $currentUser->id,
+                    'name' => $currentUser->name,
+                    'role' => $currentUser->role,
+                    'is_super_admin' => $currentUser->isSuperAdmin(),
+                    'permissions' => $userPermissions,
+                ],
             ],
         ]);
     }
@@ -419,7 +404,7 @@ class PermissionsController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.users.permissions.edit', $user->id)
+            ->route('admin.users.permissions', $user->id)
             ->with('success', 'User permissions updated successfully.');
     }
 
