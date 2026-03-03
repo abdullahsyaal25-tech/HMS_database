@@ -57,7 +57,7 @@ interface StockAdjustment {
 
 interface AdjustmentFormData {
     medicine_id: string;
-    adjustment_type: 'add' | 'remove' | 'set';
+    adjustment_type: 'add' | 'remove';
     quantity: string;
     reason: string;
     notes: string;
@@ -90,6 +90,7 @@ export default function Adjustments({ medicines, recentAdjustments, preselectedM
     const { showSuccess, showError } = useToast();
     const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
     const [previewStock, setPreviewStock] = useState<number | null>(null);
+    const [calculatedValue, setCalculatedValue] = useState<number | null>(null);
 
     const { data, setData, post, processing, errors, reset } = useForm<AdjustmentFormData>({
         medicine_id: preselectedMedicineId || '',
@@ -113,11 +114,12 @@ export default function Adjustments({ medicines, recentAdjustments, preselectedM
         }
     }, [preselectedMedicineId, medicines]);
 
-    // Calculate preview stock whenever inputs change
+    // Calculate preview stock and value whenever inputs change
     useEffect(() => {
         if (selectedMedicine && data.quantity) {
             const qty = parseInt(data.quantity) || 0;
             const currentStock = selectedMedicine.stock_quantity;
+            const salePrice = Number(selectedMedicine.sale_price) || 0;
 
             let newStock: number;
             switch (data.adjustment_type) {
@@ -127,20 +129,20 @@ export default function Adjustments({ medicines, recentAdjustments, preselectedM
                 case 'remove':
                     newStock = Math.max(0, currentStock - qty);
                     break;
-                case 'set':
-                    newStock = qty;
-                    break;
-                default:
-                    newStock = currentStock;
             }
+            // Calculate monetary value
+            const value = qty * salePrice;
+            
             // Use requestAnimationFrame to avoid synchronous setState during render
             requestAnimationFrame(() => {
                 setPreviewStock(newStock);
+                setCalculatedValue(value);
             });
         } else {
             // Use requestAnimationFrame to avoid synchronous setState during render
             requestAnimationFrame(() => {
                 setPreviewStock(null);
+                setCalculatedValue(null);
             });
         }
     }, [selectedMedicine, data.adjustment_type, data.quantity]);
@@ -158,6 +160,7 @@ export default function Adjustments({ medicines, recentAdjustments, preselectedM
                 reset();
                 setSelectedMedicine(null);
                 setPreviewStock(null);
+                setCalculatedValue(null);
             },
             onError: (errors) => {
                 showError('Adjustment Failed', Object.values(errors).join(', '));
@@ -270,6 +273,16 @@ export default function Adjustments({ medicines, recentAdjustments, preselectedM
                                                 Reorder Level: {selectedMedicine.reorder_level || 'Not set'}
                                             </span>
                                         </div>
+                                        <div className="mt-2 pt-2 border-t flex items-center justify-between text-xs">
+                                            <div>
+                                                <span className="text-muted-foreground">Sale Price: </span>
+                                                <span className="font-medium">${Number(selectedMedicine.sale_price || 0).toFixed(2)}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-muted-foreground">Cost Price: </span>
+                                                <span className="font-medium">${Number(selectedMedicine.cost_price || 0).toFixed(2)}</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
 
@@ -278,7 +291,7 @@ export default function Adjustments({ medicines, recentAdjustments, preselectedM
                                     <Label htmlFor="adjustment_type">Adjustment Type *</Label>
                                     <Select
                                         value={data.adjustment_type}
-                                        onValueChange={(value) => setData('adjustment_type', value as 'add' | 'remove' | 'set')}
+                                        onValueChange={(value) => setData('adjustment_type', value as 'add' | 'remove')}
                                     >
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select adjustment type" />
@@ -296,7 +309,6 @@ export default function Adjustments({ medicines, recentAdjustments, preselectedM
                                                     Remove Stock
                                                 </div>
                                             </SelectItem>
-                                        
                                         </SelectContent>
                                     </Select>
                                     {errors.adjustment_type && (
@@ -320,29 +332,52 @@ export default function Adjustments({ medicines, recentAdjustments, preselectedM
                                     )}
                                 </div>
 
-                                {/* Preview */}
+                                {/* Preview with Stock and Value */}
                                 {previewStock !== null && selectedMedicine && (
                                     <div className={cn(
-                                        "p-4 rounded-lg border flex items-center justify-between",
-                                        previewStock < 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"
+                                        "p-4 rounded-lg border",
+                                        data.adjustment_type === 'add' ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"
                                     )}>
-                                        <div className="flex items-center gap-2">
-                                            <Calculator className={cn(
-                                                "h-5 w-5",
-                                                previewStock < 0 ? "text-red-600" : "text-green-600"
-                                            )} />
-                                            <span className="font-medium">New Stock Level</span>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <Calculator className={cn(
+                                                    "h-5 w-5",
+                                                    data.adjustment_type === 'add' ? "text-green-600" : "text-red-600"
+                                                )} />
+                                                <span className="font-medium">Preview</span>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className={cn(
-                                                "text-2xl font-bold",
-                                                previewStock < 0 ? "text-red-600" : "text-green-600"
-                                            )}>
-                                                {previewStock}
-                                            </p>
-                                            {previewStock < 0 && (
-                                                <p className="text-xs text-red-600">Cannot have negative stock</p>
-                                            )}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="text-center">
+                                                <p className="text-xs text-muted-foreground uppercase">New Stock</p>
+                                                <p className={cn(
+                                                    "text-2xl font-bold",
+                                                    data.adjustment_type === 'add' ? "text-green-600" : "text-red-600"
+                                                )}>
+                                                    {previewStock}
+                                                </p>
+                                                {data.adjustment_type === 'add' && (
+                                                    <p className="text-xs text-green-600">+{data.quantity} units</p>
+                                                )}
+                                                {data.adjustment_type === 'remove' && (
+                                                    <p className="text-xs text-red-600">-{data.quantity} units</p>
+                                                )}
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-xs text-muted-foreground uppercase">Value</p>
+                                                <p className={cn(
+                                                    "text-2xl font-bold",
+                                                    data.adjustment_type === 'add' ? "text-green-600" : "text-red-600"
+                                                )}>
+                                                    ${calculatedValue?.toFixed(2) || '0.00'}
+                                                </p>
+                                                {data.adjustment_type === 'add' && (
+                                                    <p className="text-xs text-green-600">to be added</p>
+                                                )}
+                                                {data.adjustment_type === 'remove' && (
+                                                    <p className="text-xs text-red-600">to be removed</p>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 )}

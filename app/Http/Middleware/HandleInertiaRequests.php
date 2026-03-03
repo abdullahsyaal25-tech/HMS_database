@@ -53,6 +53,13 @@ class HandleInertiaRequests extends Middleware
                 'username' => $user->username,
                 'role' => $user->roleModel?->name ?? $user->role,
                 'role_id' => $user->role_id,
+                'roleModel' => $user->roleModel ? [
+                    'slug' => $user->roleModel->slug,
+                    'name' => $user->roleModel->name,
+                    'priority' => $user->roleModel->priority,
+                    'is_system' => $user->roleModel->is_system,
+                    'module_access' => $user->roleModel->module_access ?? [],
+                ] : null,
                 'is_super_admin' => $user->isSuperAdmin(),
                 'permissions' => $permissions,
             ];

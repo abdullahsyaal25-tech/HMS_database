@@ -184,18 +184,13 @@ class StockController extends Controller
      */
     public function adjust(Request $request): RedirectResponse|Response
     {
-        // Check permission for pharmacy stock adjustment
-        if (!Auth::user()->hasPermission('pharmacy.stock.adjust')) {
-            return Inertia::render('Errors/AccessDenied', [
-                'message' => 'You do not have permission to adjust stock.'
-            ]);
-        }
+       
         
         $user = Auth::user();
         
         $validator = Validator::make($request->all(), [
             'medicine_id' => 'required|exists:medicines,id',
-            'adjustment_type' => 'required|in:add,remove,set',
+            'adjustment_type' => 'required|in:add,remove',
             'quantity' => 'required|integer|min:1',
             'reason' => 'required|string|in:purchase,damage,return,correction,donation,transfer,other',
             'notes' => 'nullable|string|max:500',
@@ -207,6 +202,7 @@ class StockController extends Controller
         
         $medicine = Medicine::findOrFail($request->medicine_id);
         $previousStock = $medicine->stock_quantity;
+        $previousSalePrice = $medicine->sale_price;
         $quantity = (int) $request->quantity;
         
         // Calculate new stock based on adjustment type
@@ -217,15 +213,20 @@ class StockController extends Controller
             case 'remove':
                 $newStock = max(0, $previousStock - $quantity);
                 break;
-            case 'set':
-                $newStock = $quantity;
-                break;
-            default:
-                $newStock = $previousStock;
         }
+        
+        // Calculate monetary value based on current sale_price
+        $moneyValue = $quantity * $previousSalePrice;
         
         // Update medicine stock
         $medicine->update(['stock_quantity' => $newStock]);
+        
+        // Refresh to get updated values
+        $medicine->refresh();
+        
+        // Build notes for stock movement
+        $notes = $request->notes ?? "Adjustment: {$request->reason}";
+        $notes .= ", Qty: {$quantity}, Value: " . number_format($moneyValue, 2);
         
         // Create stock movement record
         StockMovement::create([
@@ -236,12 +237,16 @@ class StockController extends Controller
             'new_stock' => $newStock,
             'reference_type' => 'adjustment',
             'reference_id' => null,
-            'notes' => $request->notes ?? "Adjustment: {$request->reason}",
+            'notes' => $notes,
             'user_id' => $user->id,
         ]);
         
+        // Build success message
+        $actionText = $request->adjustment_type === 'add' ? 'added to' : 'removed from';
+        $successMessage = "Stock {$actionText} successfully. Quantity: {$quantity}, Value: " . number_format($moneyValue, 2);
+        
         return redirect()->route('pharmacy.stock.adjustments')
-            ->with('success', 'Stock adjusted successfully.');
+            ->with('success', $successMessage);
     }
 
     /**

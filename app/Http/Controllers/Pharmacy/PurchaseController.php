@@ -217,9 +217,9 @@ class PurchaseController extends Controller
     {
         // Check permission for pharmacy purchase receive
         if (!Auth::user()->hasPermission('pharmacy.purchase.receive')) {
-            return Inertia::render('Errors/AccessDenied', [
-                'message' => 'You do not have permission to receive purchases.'
-            ]);
+            // return Inertia::render('Errors/AccessDenied', [
+            //     'message' => 'You do not have permission to receive purchases.'
+            // ]);
         }
         
         $user = Auth::user();

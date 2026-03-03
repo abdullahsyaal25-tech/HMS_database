@@ -83,7 +83,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     });
 
     // Wallet and Revenue Tracking
-    Route::middleware('check.permission:wallet.view')->prefix('wallet')->group(function () {
+    Route::middleware('check.permission:view-wallet')->prefix('wallet')->group(function () {
         Route::get('/', [WalletController::class, 'index'])->name('wallet.index');
     });
 
