@@ -22,7 +22,9 @@ class LabTestController extends Controller
         $user = Auth::user();
 
         if (!$user->isSuperAdmin() && !$user->hasPermission('view-laboratory')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view laboratory dashboard.'
+            ]);
         }
 
         // Get statistics for dashboard

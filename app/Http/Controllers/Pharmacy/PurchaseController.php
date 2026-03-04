@@ -89,7 +89,9 @@ class PurchaseController extends Controller
         
         // Use permission-based check instead of role-based
         if (!$user->hasPermission('create-purchases')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to create purchases.'
+            ]);
         }
         
         $medicines = Medicine::with('category')

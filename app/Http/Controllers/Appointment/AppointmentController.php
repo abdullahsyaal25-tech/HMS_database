@@ -118,21 +118,17 @@ class AppointmentController extends Controller
     /**
      * Check if the current user can access appointments
      */
-    private function authorizeAppointmentAccess(): void
+    private function authorizeAppointmentAccess(): bool
     {
-        if (!auth()->user()?->hasPermission('view-appointments')) {
-            abort(403, 'Unauthorized access');
-        }
+        return auth()->user()?->hasPermission('view-appointments') ?? false;
     }
 
     /**
      * Check if the current user can modify appointments
      */
-    private function authorizeAppointmentModify(): void
+    private function authorizeAppointmentModify(): bool
     {
-        if (!auth()->user()?->hasPermission('edit-appointments')) {
-            abort(403, 'Unauthorized access');
-        }
+        return auth()->user()?->hasPermission('edit-appointments') ?? false;
     }
 
     /**
@@ -156,7 +152,11 @@ class AppointmentController extends Controller
      */
     public function index(): Response
     {
-        $this->authorizeAppointmentAccess();
+        if (!$this->authorizeAppointmentAccess()) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view appointments.'
+            ]);
+        }
 
         $user = auth()->user();
         $isSuperAdmin = $user?->isSuperAdmin() ?? false;
@@ -249,7 +249,11 @@ class AppointmentController extends Controller
      */
     public function dashboard(): Response
     {
-        $this->authorizeAppointmentAccess();
+        if (!$this->authorizeAppointmentAccess()) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view appointments.'
+            ]);
+        }
         
         // Get recent appointments (latest 10)
         $appointments = $this->appointmentService->getAllAppointments(10);
@@ -311,8 +315,12 @@ class AppointmentController extends Controller
      */
     public function create(): Response
     {
-        $this->authorizeAppointmentModify();
-        
+        if (!$this->authorizeAppointmentModify()) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to create appointments.'
+            ]);
+        }
+
         $formData = $this->appointmentService->getAppointmentFormData();
         return Inertia::render('Appointment/Create', $formData);
     }
@@ -322,8 +330,10 @@ class AppointmentController extends Controller
      */
     public function store(Request $request)
     {
-        $this->authorizeAppointmentModify();
-        
+        if (!$this->authorizeAppointmentModify()) {
+            return redirect()->back()->withErrors(['error' => 'You do not have permission to create appointments.']);
+        }
+
         $validated = $request->validate([
             'patient_id' => 'required|exists:patients,id',
             'doctor_id' => 'nullable|exists:doctors,id',

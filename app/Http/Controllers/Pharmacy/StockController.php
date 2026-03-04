@@ -26,7 +26,9 @@ class StockController extends Controller
 
         // Check if user has appropriate permission
         if (!$user->hasPermission('view-pharmacy') && !$user->hasPermission('inventory-management')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view stock.'
+            ]);
         }
 
         $query = Medicine::with('category');
@@ -105,7 +107,9 @@ class StockController extends Controller
         $user = Auth::user();
 
         if (!$user->hasPermission('view-pharmacy') && !$user->hasPermission('inventory-management')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view stock movements.'
+            ]);
         }
 
         $query = StockMovement::with(['medicine', 'user'])
@@ -157,7 +161,9 @@ class StockController extends Controller
         $user = Auth::user();
         
         if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Super Admin'])) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to adjust stock.'
+            ]);
         }
         
         $medicines = Medicine::select('id', 'name', 'medicine_id', 'stock_quantity', 'reorder_level', 'sale_price')
@@ -257,7 +263,9 @@ class StockController extends Controller
         $user = Auth::user();
         
         if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Super Admin'])) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view stock valuation.'
+            ]);
         }
         
         $medicines = Medicine::with('category')->get();

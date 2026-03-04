@@ -20,80 +20,72 @@ class DoctorController extends Controller
     /**
      * Check if the current user can access doctor management
      */
-    private function authorizeDoctorAccess(): void
+    private function authorizeDoctorAccess(): bool
     {
-        if (!auth()->user()?->hasPermission('view-doctors')) {
-            abort(403, 'Unauthorized access');
-        }
+        return auth()->user()?->hasPermission('view-doctors') ?? false;
     }
 
     /**
      * Check if the current user can create doctor records
      * (Reception admin can create doctors with create-doctors permission)
      */
-    private function authorizeDoctorCreate(): void
+    private function authorizeDoctorCreate(): bool
     {
         $user = auth()->user();
         
         if (!$user) {
-            abort(403, 'Unauthorized access');
+            return false;
         }
         
         // Super admin can always create
         if ($user->isSuperAdmin()) {
-            return;
+            return true;
         }
         
         // Reception admin and others need create-doctors permission
-        if (!$user->hasPermission('create-doctors')) {
-            abort(403, 'Unauthorized access. You do not have permission to create doctors.');
-        }
+        return $user->hasPermission('create-doctors');
     }
 
     /**
      * Check if the current user can modify doctor records
      * (Reception admin should NOT have edit-doctors permission)
      */
-    private function authorizeDoctorModify(): void
+    private function authorizeDoctorModify(): bool
     {
         $user = auth()->user();
         
         if (!$user) {
-            abort(403, 'Unauthorized access');
+            return false;
         }
         
         // Super admin can always modify
         if ($user->isSuperAdmin()) {
-            return;
+            return true;
         }
         
         // Check for explicit edit permission - Reception admin should NOT have this
-        if (!$user->hasPermission('edit-doctors')) {
-            abort(403, 'Unauthorized access. You do not have permission to modify doctors.');
-        }
+        return $user->hasPermission('edit-doctors');
     }
 
     /**
      * Check if the current user can delete doctor records
      * (Reception admin should NOT have delete-doctors permission)
      */
-    private function authorizeDoctorDelete(): void
+    private function authorizeDoctorDelete(): bool
     {
         $user = auth()->user();
         
         if (!$user) {
-            abort(403, 'Unauthorized access');
+            return false;
         }
         
         // Super admin can always delete
         if ($user->isSuperAdmin()) {
-            return;
+            return true;
         }
         
         // Check for explicit delete permission - Reception admin should NOT have this
-        if (!$user->hasPermission('delete-doctors')) {
-            abort(403, 'Unauthorized access. You do not have permission to delete doctors.');
-        }
+        return $user->hasPermission('delete-doctors');
     }
 
     /**
@@ -122,7 +114,11 @@ class DoctorController extends Controller
      */
     public function index(): Response
     {
-        $this->authorizeDoctorAccess();
+        if (!$this->authorizeDoctorAccess()) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view doctors.'
+            ]);
+        }
         
         $doctors = Doctor::with('user', 'department')->paginate(10);
         
@@ -156,7 +152,11 @@ class DoctorController extends Controller
      */
     public function create(): Response
     {
-        $this->authorizeDoctorCreate();
+        if (!$this->authorizeDoctorCreate()) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to create doctors.'
+            ]);
+        }
         
         // Use cached departments instead of loading all
         $departments = $this->getDepartments();
@@ -170,7 +170,9 @@ class DoctorController extends Controller
      */
     public function store(Request $request)
     {
-        $this->authorizeDoctorCreate();
+        if (!$this->authorizeDoctorCreate()) {
+            return redirect()->back()->withErrors(['error' => 'You do not have permission to create doctors.']);
+        }
         
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
@@ -246,7 +248,11 @@ class DoctorController extends Controller
      */
     public function show(Doctor $doctor): Response
     {
-        $this->authorizeDoctorAccess();
+        if (!$this->authorizeDoctorAccess()) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view doctors.'
+            ]);
+        }
         
         $doctor->load('user', 'department');
         return Inertia::render('Doctor/Show', [
@@ -259,7 +265,11 @@ class DoctorController extends Controller
      */
     public function edit(Doctor $doctor): Response
     {
-        $this->authorizeDoctorModify();
+        if (!$this->authorizeDoctorModify()) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to modify doctors.'
+            ]);
+        }
         
         $doctor->load('user', 'department');
         // Use cached departments
@@ -275,7 +285,9 @@ class DoctorController extends Controller
      */
     public function update(Request $request, Doctor $doctor): RedirectResponse
     {
-        $this->authorizeDoctorModify();
+        if (!$this->authorizeDoctorModify()) {
+            return redirect()->back()->withErrors(['error' => 'You do not have permission to modify doctors.']);
+        }
         
         // Log for debugging
         \Illuminate\Support\Facades\Log::info('Doctor update request received', [
@@ -334,7 +346,9 @@ class DoctorController extends Controller
      */
     public function destroy(Doctor $doctor): RedirectResponse
     {
-        $this->authorizeDoctorDelete();
+        if (!$this->authorizeDoctorDelete()) {
+            return redirect()->back()->withErrors(['error' => 'You do not have permission to delete doctors.']);
+        }
         
         $user = $doctor->user;
 
@@ -356,7 +370,11 @@ class DoctorController extends Controller
      */
     public function appointments(Doctor $doctor): Response
     {
-        $this->authorizeDoctorAccess();
+        if (!$this->authorizeDoctorAccess()) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view doctors.'
+            ]);
+        }
         
         // Get the Laboratory department ID to exclude
         $labDepartmentId = \App\Models\Department::where('name', 'Laboratory')->first()?->id;

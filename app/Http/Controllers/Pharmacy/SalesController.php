@@ -47,7 +47,9 @@ class SalesController extends Controller
 
         // Check if user has appropriate permission
         if (!$user->hasPermission('view-pharmacy')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view pharmacy sales.'
+            ]);
         }
 
         // Determine view type (today, monthly, yearly)
@@ -348,12 +350,16 @@ class SalesController extends Controller
 
         // Check if user has appropriate permissions
         if (!$user->hasPermission('view-pharmacy')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view pharmacy sales.'
+            ]);
         }
 
         // Check if user has dashboard view permission
         if (!$user->hasPermission('view-dashboard')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view the dashboard.'
+            ]);
         }
 
         // Determine view type (today, monthly, yearly)
@@ -574,7 +580,9 @@ class SalesController extends Controller
         
         // Check if user has appropriate permission
         if (!$user->hasPermission('create-sales')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to create sales.'
+            ]);
         }
         
         $medicines = Medicine::where('stock_quantity', '>', 0)
@@ -604,7 +612,9 @@ class SalesController extends Controller
         
         // Check if user has appropriate permission
         if (!$user->hasPermission('create-sales')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to dispense medicines.'
+            ]);
         }
         
         $medicines = Medicine::where('stock_quantity', '>', 0)
@@ -722,7 +732,9 @@ class SalesController extends Controller
         
         // Check if user has appropriate permission
         if (!$user->hasPermission('view-pharmacy')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view sale details.'
+            ]);
         }
         
         $sale = Sale::with(['items.medicine', 'patient', 'soldBy'])->findOrFail($id);
@@ -832,7 +844,9 @@ class SalesController extends Controller
         
         // Check if user has appropriate permission
         if (!$user->hasPermission('view-pharmacy')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view receipts.'
+            ]);
         }
         
         $sale = Sale::with(['items.medicine', 'patient', 'soldBy'])->findOrFail($id);
@@ -851,7 +865,9 @@ class SalesController extends Controller
         
         // Check if user has appropriate permission
         if (!$user->hasPermission('view-pharmacy')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to print receipts.'
+            ]);
         }
         
         $sale = Sale::with(['items.medicine', 'patient', 'soldBy'])->findOrFail($id);
@@ -870,7 +886,9 @@ class SalesController extends Controller
         
         // Check if user has appropriate permission
         if (!$user->hasPermission('view-pharmacy')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to export sales data.'
+            ]);
         }
         
         $query = Sale::with(['items.medicine', 'patient', 'soldBy']);

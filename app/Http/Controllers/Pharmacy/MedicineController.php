@@ -40,21 +40,17 @@ class MedicineController extends Controller
     /**
      * Check if the current user can access pharmacy
      */
-    private function authorizePharmacyAccess(): void
+    private function authorizePharmacyAccess(): bool
     {
-        if (!auth()->user()?->hasPermission('view-pharmacy')) {
-            abort(403, 'Unauthorized access');
-        }
+        return auth()->user()?->hasPermission('view-pharmacy') ?? false;
     }
 
     /**
      * Check if the current user can modify medicines
      */
-    private function authorizeMedicineModify(): void
+    private function authorizeMedicineModify(): bool
     {
-        if (!auth()->user()?->hasPermission('edit-medicines')) {
-            abort(403, 'Unauthorized access');
-        }
+        return auth()->user()?->hasPermission('edit-medicines') ?? false;
     }
 
     /**
@@ -100,7 +96,11 @@ class MedicineController extends Controller
      */
     public function index(Request $request): Response
     {
-        $this->authorizePharmacyAccess();
+        if (!$this->authorizePharmacyAccess()) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view pharmacy.'
+            ]);
+        }
         
         $query = Medicine::with('category');
         
@@ -217,7 +217,9 @@ class MedicineController extends Controller
     {
         // Check for create-medicines permission specifically for creating new medicines
         if (!auth()->user()?->hasPermission('create-medicines')) {
-            abort(403, 'Unauthorized access');
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to create medicines.'
+            ]);
         }
         
         // Use cached categories instead of loading all
@@ -233,7 +235,11 @@ class MedicineController extends Controller
      */
     public function store(Request $request)
     {
-        $this->authorizeMedicineModify();
+        if (!$this->authorizeMedicineModify()) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to modify medicines.'
+            ]);
+        }
         
         $validated = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
@@ -288,7 +294,11 @@ class MedicineController extends Controller
      */
     public function show(string $id): Response
     {
-        $this->authorizePharmacyAccess();
+        if (!$this->authorizePharmacyAccess()) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view pharmacy.'
+            ]);
+        }
         
         $medicineId = filter_var($id, FILTER_VALIDATE_INT);
         if (!$medicineId) {
@@ -324,7 +334,11 @@ class MedicineController extends Controller
      */
     public function edit(string $id): Response
     {
-        $this->authorizeMedicineModify();
+        if (!$this->authorizeMedicineModify()) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to modify medicines.'
+            ]);
+        }
         
         $medicineId = filter_var($id, FILTER_VALIDATE_INT);
         if (!$medicineId) {
@@ -436,7 +450,11 @@ class MedicineController extends Controller
      */
     public function search(Request $request): Response
     {
-        $this->authorizePharmacyAccess();
+        if (!$this->authorizePharmacyAccess()) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view pharmacy.'
+            ]);
+        }
         
         $searchTerm = $this->sanitizeSearchTerm($request->input('query'));
         
