@@ -12,7 +12,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('medical_records', function (Blueprint $table) {
+        // Skip if table already exists
+        if (Schema::hasTable('medical_records')) {
+            return;
+        }
+
+        // Check if required tables exist
+        $tablesExist = [
+            'patients' => Schema::hasTable('patients'),
+            'doctors' => Schema::hasTable('doctors'),
+            'appointments' => Schema::hasTable('appointments'),
+            'users' => Schema::hasTable('users'),
+        ];
+
+        Schema::create('medical_records', function (Blueprint $table) use ($tablesExist) {
             $table->id();
             $table->string('record_number')->unique();
             $table->unsignedBigInteger('patient_id');
@@ -39,12 +52,20 @@ return new class extends Migration
             $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamps();
 
-            // Foreign keys
-            $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade');
-            $table->foreign('doctor_id')->references('id')->on('doctors')->onDelete('cascade');
-            $table->foreign('appointment_id')->references('id')->on('appointments')->onDelete('set null');
-            $table->foreign('created_by')->references('id')->on('users')->onDelete('cascade');
-            $table->foreign('updated_by')->references('id')->on('users')->onDelete('set null');
+            // Foreign keys - only add if tables exist
+            if ($tablesExist['patients']) {
+                $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade');
+            }
+            if ($tablesExist['doctors']) {
+                $table->foreign('doctor_id')->references('id')->on('doctors')->onDelete('cascade');
+            }
+            if ($tablesExist['appointments']) {
+                $table->foreign('appointment_id')->references('id')->on('appointments')->onDelete('set null');
+            }
+            if ($tablesExist['users']) {
+                $table->foreign('created_by')->references('id')->on('users')->onDelete('cascade');
+                $table->foreign('updated_by')->references('id')->on('users')->onDelete('set null');
+            }
 
             // Indexes for common queries
             $table->index(['patient_id', 'visit_date'], 'idx_medical_records_patient_date');
@@ -59,6 +80,34 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('medical_records', function (Blueprint $table) {
+            // Drop all foreign keys that may have been added
+            try {
+                $table->dropForeign(['patient_id']);
+            } catch (\Exception $e) {
+                // FK may not exist
+            }
+            try {
+                $table->dropForeign(['doctor_id']);
+            } catch (\Exception $e) {
+                // FK may not exist
+            }
+            try {
+                $table->dropForeign(['appointment_id']);
+            } catch (\Exception $e) {
+                // FK may not exist
+            }
+            try {
+                $table->dropForeign(['created_by']);
+            } catch (\Exception $e) {
+                // FK may not exist
+            }
+            try {
+                $table->dropForeign(['updated_by']);
+            } catch (\Exception $e) {
+                // FK may not exist
+            }
+        });
         Schema::dropIfExists('medical_records');
     }
 };

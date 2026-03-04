@@ -32,6 +32,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('transactions', function (Blueprint $table) {
+            $table->dropForeign(['wallet_id']);
+            $table->dropForeign(['created_by']);
+        });
         Schema::dropIfExists('transactions');
     }
 };

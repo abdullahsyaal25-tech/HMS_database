@@ -35,14 +35,58 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('lab_test_requests', function (Blueprint $table) {
-            // Drop the composite indexes first
-            $table->dropIndex('lab_test_requests_dept_status_idx');
-            $table->dropIndex('lab_test_requests_dept_created_idx');
+        // Check if column exists before trying to drop
+        if (!Schema::hasColumn('lab_test_requests', 'department_id')) {
+            return; // Column doesn't exist, nothing to do
+        }
 
-            // Drop the foreign key column
-            $table->dropForeign(['department_id']);
-            $table->dropColumn('department_id');
-        });
+        // Disable foreign key checks temporarily
+        \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        
+        try {
+            // Get the actual foreign key name from the database
+            $foreignKeys = \Illuminate\Support\Facades\DB::select(
+                "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+                 WHERE TABLE_NAME = 'lab_test_requests' 
+                 AND COLUMN_NAME = 'department_id' 
+                 AND TABLE_SCHEMA = DATABASE()"
+            );
+            
+            // Drop any foreign key constraints found
+            foreach ($foreignKeys as $fk) {
+                try {
+                    \Illuminate\Support\Facades\DB::statement(
+                        "ALTER TABLE lab_test_requests DROP FOREIGN KEY {$fk->CONSTRAINT_NAME}"
+                    );
+                } catch (\Exception $e) {
+                    // Continue even if drop fails
+                }
+            }
+
+            // Drop the indexes
+            try {
+                \Illuminate\Support\Facades\DB::statement(
+                    'ALTER TABLE lab_test_requests DROP INDEX lab_test_requests_dept_status_idx'
+                );
+            } catch (\Exception $e) {
+                // Index might not exist
+            }
+
+            try {
+                \Illuminate\Support\Facades\DB::statement(
+                    'ALTER TABLE lab_test_requests DROP INDEX lab_test_requests_dept_created_idx'
+                );
+            } catch (\Exception $e) {
+                // Index might not exist
+            }
+
+            // Drop the column
+            Schema::table('lab_test_requests', function (Blueprint $table) {
+                $table->dropColumn('department_id');
+            });
+        } finally {
+            // Always re-enable foreign key checks
+            \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        }
     }
 };

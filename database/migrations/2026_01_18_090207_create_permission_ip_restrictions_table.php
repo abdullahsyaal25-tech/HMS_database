@@ -35,6 +35,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('permission_ip_restrictions', function (Blueprint $table) {
+            $table->dropForeign(['created_by']);
+        });
         Schema::dropIfExists('permission_ip_restrictions');
     }
 };

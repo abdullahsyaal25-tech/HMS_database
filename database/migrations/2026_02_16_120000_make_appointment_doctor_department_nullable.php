@@ -11,10 +11,22 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Drop foreign keys first
         Schema::table('appointments', function (Blueprint $table) {
-            // Make doctor_id and department_id nullable to allow appointments without specific doctor
+            $table->dropForeign(['doctor_id']);
+            $table->dropForeign(['department_id']);
+        });
+        
+        // Modify columns to be nullable
+        Schema::table('appointments', function (Blueprint $table) {
             $table->foreignId('doctor_id')->nullable()->change();
             $table->foreignId('department_id')->nullable()->change();
+        });
+        
+        // Recreate foreign keys
+        Schema::table('appointments', function (Blueprint $table) {
+            $table->foreign('doctor_id')->references('id')->on('doctors')->onDelete('set null');
+            $table->foreign('department_id')->references('id')->on('departments')->onDelete('set null');
         });
     }
 
@@ -23,10 +35,22 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Drop foreign keys first
         Schema::table('appointments', function (Blueprint $table) {
-            // Revert to NOT NULL (be careful with this - may cause data loss)
+            $table->dropForeign(['doctor_id']);
+            $table->dropForeign(['department_id']);
+        });
+        
+        // Revert to NOT NULL
+        Schema::table('appointments', function (Blueprint $table) {
             $table->foreignId('doctor_id')->change();
             $table->foreignId('department_id')->change();
+        });
+        
+        // Recreate foreign keys
+        Schema::table('appointments', function (Blueprint $table) {
+            $table->foreign('doctor_id')->references('id')->on('doctors')->onDelete('cascade');
+            $table->foreign('department_id')->references('id')->on('departments')->onDelete('cascade');
         });
     }
 };

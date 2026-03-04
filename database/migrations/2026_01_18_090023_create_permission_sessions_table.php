@@ -57,7 +57,16 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Drop child table first
+        Schema::table('permission_session_actions', function (Blueprint $table) {
+            $table->dropForeign(['session_id']);
+        });
         Schema::dropIfExists('permission_session_actions');
+        
+        // Drop parent table
+        Schema::table('permission_sessions', function (Blueprint $table) {
+            $table->dropForeign(['user_id']);
+        });
         Schema::dropIfExists('permission_sessions');
     }
 };

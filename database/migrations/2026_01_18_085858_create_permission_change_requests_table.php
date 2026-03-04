@@ -43,6 +43,11 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('permission_change_requests', function (Blueprint $table) {
+            $table->dropForeign(['user_id']);
+            $table->dropForeign(['requested_by']);
+            $table->dropForeign(['approved_by']);
+        });
         Schema::dropIfExists('permission_change_requests');
     }
 };

@@ -104,12 +104,19 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Drop FKs in role_permission_mappings first
+        Schema::table('role_permission_mappings', function (Blueprint $table) {
+            $table->dropForeign(['role_id']);
+            $table->dropForeign(['permission_id']);
+        });
+        Schema::dropIfExists('role_permission_mappings');
+
+        // Drop FK in users table before dropping roles
         Schema::table('users', function (Blueprint $table) {
             $table->dropForeign(['role_id']);
             $table->dropColumn('role_id');
         });
 
-        Schema::dropIfExists('role_permission_mappings');
         Schema::dropIfExists('roles');
     }
 };

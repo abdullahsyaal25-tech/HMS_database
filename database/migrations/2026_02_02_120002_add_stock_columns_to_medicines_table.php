@@ -23,7 +23,16 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('medicines', function (Blueprint $table) {
-            $table->dropColumn(['stock_quantity', 'reorder_level']);
+            $columnsToDrop = [];
+            if (Schema::hasColumn('medicines', 'stock_quantity')) {
+                $columnsToDrop[] = 'stock_quantity';
+            }
+            if (Schema::hasColumn('medicines', 'reorder_level')) {
+                $columnsToDrop[] = 'reorder_level';
+            }
+            if (count($columnsToDrop) > 0) {
+                $table->dropColumn($columnsToDrop);
+            }
         });
     }
 };

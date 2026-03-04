@@ -195,11 +195,9 @@ return new class extends Migration
                 }
             }
             
-            // Drop the index if it exists (wrapped in try-catch to handle cases where it was already dropped)
+            // Drop the index if it exists using raw SQL
             try {
-                if (Schema::hasIndex('medical_records', 'idx_clinical_validation')) {
-                    $table->dropIndex('idx_clinical_validation');
-                }
+                \Illuminate\Support\Facades\DB::statement('DROP INDEX idx_clinical_validation ON medical_records');
             } catch (\Exception $e) {
                 // Index might not exist or already dropped - continue
             }

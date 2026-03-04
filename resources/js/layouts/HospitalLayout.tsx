@@ -259,11 +259,6 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                 permission: 'admin.access',
                 items: [
                     {
-                        title: 'Dashboard',
-                        href: '/admin/rbac',
-                        icon: LayoutGrid,
-                    },
-                    {
                         title: 'User Management',
                         href: '/admin',
                         icon: Users,
@@ -273,16 +268,6 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                         title: 'Permissions',
                         href: '/admin/permissions',
                         icon: Lock,
-                    },
-                    // {
-                    //     title: 'User Assignments',
-                    //     href: '/admin/rbac/user-assignments',
-                    //     icon: Users,
-                    // },
-                    {
-                        title: 'Audit Logs',
-                        href: '/admin/rbac/audit-logs',
-                        icon: FileText,
                     },
                 ],
             },

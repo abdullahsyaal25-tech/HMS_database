@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('sales_items', function (Blueprint $table) {
-            $table->decimal('cost_price', 12, 2)->nullable()->after('sale_price');
+            if (!Schema::hasColumn('sales_items', 'cost_price')) {
+                $table->decimal('cost_price', 12, 2)->nullable();
+            }
         });
     }
 
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('sales_items', function (Blueprint $table) {
-            $table->dropColumn('cost_price');
-        });
+        if (Schema::hasColumn('sales_items', 'cost_price')) {
+            Schema::table('sales_items', function (Blueprint $table) {
+                $table->dropColumn('cost_price');
+            });
+        }
     }
 };

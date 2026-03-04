@@ -56,7 +56,18 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Drop prescription_items first (child table)
+        Schema::table('prescription_items', function (Blueprint $table) {
+            $table->dropForeign(['prescription_id']);
+            $table->dropForeign(['medicine_id']);
+        });
         Schema::dropIfExists('prescription_items');
+        
+        // Drop prescriptions (parent table)
+        Schema::table('prescriptions', function (Blueprint $table) {
+            $table->dropForeign(['patient_id']);
+            $table->dropForeign(['doctor_id']);
+        });
         Schema::dropIfExists('prescriptions');
     }
 };

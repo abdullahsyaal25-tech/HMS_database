@@ -40,6 +40,11 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('temporary_permissions', function (Blueprint $table) {
+            $table->dropForeign(['user_id']);
+            $table->dropForeign(['permission_id']);
+            $table->dropForeign(['granted_by']);
+        });
         Schema::dropIfExists('temporary_permissions');
     }
 };

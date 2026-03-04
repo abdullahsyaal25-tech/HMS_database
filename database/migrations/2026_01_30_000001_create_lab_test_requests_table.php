@@ -40,6 +40,11 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('lab_test_requests', function (Blueprint $table) {
+            $table->dropForeign(['patient_id']);
+            $table->dropForeign(['doctor_id']);
+            $table->dropForeign(['created_by']);
+        });
         Schema::dropIfExists('lab_test_requests');
     }
 };

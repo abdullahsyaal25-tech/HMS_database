@@ -33,6 +33,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('role_reporting_relationships', function (Blueprint $table) {
+            $table->dropForeign(['supervisor_role_id']);
+            $table->dropForeign(['subordinate_role_id']);
+        });
         Schema::dropIfExists('role_reporting_relationships');
     }
 };

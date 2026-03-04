@@ -27,6 +27,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('permission_dependencies', function (Blueprint $table) {
+            $table->dropForeign(['permission_id']);
+            $table->dropForeign(['depends_on_permission_id']);
+        });
         Schema::dropIfExists('permission_dependencies');
     }
 };
