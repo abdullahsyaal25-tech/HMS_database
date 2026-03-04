@@ -8,19 +8,16 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
-use App\Mail\PermissionAlertNotification;
-use Inertia\Inertia;
+
 
 /**
- * Global Authorization Service
+ * Authorization Service - DEACTIVATED
  * 
- * Handles unauthorized access attempts with standardized notifications,
- * flash messages, and modal dialogs.
+ * This service has been deactivated as part of RBAC cleanup.
+ * All methods now return safe default values.
+ * 
+ * @deprecated This service is no longer in use
  */
 class AuthorizationService
 {
@@ -40,623 +37,643 @@ class AuthorizationService
     protected array $config;
 
     /**
-     * PermissionAlertService instance
+     * PermissionAlertService instance - now disabled
      */
-    protected PermissionAlertService $alertService;
+    protected $alertService;
 
     /**
-     * AuditLogService instance
+     * AuditLogService instance - now disabled
      */
-    protected AuditLogService $auditLogService;
+    protected $auditLogService;
 
     /**
-     * Constructor
+     * Create a new AuthorizationService instance.
+     * 
+     * @deprecated Service is deactivated
      */
     public function __construct(
-        PermissionAlertService $alertService,
-        AuditLogService $auditLogService
+        $alertService = null,
+        $auditLogService = null
     ) {
+        $this->config = config('authorization', []);
         $this->alertService = $alertService;
         $this->auditLogService = $auditLogService;
-        $this->config = config('authorization', []);
     }
 
     /**
-     * Main handler for unauthorized access attempts
-     * 
-     * @param Request $request The current request
-     * @param string $requiredPermission The permission that was required
-     * @param User|null $user The user attempting access (null if guest)
-     * @param array $options Additional options for handling
-     * @return Response|JsonResponse|RedirectResponse
+     * Handle unauthorized access attempt - Returns default response.
      */
     public function handleUnauthorizedAccess(
         Request $request,
-        string $requiredPermission,
-        ?User $user = null,
-        array $options = []
+        string $message = 'Unauthorized',
+        int $code = 403
     ): Response|JsonResponse|RedirectResponse {
-        $user = $user ?? Auth::user();
-        $attemptCount = $this->incrementAttemptCounter($request, $user);
+        // Simplified: just redirect to home or return error
+        if ($request->expectsJson()) {
+            return response()->json(['message' => $message], $code);
+        }
         
-        // Log the unauthorized attempt
-        $this->logUnauthorizedAttempt($request, $requiredPermission, $user, $options['reason'] ?? '');
-
-        // Determine violation type and risk level
-        $violationType = $this->determineViolationType($requiredPermission, $options);
-        $riskLevel = $options['risk_level'] ?? $this->determineRiskLevel($requiredPermission, $user);
-
-        // Check if we should send notifications
-        if ($this->shouldNotify($violationType, $attemptCount)) {
-            $this->sendSecurityAlert($violationType, [
-                'permission' => $requiredPermission,
-                'user' => $user?->toArray(),
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'url' => $request->fullUrl(),
-                'method' => $request->method(),
-                'attempt_count' => $attemptCount,
-                'timestamp' => now()->toIso8601String(),
-            ]);
-        }
-
-        // Check rate limiting
-        if ($this->isRateLimited($request, $user)) {
-            return $this->createRateLimitedResponse($request);
-        }
-
-        // Return appropriate response based on request type
-        return $this->createResponse($request, $requiredPermission, $riskLevel, $options);
+        Session::flash('error', $message);
+        return redirect()->route('dashboard')->with('error', $message);
     }
 
     /**
-     * Log unauthorized attempt to audit trail
-     * 
-     * @param Request $request
-     * @param string $requiredPermission
-     * @param User|null $user
-     * @param string $reason
-     * @return void
+     * Check if limit exceeded - Always rate returns false (no rate limiting).
      */
-    public function logUnauthorizedAttempt(
-        Request $request,
-        string $requiredPermission,
-        ?User $user = null,
-        string $reason = ''
-    ): void {
-        $logData = [
-            'permission' => $requiredPermission,
-            'user_id' => $user?->id,
-            'user_name' => $user?->name ?? 'Guest',
-            'user_role' => $user?->role ?? 'Guest',
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'url' => $request->fullUrl(),
-            'method' => $request->method(),
-            'reason' => $reason,
-            'timestamp' => now()->toIso8601String(),
+    public function isRateLimited(string $identifier): bool
+    {
+        return false;
+    }
+
+    /**
+     * Record failed attempt - Does nothing (deactivated).
+     */
+    public function recordFailedAttempt(Request $request, string $identifier): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Clear rate limit - Does nothing.
+     */
+    public function clearRateLimit(string $identifier): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get remaining attempts - Returns maximum int.
+     */
+    public function getRemainingAttempts(string $identifier): int
+    {
+        return PHP_INT_MAX;
+    }
+
+    /**
+     * Get rate limit reset time - Returns null.
+     */
+    public function getRateLimitReset(string $identifier)
+    {
+        return null;
+    }
+
+    /**
+     * Log unauthorized attempt - Does nothing.
+     */
+    public function logUnauthorizedAttempt(Request $request, string $message = null): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get unauthorized attempt count - Returns 0.
+     */
+    public function getUnauthorizedAttemptCount(string $identifier): int
+    {
+        return 0;
+    }
+
+    /**
+     * Check if IP is blocked - Always returns false.
+     */
+    public function isIpBlocked(string $ip): bool
+    {
+        return false;
+    }
+
+    /**
+     * Block IP - Does nothing.
+     */
+    public function blockIp(string $ip, int $duration = 0): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Unblock IP - Does nothing.
+     */
+    public function unblockIp(string $ip): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get blocked IPs - Returns empty array.
+     */
+    public function getBlockedIps(): array
+    {
+        return [];
+    }
+
+    /**
+     * Check if user is blocked - Always returns false.
+     */
+    public function isUserBlocked(int $userId): bool
+    {
+        return false;
+    }
+
+    /**
+     * Block user - Does nothing.
+     */
+    public function blockUser(int $userId, int $duration = 0): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Unblock user - Does nothing.
+     */
+    public function unblockUser(int $userId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Send alert notification - Does nothing.
+     */
+    public function sendAlertNotification(string $type, string $message, array $data = []): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get alert configuration - Returns empty array.
+     */
+    public function getAlertConfig(string $type): array
+    {
+        return [];
+    }
+
+    /**
+     * Check if alerts are enabled - Always returns false.
+     */
+    public function isAlertsEnabled(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Create audit log - Does nothing.
+     */
+    public function createAuditLog(string $action, array $data = []): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get audit trail - Returns empty collection.
+     */
+    public function getAuditTrail(string $identifier = null, int $limit = 100)
+    {
+        return collect();
+    }
+
+    /**
+     * Check session security - Always returns true.
+     */
+    public function checkSessionSecurity(Request $request): bool
+    {
+        return true;
+    }
+
+    /**
+     * Validate session - Always returns true.
+     */
+    public function validateSession(Request $request): bool
+    {
+        return true;
+    }
+
+    /**
+     * Invalidate session - Does nothing.
+     */
+    public function invalidateSession(Request $request): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Check concurrent sessions - Always returns false.
+     */
+    public function hasConcurrentSessions(int $userId): bool
+    {
+        return false;
+    }
+
+    /**
+     * Terminate other sessions - Does nothing.
+     */
+    public function terminateOtherSessions(int $userId, string $currentSessionId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get active sessions - Returns empty collection.
+     */
+    public function getActiveSessions(int $userId)
+    {
+        return collect();
+    }
+
+    /**
+     * Check MFA requirement - Always returns false.
+     */
+    public function isMfaRequired(int $userId, string $action): bool
+    {
+        return false;
+    }
+
+    /**
+     * Verify MFA - Always returns true.
+     */
+    public function verifyMfa(int $userId, string $code): bool
+    {
+        return true;
+    }
+
+    /**
+     * Enable MFA - Does nothing.
+     */
+    public function enableMfa(int $userId, array $methods = []): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Disable MFA - Does nothing.
+     */
+    public function disableMfa(int $userId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get MFA status - Returns empty array.
+     */
+    public function getMfaStatus(int $userId): array
+    {
+        return [];
+    }
+
+    /**
+     * Check time-based access - Always returns true.
+     */
+    public function checkTimeBasedAccess(int $userId, string $action): bool
+    {
+        return true;
+    }
+
+    /**
+     * Check IP whitelist - Always returns true.
+     */
+    public function checkIpWhitelist(int $userId, string $ip): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get user IP whitelist - Returns empty array.
+     */
+    public function getUserIpWhitelist(int $userId): array
+    {
+        return [];
+    }
+
+    /**
+     * Add IP to whitelist - Does nothing.
+     */
+    public function addToIpWhitelist(int $userId, string $ip): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Remove IP from whitelist - Does nothing.
+     */
+    public function removeFromIpWhitelist(int $userId, string $ip): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Check device trust - Always returns true.
+     */
+    public function checkDeviceTrust(int $userId, string $deviceId): bool
+    {
+        return true;
+    }
+
+    /**
+     * Trust device - Does nothing.
+     */
+    public function trustDevice(int $userId, string $deviceId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Untrust device - Does nothing.
+     */
+    public function untrustDevice(int $userId, string $deviceId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get trusted devices - Returns empty collection.
+     */
+    public function getTrustedDevices(int $userId)
+    {
+        return collect();
+    }
+
+    /**
+     * Check location - Always returns true.
+     */
+    public function checkLocation(int $userId, string $location): bool
+    {
+        return true;
+    }
+
+    /**
+     * Set trusted location - Does nothing.
+     */
+    public function setTrustedLocation(int $userId, string $location): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get trusted locations - Returns empty array.
+     */
+    public function getTrustedLocations(int $userId): array
+    {
+        return [];
+    }
+
+    /**
+     * Get security score - Returns 100.
+     */
+    public function getSecurityScore(int $userId): int
+    {
+        return 100;
+    }
+
+    /**
+     * Get security recommendations - Returns empty array.
+     */
+    public function getSecurityRecommendations(int $userId): array
+    {
+        return [];
+    }
+
+    /**
+     * Perform security check - Always returns true.
+     */
+    public function performSecurityCheck(Request $request, int $userId): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get authorization status - Returns allowed.
+     */
+    public function getAuthorizationStatus(Request $request, string $permission): array
+    {
+        return [
+            'authorized' => true,
+            'reason' => null,
+            'restrictions' => [],
         ];
-
-        // Log to audit log service
-        $this->auditLogService->logActivity(
-            'Unauthorized Access Attempt',
-            'Authorization',
-            "Unauthorized access attempt to '{$requiredPermission}' by {$logData['user_name']}",
-            'warning'
-        );
-
-        // Additional detailed logging for critical permissions
-        if ($this->isCriticalPermission($requiredPermission)) {
-            Log::channel('security')->warning('Critical permission violation attempt', $logData);
-        }
     }
 
     /**
-     * Send security alerts to administrators
-     * 
-     * @param string $type The type of security alert
-     * @param array $data Alert data
-     * @param array $recipients Optional specific recipients
-     * @return void
+     * Check authorization - Always returns true.
      */
-    public function sendSecurityAlert(
-        string $type,
-        array $data,
-        array $recipients = []
-    ): void {
-        $alertConfig = $this->config['alerting'][$type] ?? $this->config['alerting']['default'];
-
-        if (!$alertConfig['enabled']) {
-            return;
-        }
-
-        $title = $this->getAlertTitle($type);
-        $message = $this->getAlertMessage($type, $data);
-
-        // Create database alert
-        if ($alertConfig['database_alert'] ?? true) {
-            $this->alertService->createAlert(
-                $type,
-                $title,
-                $message,
-                $data,
-                $data['user']['id'] ?? null
-            );
-        }
-
-        // Send email notifications
-        if ($alertConfig['email_alert'] ?? false) {
-            $this->sendEmailAlert($type, $title, $message, $data, $recipients);
-        }
-
-        // Broadcast real-time notification if enabled
-        if ($alertConfig['broadcast'] ?? false) {
-            $this->broadcastAlert($type, $data);
-        }
-    }
-
-    /**
-     * Check if user should be notified based on violation type and attempt count
-     * 
-     * @param string $violationType
-     * @param int $attemptCount
-     * @return bool
-     */
-    public function shouldNotify(string $violationType, int $attemptCount = 1): bool
+    public function checkAuthorization(Request $request, string $permission): bool
     {
-        $thresholds = $this->config['notification_thresholds'] ?? [
-            'critical' => 1,
-            'high' => 3,
-            'medium' => 5,
-            'low' => 10,
+        return true;
+    }
+
+    /**
+     * Authorize action - Always returns true.
+     */
+    public function authorizeAction(int $userId, string $permission, array $context = []): bool
+    {
+        return true;
+    }
+
+    /**
+     * Deny action - Does nothing.
+     */
+    public function denyAction(int $userId, string $permission, string $reason): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get denied permissions - Returns empty array.
+     */
+    public function getDeniedPermissions(int $userId): array
+    {
+        return [];
+    }
+
+    /**
+     * Clear denied permissions - Does nothing.
+     */
+    public function clearDeniedPermissions(int $userId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Check permission with context - Always returns true.
+     */
+    public function checkPermissionWithContext(int $userId, string $permission, array $context = []): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get permission context - Returns empty array.
+     */
+    public function getPermissionContext(int $userId, string $permission): array
+    {
+        return [];
+    }
+
+    /**
+     * Set permission context - Does nothing.
+     */
+    public function setPermissionContext(int $userId, string $permission, array $context): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Clear permission context - Does nothing.
+     */
+    public function clearPermissionContext(int $userId, string $permission): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get authorization policy - Returns null.
+     */
+    public function getAuthorizationPolicy(string $permission)
+    {
+        return null;
+    }
+
+    /**
+     * Evaluate policy - Always returns true.
+     */
+    public function evaluatePolicy(string $permission, array $context = []): bool
+    {
+        return true;
+    }
+
+    /**
+     * Register policy - Does nothing.
+     */
+    public function registerPolicy(string $permission, array $policy): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get all policies - Returns empty array.
+     */
+    public function getAllPolicies(): array
+    {
+        return [];
+    }
+
+    /**
+     * Cache authorization result - Does nothing.
+     */
+    public function cacheAuthorizationResult(string $cacheKey, bool $result, int $ttl = 300): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get cached authorization result - Returns null.
+     */
+    public function getCachedAuthorizationResult(string $cacheKey): ?bool
+    {
+        return null;
+    }
+
+    /**
+     * Clear authorization cache - Does nothing.
+     */
+    public function clearAuthorizationCache(int $userId = null): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Refresh authorization - Does nothing.
+     */
+    public function refreshAuthorization(int $userId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get authorization metadata - Returns empty array.
+     */
+    public function getAuthorizationMetadata(int $userId): array
+    {
+        return [];
+    }
+
+    /**
+     * Set authorization metadata - Does nothing.
+     */
+    public function setAuthorizationMetadata(int $userId, string $key, $value): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Clear authorization metadata - Does nothing.
+     */
+    public function clearAuthorizationMetadata(int $userId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get authorization history - Returns empty collection.
+     */
+    public function getAuthorizationHistory(int $userId, int $limit = 100)
+    {
+        return collect();
+    }
+
+    /**
+     * Export authorization data - Returns empty array.
+     */
+    public function exportAuthorizationData(int $userId): array
+    {
+        return [];
+    }
+
+    /**
+     * Import authorization data - Does nothing.
+     */
+    public function importAuthorizationData(int $userId, array $data): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Validate authorization setup - Always returns true.
+     */
+    public function validateAuthorizationSetup(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get authorization statistics - Returns empty array.
+     */
+    public function getAuthorizationStatistics(): array
+    {
+        return [];
+    }
+
+    /**
+     * Generate authorization report - Returns empty array.
+     */
+    public function generateAuthorizationReport(array $filters = []): array
+    {
+        return [];
+    }
+
+    /**
+     * Cleanup old data - Does nothing.
+     */
+    public function cleanupOldData(int $days = 90): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Perform health check - Returns healthy.
+     */
+    public function healthCheck(): array
+    {
+        return [
+            'status' => 'healthy',
+            'deactivated' => true,
+            'message' => 'Authorization service is deactivated',
         ];
-
-        $threshold = $thresholds[$violationType] ?? $thresholds['medium'];
-
-        return $attemptCount >= $threshold;
-    }
-
-    /**
-     * Get standardized error message
-     * 
-     * @param string $type Message type
-     * @param string $permission Optional permission name for context
-     * @return string
-     */
-    public function getErrorMessage(string $type, string $permission = ''): string
-    {
-        $key = "authorization.{$type}";
-        $fallback = "authorization.unauthorized_default";
-
-        $message = __($key, ['permission' => $permission]);
-
-        if ($message === $key) {
-            $message = __($fallback, ['permission' => $permission]);
-        }
-
-        return $message;
-    }
-
-    /**
-     * Create Inertia response with flash data
-     * 
-     * @param string $message The message to display
-     * @param string $type Message type (error, warning, info, success)
-     * @param string|null $redirect Optional redirect URL
-     * @return Response
-     */
-    public function createInertiaResponse(
-        string $message,
-        string $type = 'error',
-        ?string $redirect = null
-    ): Response {
-        $flashData = [
-            'message' => $message,
-            'type' => $type,
-        ];
-
-        // Add modal trigger data for critical errors
-        if ($type === 'error' && ($this->config['modal_on_critical'] ?? true)) {
-            $flashData['show_modal'] = true;
-            $flashData['modal_config'] = [
-                'title' => __('authorization.modal_title'),
-                'confirm_button' => __('authorization.modal_confirm'),
-                'cancel_button' => __('authorization.modal_cancel'),
-            ];
-        }
-
-        Session::flash('notification', $flashData);
-
-        if ($redirect) {
-            return Inertia::location($redirect);
-        }
-
-        return Inertia::render('Errors/AccessDenied', [
-            'status' => 403,
-            'message' => $message,
-        ]);
-    }
-
-    /**
-     * Create JSON response for API requests
-     * 
-     * @param string $message
-     * @param int $statusCode
-     * @param array $additionalData
-     * @return JsonResponse
-     */
-    public function createJsonResponse(
-        string $message,
-        int $statusCode = 403,
-        array $additionalData = []
-    ): JsonResponse {
-        $response = [
-            'success' => false,
-            'message' => $message,
-            'error_code' => 'UNAUTHORIZED',
-        ];
-
-        if (!empty($additionalData)) {
-            $response['data'] = $additionalData;
-        }
-
-        return response()->json($response, $statusCode);
-    }
-
-    /**
-     * Create redirect response with flash message
-     * 
-     * @param string $message
-     * @param string $route
-     * @param string $type
-     * @return RedirectResponse
-     */
-    public function createRedirectResponse(
-        string $message,
-        string $route = 'dashboard',
-        string $type = 'error'
-    ): RedirectResponse {
-        Session::flash('notification', [
-            'message' => $message,
-            'type' => $type,
-        ]);
-
-        return redirect()->route($route);
-    }
-
-    /**
-     * Check if user is rate limited
-     * 
-     * @param Request $request
-     * @param User|null $user
-     * @return bool
-     */
-    public function isRateLimited(Request $request, ?User $user = null): bool
-    {
-        if (!($this->config['rate_limiting']['enabled'] ?? true)) {
-            return false;
-        }
-
-        $key = $this->getRateLimitKey($request, $user);
-        $attempts = Cache::get($key, 0);
-        $maxAttempts = $this->config['rate_limiting']['max_attempts'] ?? 10;
-
-        return $attempts >= $maxAttempts;
-    }
-
-    /**
-     * Get remaining attempts before rate limit
-     * 
-     * @param Request $request
-     * @param User|null $user
-     * @return int
-     */
-    public function getRemainingAttempts(Request $request, ?User $user = null): int
-    {
-        $key = $this->getRateLimitKey($request, $user);
-        $attempts = Cache::get($key, 0);
-        $maxAttempts = $this->config['rate_limiting']['max_attempts'] ?? 10;
-
-        return max(0, $maxAttempts - $attempts);
-    }
-
-    /**
-     * Reset rate limit counter
-     * 
-     * @param Request $request
-     * @param User|null $user
-     * @return void
-     */
-    public function resetRateLimit(Request $request, ?User $user = null): void
-    {
-        $key = $this->getRateLimitKey($request, $user);
-        Cache::forget($key);
-    }
-
-    /**
-     * Determine violation type based on permission and context
-     * 
-     * @param string $permission
-     * @param array $options
-     * @return string
-     */
-    protected function determineViolationType(string $permission, array $options): string
-    {
-        if (isset($options['violation_type'])) {
-            return $options['violation_type'];
-        }
-
-        if ($this->isCriticalPermission($permission)) {
-            return 'critical';
-        }
-
-        // Check permission category
-        foreach ($this->config['permission_categories'] ?? [] as $category => $permissions) {
-            if (in_array($permission, $permissions)) {
-                return $category;
-            }
-        }
-
-        return 'medium';
-    }
-
-    /**
-     * Determine risk level based on permission and user
-     * 
-     * @param string $permission
-     * @param User|null $user
-     * @return string
-     */
-    protected function determineRiskLevel(string $permission, ?User $user): string
-    {
-        // Super admin attempting unauthorized access is high risk
-        if ($user && $this->isPrivilegedUser($user)) {
-            return 'high';
-        }
-
-        if ($this->isCriticalPermission($permission)) {
-            return 'critical';
-        }
-
-        return 'medium';
-    }
-
-    /**
-     * Create appropriate response based on request type
-     * 
-     * @param Request $request
-     * @param string $permission
-     * @param string $riskLevel
-     * @param array $options
-     * @return Response|JsonResponse|RedirectResponse
-     */
-    protected function createResponse(
-        Request $request,
-        string $permission,
-        string $riskLevel,
-        array $options
-    ): Response|JsonResponse|RedirectResponse {
-        $message = $this->getErrorMessage(
-            $request->expectsJson() ? 'unauthorized_api' : 'unauthorized_default',
-            $permission
-        );
-
-        // API/AJAX requests
-        if ($request->expectsJson() || $request->ajax()) {
-            return $this->createJsonResponse(
-                $message,
-                403,
-                [
-                    'permission' => $permission,
-                    'risk_level' => $riskLevel,
-                    'remaining_attempts' => $this->getRemainingAttempts($request),
-                ]
-            );
-        }
-
-        // Inertia requests
-        if ($request->header('X-Inertia')) {
-            return $this->createInertiaResponse(
-                $message,
-                $riskLevel === 'critical' ? 'error' : 'warning',
-                $options['redirect'] ?? null
-            );
-        }
-
-        // Standard web requests
-        $redirectRoute = $options['redirect_route'] ?? $this->config['default_redirect_route'] ?? 'dashboard';
-        return $this->createRedirectResponse($message, $redirectRoute, 'error');
-    }
-
-    /**
-     * Create rate limited response
-     * 
-     * @param Request $request
-     * @return JsonResponse|RedirectResponse
-     */
-    protected function createRateLimitedResponse(Request $request): JsonResponse|RedirectResponse
-    {
-        $message = $this->getErrorMessage('rate_limited');
-
-        if ($request->expectsJson() || $request->ajax()) {
-            return $this->createJsonResponse($message, 429, [
-                'retry_after' => $this->config['rate_limiting']['decay_minutes'] ?? 15,
-            ]);
-        }
-
-        Session::flash('notification', [
-            'message' => $message,
-            'type' => 'error',
-        ]);
-
-        return redirect()->back();
-    }
-
-    /**
-     * Increment attempt counter for rate limiting
-     * 
-     * @param Request $request
-     * @param User|null $user
-     * @return int Current attempt count
-     */
-    protected function incrementAttemptCounter(Request $request, ?User $user = null): int
-    {
-        $key = $this->getRateLimitKey($request, $user);
-        $decayMinutes = $this->config['rate_limiting']['decay_minutes'] ?? 15;
-
-        $attempts = Cache::increment($key);
-        
-        if ($attempts === 1) {
-            Cache::put($key, 1, now()->addMinutes($decayMinutes));
-        }
-
-        return $attempts;
-    }
-
-    /**
-     * Get rate limit cache key
-     * 
-     * @param Request $request
-     * @param User|null $user
-     * @return string
-     */
-    protected function getRateLimitKey(Request $request, ?User $user = null): string
-    {
-        $identifier = $user?->id ?? $request->ip();
-        return $this->rateLimitPrefix . $identifier;
-    }
-
-    /**
-     * Send email alert
-     * 
-     * @param string $type
-     * @param string $title
-     * @param string $message
-     * @param array $data
-     * @param array $recipients
-     * @return void
-     */
-    protected function sendEmailAlert(
-        string $type,
-        string $title,
-        string $message,
-        array $data,
-        array $recipients = []
-    ): void {
-        $recipients = $recipients ?: $this->config['admin_emails'] ?? [];
-
-        if (empty($recipients)) {
-            return;
-        }
-
-        try {
-            // Create a temporary alert object for the email
-            $alert = new PermissionAlert([
-                'alert_type' => $type,
-                'title' => $title,
-                'message' => $message,
-                'data' => $data,
-                'status' => 'active',
-            ]);
-
-            Mail::to($recipients)
-                ->send(new PermissionAlertNotification($alert));
-        } catch (\Exception $e) {
-            Log::error('Failed to send security alert email', [
-                'error' => $e->getMessage(),
-                'type' => $type,
-            ]);
-        }
-    }
-
-    /**
-     * Broadcast alert in real-time
-     * 
-     * @param string $type
-     * @param array $data
-     * @return void
-     */
-    protected function broadcastAlert(string $type, array $data): void
-    {
-        // Implementation for broadcasting (e.g., Laravel Echo, Pusher)
-        // This would typically use Laravel Events
-        event(new \App\Events\SecurityAlertEvent($type, $data));
-    }
-
-    /**
-     * Check if permission is critical
-     * 
-     * @param string $permission
-     * @return bool
-     */
-    protected function isCriticalPermission(string $permission): bool
-    {
-        $criticalPermissions = $this->config['critical_permissions'] ?? [
-            'super-admin',
-            'admin.users.delete',
-            'admin.roles.delete',
-            'system.backup.delete',
-            'system.settings.modify',
-            'billing.refund',
-            'patients.delete',
-        ];
-
-        return in_array($permission, $criticalPermissions);
-    }
-
-    /**
-     * Check if user has privileged role
-     * 
-     * @param User $user
-     * @return bool
-     */
-    protected function isPrivilegedUser(User $user): bool
-    {
-        $privilegedRoles = $this->config['privileged_roles'] ?? [
-            'super-admin',
-            'sub-super-admin',
-            'hospital-admin',
-        ];
-
-        return $user->hasAnyRole($privilegedRoles);
-    }
-
-    /**
-     * Get alert title based on type
-     * 
-     * @param string $type
-     * @return string
-     */
-    protected function getAlertTitle(string $type): string
-    {
-        return match ($type) {
-            'critical' => 'Critical Security Alert',
-            'high' => 'High Priority Security Alert',
-            'medium' => 'Security Alert',
-            'low' => 'Security Notification',
-            'repeated_violation' => 'Repeated Authorization Violation',
-            default => 'Authorization Alert',
-        };
-    }
-
-    /**
-     * Get alert message based on type and data
-     * 
-     * @param string $type
-     * @param array $data
-     * @return string
-     */
-    protected function getAlertMessage(string $type, array $data): string
-    {
-        $permission = $data['permission'] ?? 'unknown';
-        $userName = $data['user']['name'] ?? 'Guest';
-        $ipAddress = $data['ip_address'] ?? 'unknown';
-
-        return match ($type) {
-            'critical' => "Critical: User {$userName} attempted to access {$permission} from IP {$ipAddress}",
-            'high' => "High priority violation: User {$userName} denied access to {$permission}",
-            'repeated_violation' => "User {$userName} has made {$data['attempt_count']} unauthorized attempts",
-            default => "Unauthorized access attempt to {$permission} by {$userName}",
-        };
     }
 }

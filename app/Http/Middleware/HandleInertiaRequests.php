@@ -41,9 +41,6 @@ class HandleInertiaRequests extends Middleware
         $user = Auth::user();
         
         if ($user) {
-            // Load roleModel to get proper role name
-            $user->loadMissing('roleModel');
-            
             // Get permissions
             $permissions = $this->getUserPermissions($user);
             
@@ -51,15 +48,8 @@ class HandleInertiaRequests extends Middleware
                 'id' => $user->id,
                 'name' => $user->name,
                 'username' => $user->username,
-                'role' => $user->roleModel?->name ?? $user->role,
+                'role' => $user->role,
                 'role_id' => $user->role_id,
-                'roleModel' => $user->roleModel ? [
-                    'slug' => $user->roleModel->slug,
-                    'name' => $user->roleModel->name,
-                    'priority' => $user->roleModel->priority,
-                    'is_system' => $user->roleModel->is_system,
-                    'module_access' => $user->roleModel->module_access ?? [],
-                ] : null,
                 'is_super_admin' => $user->isSuperAdmin(),
                 'permissions' => $permissions,
             ];

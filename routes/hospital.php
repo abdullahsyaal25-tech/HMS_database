@@ -421,33 +421,4 @@ Route::middleware(['auth', 'check.permission:view-admin-dashboard'])->group(func
     Route::middleware('check.permission:delete-users')->group(function () {
         Route::delete('/api/v1/admin/users/{user}', [App\Http\Controllers\API\v1\SecurityController::class, 'deleteUser']);
     });
-    
-    // Admin RBAC Routes
-    Route::middleware(['check.permission:view-rbac-dashboard'])->prefix('admin')->group(function () {
-        // RBAC Dashboard
-        Route::get('/rbac', [RBACController::class, 'index'])->name('admin.rbac.index');
-        Route::get('/rbac/hierarchy', [RBACController::class, 'hierarchy'])->name('admin.rbac.hierarchy');
-        Route::get('/rbac/permission-matrix', [RBACController::class, 'permissionMatrix'])->name('admin.rbac.permission-matrix');
-        Route::post('/rbac/role-permissions', [RBACController::class, 'updateRolePermissions'])
-            ->name('admin.rbac.update-role-permissions')
-            ->middleware('check.permission:manage-role-permissions');
-        
-        // User Assignments
-        Route::get('/rbac/user-assignments', [RBACController::class, 'userAssignments'])->name('admin.rbac.user-assignments');
-        Route::get('/rbac/users-list', [RBACController::class, 'getUsersList'])->name('admin.rbac.users-list');
-        Route::put('/rbac/users/{user}/role', [RBACController::class, 'updateUserRole'])
-            ->name('admin.rbac.update-user-role')
-            ->middleware('check.permission:manage-user-roles');
-        
-        // Audit Logs
-        Route::get('/rbac/audit-logs', [RBACController::class, 'auditLogs'])->name('admin.rbac.audit-logs');
-        
-        // Configuration Export/Import
-        Route::get('/rbac/export', [RBACController::class, 'exportConfiguration'])
-            ->name('admin.rbac.export')
-            ->middleware('check.permission:export-rbac-configuration');
-        Route::post('/rbac/import', [RBACController::class, 'importConfiguration'])
-            ->name('admin.rbac.import')
-            ->middleware('check.permission:import-rbac-configuration');
-    });
 });

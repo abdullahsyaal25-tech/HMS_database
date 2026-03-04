@@ -172,6 +172,45 @@ class CheckPermission
             return $next($request);
         }
 
+        // 5b. Admin bypass - All admins have full access
+        if ($user->isAdmin()) {
+            Log::debug("[{$requestId}] Permission check PASSED - Admin bypass");
+            $this->logAccessAttempt($requestId, $user->id, $permission, true, [
+                'reason' => 'admin_bypass',
+                'ip_address' => $request->ip(),
+            ]);
+            return $next($request);
+        }
+
+        // 5c. Department-specific admin module access check
+        if ($user->isDepartmentAdmin()) {
+            $module = $this->extractModuleFromUrl($request);
+            
+            if ($module && !$user->canAccessModule($module)) {
+                Log::warning("[{$requestId}] Department admin module access denied", [
+                    'user_id' => $user->id,
+                    'role' => $user->role,
+                    'requested_module' => $module,
+                    'allowed_modules' => $user->getAllowedModules(),
+                    'url' => $request->fullUrl(),
+                ]);
+
+                $this->logAccessAttempt($requestId, $user->id, $permission, false, [
+                    'reason' => 'department_admin_module_denied',
+                    'module' => $module,
+                    'allowed_modules' => $user->getAllowedModules(),
+                    'ip_address' => $request->ip(),
+                ]);
+
+                return $this->forbiddenResponse($request, $requestId, "You don't have access to the {$module} module. Please contact your administrator if you believe this is an error.");
+            }
+
+            Log::debug("[{$requestId}] Department admin module access granted", [
+                'user_id' => $user->id,
+                'module' => $module,
+            ]);
+        }
+
         // 6. Check MFA requirement for high-risk operations
         if ($this->mfaService->isHighRiskOperation($permission)) {
             if (!$this->mfaService->isMfaVerified($user->id, $permission)) {
@@ -434,5 +473,53 @@ class CheckPermission
         ]);
 
         return in_array($permission, $criticalPermissions);
+    }
+
+    /**
+     * Extract module from URL path for department admin access control.
+     *
+     * @param Request $request
+     * @return string|null The module name or null if no module detected
+     */
+    protected function extractModuleFromUrl(Request $request): ?string
+    {
+        $path = $request->path();
+        
+        // Define module mapping - URL path prefixes to module names
+        $moduleMapping = [
+            'laboratory' => 'laboratory',
+            'lab' => 'laboratory',
+            'pharmacy' => 'pharmacy',
+            'medicines' => 'pharmacy',
+            'patients' => 'patients',
+            'patient' => 'patients',
+            'doctors' => 'doctors',
+            'doctor' => 'doctors',
+            'departments' => 'departments',
+            'department' => 'departments',
+            'appointments' => 'appointments',
+            'appointment' => 'appointments',
+            'reports' => 'reports',
+            'settings' => 'settings',
+            'users' => 'users',
+            'roles' => 'roles',
+            'permissions' => 'permissions',
+        ];
+
+        // Extract the first segment of the URL path
+        $segments = explode('/', $path);
+        $firstSegment = strtolower($segments[0] ?? '');
+
+        // Check if first segment matches any module
+        if (isset($moduleMapping[$firstSegment])) {
+            return $moduleMapping[$firstSegment];
+        }
+
+        // Check for nested routes (e.g., api/laboratory/results)
+        if (isset($segments[1]) && isset($moduleMapping[strtolower($segments[1])])) {
+            return $moduleMapping[strtolower($segments[1])];
+        }
+
+        return null;
     }
 }

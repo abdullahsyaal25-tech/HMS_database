@@ -34,30 +34,21 @@ Route::get('/dashboard-redirect', function () {
         return redirect()->route('login');
     }
     
-    // Redirect based on user permissions and role
-    if ($user->isSuperAdmin()) {
-        // Super admin goes to main dashboard
-        return redirect()->intended(route('dashboard', absolute: false));
-    } elseif ($user->role === 'Sub Super Admin') {
-        // Sub Super Admin goes to main dashboard
+    // Redirect based on user role (simplified to Admin vs Staff)
+    if ($user->isAdmin()) {
+        // Admin/Super Admin goes to main dashboard
         return redirect()->intended(route('dashboard', absolute: false));
     } elseif ($user->role === 'Reception') {
         // Reception role goes to patients section
         return redirect()->intended('/patients');
-    } elseif ($user->role === 'pharmacy' || $user->hasPermission('view-pharmacy')) {
-        // Pharmacy role or users with pharmacy permissions
+    } elseif ($user->role === 'pharmacy') {
+        // Pharmacy role
         return redirect()->intended('/pharmacy/sales');
-    } elseif ($user->role === 'laboratory' || $user->hasPermission('view-laboratory')) {
-        // Laboratory role or users with laboratory permissions
+    } elseif ($user->role === 'laboratory') {
+        // Laboratory role
         return redirect()->intended('/laboratory/lab-tests');
-    } elseif ($user->hasPermission('view-appointments')) {
-        // Sub-admin with appointments permissions
-        return redirect()->intended('/appointments');
-    } elseif ($user->hasPermission('view-dashboard')) {
-        // Any user with dashboard permission
-        return redirect()->intended(route('dashboard', absolute: false));
     } else {
-        // Default fallback for users without specific permissions
+        // Default fallback for Staff users
         return redirect()->intended(route('dashboard', absolute: false));
     }
 })->middleware(['auth'])->name('dashboard.redirect');

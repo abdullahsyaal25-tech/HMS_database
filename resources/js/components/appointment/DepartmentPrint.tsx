@@ -61,8 +61,8 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
         : 0;
 
     const calculatedGrandTotal = appointment && appointment.services && appointment.services.length > 0
-        ? Math.max(0, servicesFinalTotal - additionalDiscount)  // Apply additional discount to services total
-        : Math.max(0, consultationFee - additionalDiscount);
+        ? Math.max(0, servicesFinalTotal - Math.min(servicesFinalTotal, additionalDiscount))  // Apply additional discount to services total, ensuring it doesn't exceed the total
+        : Math.max(0, consultationFee - Math.min(consultationFee, additionalDiscount));
 
     const grandTotal = appointment && typeof appointment.grand_total === 'number' ? appointment.grand_total : calculatedGrandTotal;
 
@@ -166,14 +166,23 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
             });
         };
         
-        const formatCurrency = (amount: number | undefined | null) => `؋${(typeof amount === 'number' ? amount : 0).toFixed(2)}`;
+        const formatCurrency = (amount: number | string | undefined | null) => {
+            let numValue: number;
+            if (typeof amount === 'string') {
+                numValue = parseFloat(amount) || 0;
+            } else if (typeof amount === 'number') {
+                numValue = isNaN(amount) ? 0 : amount;
+            } else {
+                numValue = 0;
+            }
+            return `؋${numValue.toFixed(2)}`;
+        };
 
         printWindow.document.write(`
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Department Appointment - ${appointmentId}</title>
-                ${printStyles}
+            ${printStyles}
             </head>
             <body>
                 <div class="print-container">
@@ -227,21 +236,17 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                             ${appointment.services.map(service => `
                                 <div class="financial-row">
                                     <span>${service.name}:</span>
-                                    <span>${formatCurrency(service.pivot.final_cost)}</span>
+                                    <span>${formatCurrency(service.pivot?.final_cost || 0)}</span>
                                 </div>
                             `).join('')}
                             <div class="financial-row">
                                 <span>Services Subtotal:</span>
-                                <span>${formatCurrency(servicesSubtotal)}</span>
+                                <span>${formatCurrency(servicesFinalTotal)}</span>
                             </div>
+                            ${(Math.max(0, servicesSubtotal - servicesFinalTotal) + Math.min(servicesFinalTotal, additionalDiscount)) > 0 ? `
                             <div class="financial-row discount-row">
-                                <span>Services Discount:</span>
-                                <span>-${formatCurrency(servicesDiscount > 0 ? servicesDiscount : (servicesSubtotal - servicesFinalTotal))}</span>
-                            </div>
-                            ${additionalDiscount > 0 ? `
-                            <div class="financial-row discount-row">
-                                <span>Additional Discount:</span>
-                                <span>-${formatCurrency(additionalDiscount)}</span>
+                                <span>Total Discount:</span>
+                                <span>-${formatCurrency(Math.max(0, servicesSubtotal - servicesFinalTotal) + Math.min(servicesFinalTotal, additionalDiscount))}</span>
                             </div>
                             ` : ''}
                             <div class="total-row">
@@ -249,10 +254,14 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                                 <span>${formatCurrency(grandTotal)}</span>
                             </div>
                         ` : `
+                            <div class="financial-row">
+                                <span>Consultation Fee:</span>
+                                <span>${formatCurrency(consultationFee)}</span>
+                            </div>
                             ${additionalDiscount > 0 ? `
                             <div class="financial-row discount-row">
                                 <span>Additional Discount:</span>
-                                <span>-${formatCurrency(additionalDiscount)}</span>
+                                <span>-${formatCurrency(Math.min(consultationFee, additionalDiscount))}</span>
                             </div>
                             ` : ''}
                             <div class="total-row">
@@ -293,7 +302,17 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
         });
     };
 
-    const formatCurrency = (amount: number | undefined | null) => `؋${(typeof amount === 'number' ? amount : 0).toFixed(2)}`;
+    const formatCurrency = (amount: number | string | undefined | null) => {
+        let numValue: number;
+        if (typeof amount === 'string') {
+            numValue = parseFloat(amount) || 0;
+        } else if (typeof amount === 'number') {
+            numValue = isNaN(amount) ? 0 : amount;
+        } else {
+            numValue = 0;
+        }
+        return `؋${numValue.toFixed(2)}`;
+    };
 
     // NOTE: consultFee/additionalDiscount/servicesSubtotal/etc are available from component scope
     const deptName = appointment.department?.name || 'N/A';
@@ -374,21 +393,17 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                                 {appointment.services.map((service) => (
                                     <div key={service.id} className="flex justify-between py-1">
                                         <span className="text-gray-600">{service.name}:</span>
-                                        <span className="font-medium">{formatCurrency(service.pivot.final_cost)}</span>
+                                        <span className="font-medium">{formatCurrency(service.pivot?.final_cost || 0)}</span>
                                     </div>
                                 ))}
                                 <div className="flex justify-between py-1">
                                     <span className="text-gray-600">Services Subtotal:</span>
-                                    <span className="font-medium">{formatCurrency(servicesSubtotal)}</span>
+                                    <span className="font-medium">{formatCurrency(servicesFinalTotal)}</span>
                                 </div>
-                                <div className="flex justify-between py-1 text-green-600">
-                                    <span>Services Discount:</span>
-                                    <span className="font-medium">-{formatCurrency(servicesDiscount > 0 ? servicesDiscount : Math.max(0, servicesSubtotal - servicesFinalTotal))}</span>
-                                </div>
-                                {additionalDiscount > 0 && (
+                                {(Math.max(0, servicesSubtotal - servicesFinalTotal) + Math.min(servicesFinalTotal, additionalDiscount)) > 0 && (
                                     <div className="flex justify-between py-1 text-green-600">
-                                        <span>Additional Discount:</span>
-                                        <span className="font-medium">-{formatCurrency(additionalDiscount)}</span>
+                                        <span>Total Discount:</span>
+                                        <span className="font-medium">-{formatCurrency(Math.max(0, servicesSubtotal - servicesFinalTotal) + Math.min(servicesFinalTotal, additionalDiscount))}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between py-2 bg-gray-100 px-2 rounded mt-2">
@@ -398,10 +413,11 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                             </>
                         ) : (
                             <>
+            
                                 {additionalDiscount > 0 && (
                                     <div className="flex justify-between py-1 text-green-600">
                                         <span>Additional Discount:</span>
-                                        <span className="font-medium">-{formatCurrency(additionalDiscount)}</span>
+                                        <span className="font-medium">-{formatCurrency(Math.min(consultationFee, additionalDiscount))}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between py-2 bg-gray-100 px-2 rounded mt-2">

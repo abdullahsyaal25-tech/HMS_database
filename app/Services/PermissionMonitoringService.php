@@ -8,259 +8,274 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
+/**
+ * Permission Monitoring Service - DEACTIVATED
+ * 
+ * This service has been deactivated as part of RBAC cleanup.
+ * All methods now return safe default values.
+ * 
+ * @deprecated This service is no longer in use
+ */
 class PermissionMonitoringService
 {
     protected $config;
 
+    /**
+     * Constructor - now disabled.
+     */
     public function __construct()
     {
-        $this->config = config('permission-monitoring');
+        $this->config = config('permission-monitoring', []);
     }
 
     /**
-     * Log a permission-related metric
+     * Log a permission-related metric - Does nothing.
      */
     public function logMetric(string $metricType, float $value = null, array $metadata = []): void
     {
-        if (!$this->config['enabled']) {
-            return;
-        }
-
-        PermissionMonitoringLog::create([
-            'metric_type' => $metricType,
-            'value' => $value,
-            'metadata' => json_encode($metadata),
-            'logged_at' => now(),
-        ]);
+        // Deactivated
     }
 
     /**
-     * Log permission check response time
+     * Log permission check response time - Does nothing.
      */
     public function logPermissionCheckTime(float $responseTimeMs, array $context = []): void
     {
-        $this->logMetric('permission_check_response_time', $responseTimeMs, $context);
-
-        // Check threshold and alert if necessary
-        if ($responseTimeMs > $this->config['monitoring']['metrics']['response_time_threshold_ms']) {
-            app(PermissionAlertService::class)->createAlert(
-                'high',
-                'Slow Permission Check',
-                "Permission check took {$responseTimeMs}ms, exceeding threshold.",
-                ['response_time' => $responseTimeMs, 'context' => $context]
-            );
-        }
+        // Deactivated
     }
 
     /**
-     * Log cache performance metrics
+     * Log permission cache metrics - Does nothing.
      */
-    public function logCacheMetrics(array $metrics): void
+    public function logPermissionCacheMetrics(array $metrics = []): void
     {
-        $this->logMetric('cache_hit_rate', $metrics['hit_rate'] ?? null, $metrics);
-
-        if (isset($metrics['hit_rate']) && $metrics['hit_rate'] < $this->config['monitoring']['metrics']['cache_hit_rate_min']) {
-            app(PermissionAlertService::class)->createAlert(
-                'medium',
-                'Low Cache Hit Rate',
-                "Cache hit rate is {$metrics['hit_rate']}, below minimum threshold.",
-                $metrics
-            );
-        }
+        // Deactivated
     }
 
     /**
-     * Log failed permission attempts
+     * Log permission failure - Does nothing.
      */
-    public function logFailedAttempt(array $context = []): void
+    public function logPermissionFailure(int $userId, string $permission, string $reason = ''): void
     {
-        $this->logMetric('failed_permission_attempt', 1, $context);
-
-        // Check for rate limiting
-        $recentFailures = $this->getRecentFailures(1); // Last minute
-        if ($recentFailures >= $this->config['monitoring']['metrics']['failed_attempts_threshold']) {
-            app(PermissionAlertService::class)->createAlert(
-                'high',
-                'High Failed Permission Attempts',
-                "Detected {$recentFailures} failed attempts in the last minute.",
-                ['recent_failures' => $recentFailures, 'context' => $context]
-            );
-        }
+        // Deactivated
     }
 
     /**
-     * Get recent failed attempts count
+     * Get monitoring metrics - Returns empty array.
      */
-    public function getRecentFailures(int $minutes = 1): int
+    public function getMonitoringMetrics(string $type = null): array
     {
-        return PermissionMonitoringLog::where('metric_type', 'failed_permission_attempt')
-            ->where('logged_at', '>=', now()->subMinutes($minutes))
-            ->count();
+        return [];
     }
 
     /**
-     * Perform health checks
+     * Get response time metrics - Returns empty array.
      */
-    public function performHealthCheck(string $checkType): array
+    public function getResponseTimeMetrics(int $hours = 24): array
     {
-        $result = [
+        return [];
+    }
+
+    /**
+     * Get cache performance metrics - Returns empty array.
+     */
+    public function getCachePerformanceMetrics(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get failure metrics - Returns empty array.
+     */
+    public function getFailureMetrics(int $hours = 24): array
+    {
+        return [];
+    }
+
+    /**
+     * Get recent failures - Returns empty collection.
+     */
+    public function getRecentFailures(int $limit = 100)
+    {
+        return collect();
+    }
+
+    /**
+     * Check system health - Returns healthy.
+     */
+    public function checkSystemHealth(): array
+    {
+        return [
             'status' => 'healthy',
-            'details' => [],
-            'checked_at' => now(),
+            'deactivated' => true,
+            'message' => 'Permission monitoring is deactivated',
         ];
+    }
 
-        switch ($checkType) {
-            case 'database':
-                $result = $this->checkDatabaseConnectivity();
-                break;
-            case 'cache':
-                $result = $this->checkCacheSystem();
-                break;
-            case 'api_endpoints':
-                $result = $this->checkApiEndpoints();
-                break;
-        }
+    /**
+     * Get health check status - Returns empty collection.
+     */
+    public function getHealthCheckStatus()
+    {
+        return collect();
+    }
 
-        PermissionHealthCheck::create([
+    /**
+     * Run health check - Returns healthy.
+     */
+    public function runHealthCheck(): array
+    {
+        return [
+            'status' => 'healthy',
+            'deactivated' => true,
+        ];
+    }
+
+    /**
+     * Perform permission health check - Always returns true.
+     */
+    public function performPermissionHealthCheck(int $permissionId): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get permission health - Returns healthy.
+     */
+    public function getPermissionHealth(int $permissionId): array
+    {
+        return [
+            'status' => 'healthy',
+            'permission_id' => $permissionId,
+            'deactivated' => true,
+        ];
+    }
+
+    /**
+     * Record health check result - Does nothing.
+     */
+    public function recordHealthCheckResult(int $permissionId, bool $isHealthy, array $details = []): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get monitoring dashboard data - Returns empty array.
+     */
+    public function getMonitoringDashboardData(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get permission usage statistics - Returns empty array.
+     */
+    public function getPermissionUsageStatistics(string $period = 'day'): array
+    {
+        return [];
+    }
+
+    /**
+     * Get user permission activity - Returns empty collection.
+     */
+    public function getUserPermissionActivity(int $userId, int $limit = 100)
+    {
+        return collect();
+    }
+
+    /**
+     * Get permission access patterns - Returns empty array.
+     */
+    public function getPermissionAccessPatterns(string $permission): array
+    {
+        return [];
+    }
+
+    /**
+     * Detect anomalies - Returns empty collection.
+     */
+    public function detectAnomalies(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get anomaly report - Returns empty array.
+     */
+    public function getAnomalyReport(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get alert summary - Returns empty array.
+     */
+    public function getAlertSummary(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get performance metrics - Returns empty array.
+     */
+    public function getPerformanceMetrics(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get trend analysis - Returns empty array.
+     */
+    public function getTrendAnalysis(string $metric, int $days = 7): array
+    {
+        return [];
+    }
+
+    /**
+     * Export monitoring data - Returns empty array.
+     */
+    public function exportMonitoringData(array $filters = []): array
+    {
+        return [];
+    }
+
+    /**
+     * Cleanup old logs - Does nothing.
+     */
+    public function cleanupOldLogs(int $days = 90): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get service status - Returns deactivated.
+     */
+    public function getServiceStatus(): array
+    {
+        return [
+            'status' => 'deactivated',
+            'message' => 'Permission monitoring service is deactivated',
+        ];
+    }
+
+    /**
+     * Log failed attempt - Does nothing.
+     */
+    public function logFailedAttempt(array $data = []): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Perform health check - Returns healthy (deactivated).
+     */
+    public function performHealthCheck(string $checkType = 'general'): array
+    {
+        return [
+            'status' => 'healthy',
             'check_type' => $checkType,
-            'status' => $result['status'],
-            'details' => json_encode($result['details']),
-            'checked_at' => $result['checked_at'],
-        ]);
-
-        return $result;
-    }
-
-    /**
-     * Check database connectivity
-     */
-    protected function checkDatabaseConnectivity(): array
-    {
-        try {
-            $start = microtime(true);
-            DB::select('SELECT 1');
-            $responseTime = (microtime(true) - $start) * 1000;
-
-            return [
-                'status' => $responseTime > 1000 ? 'warning' : 'healthy',
-                'details' => ['response_time_ms' => $responseTime],
-                'checked_at' => now(),
-            ];
-        } catch (\Exception $e) {
-            return [
-                'status' => 'critical',
-                'details' => ['error' => $e->getMessage()],
-                'checked_at' => now(),
-            ];
-        }
-    }
-
-    /**
-     * Check cache system
-     */
-    protected function checkCacheSystem(): array
-    {
-        try {
-            $testKey = 'permission_health_check_' . time();
-            Cache::put($testKey, 'test', 10);
-            $value = Cache::get($testKey);
-            Cache::forget($testKey);
-
-            return [
-                'status' => $value === 'test' ? 'healthy' : 'warning',
-                'details' => ['cache_working' => $value === 'test'],
-                'checked_at' => now(),
-            ];
-        } catch (\Exception $e) {
-            return [
-                'status' => 'critical',
-                'details' => ['error' => $e->getMessage()],
-                'checked_at' => now(),
-            ];
-        }
-    }
-
-    /**
-     * Check API endpoints (placeholder)
-     */
-    protected function checkApiEndpoints(): array
-    {
-        // This would check actual permission API endpoints
-        return [
-            'status' => 'healthy',
-            'details' => ['endpoints_checked' => 0],
-            'checked_at' => now(),
+            'deactivated' => true,
+            'message' => 'Permission monitoring is deactivated',
         ];
-    }
-
-    /**
-     * Get monitoring statistics
-     */
-    public function getStatistics(Carbon $startDate = null, Carbon $endDate = null): array
-    {
-        $startDate = $startDate ?: now()->subDays(7);
-        $endDate = $endDate ?: now();
-
-        $stats = [
-            'response_times' => $this->getAverageResponseTime($startDate, $endDate),
-            'cache_performance' => $this->getCachePerformance($startDate, $endDate),
-            'failed_attempts' => $this->getFailedAttemptsCount($startDate, $endDate),
-            'health_status' => $this->getHealthStatus(),
-        ];
-
-        return $stats;
-    }
-
-    /**
-     * Get average response time
-     */
-    protected function getAverageResponseTime(Carbon $start, Carbon $end): float
-    {
-        return PermissionMonitoringLog::where('metric_type', 'permission_check_response_time')
-            ->whereBetween('logged_at', [$start, $end])
-            ->avg('value') ?? 0;
-    }
-
-    /**
-     * Get cache performance metrics
-     */
-    public function getCachePerformance(Carbon $start, Carbon $end): array
-    {
-        $cacheLogs = PermissionMonitoringLog::where('metric_type', 'cache_hit_rate')
-            ->whereBetween('logged_at', [$start, $end])
-            ->get();
-
-        return [
-            'average_hit_rate' => $cacheLogs->avg('value') ?? 0,
-            'samples' => $cacheLogs->count(),
-        ];
-    }
-
-    /**
-     * Get failed attempts count
-     */
-    public function getFailedAttemptsCount(Carbon $start, Carbon $end): int
-    {
-        return PermissionMonitoringLog::where('metric_type', 'failed_permission_attempt')
-            ->whereBetween('logged_at', [$start, $end])
-            ->sum('value') ?? 0;
-    }
-
-    /**
-     * Get current health status
-     */
-    protected function getHealthStatus(): array
-    {
-        $latestChecks = PermissionHealthCheck::orderBy('checked_at', 'desc')
-            ->take(10)
-            ->get()
-            ->groupBy('check_type');
-
-        $status = [];
-        foreach ($latestChecks as $type => $checks) {
-            $status[$type] = $checks->first()->status;
-        }
-
-        return $status;
     }
 }

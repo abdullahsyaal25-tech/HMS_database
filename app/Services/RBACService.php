@@ -2,912 +2,861 @@
 
 namespace App\Services;
 
-use App\Models\Permission;
-use App\Models\Role;
-use App\Models\User;
-use App\Models\AuditLog;
-use App\Models\TemporaryPermission;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Request;
-
+/**
+ * RBAC Service - DEACTIVATED
+ * 
+ * This service has been deactivated as part of RBAC cleanup.
+ * All methods now return empty/default values.
+ * 
+ * @deprecated This service is no longer in use
+ */
 class RBACService extends BaseService
 {
     /**
-     * Cache TTL for permission checks (in seconds).
-     */
-    protected int $permissionCacheTtl = 900;
-
-    /**
-     * Get comprehensive RBAC statistics.
+     * Get RBAC statistics - Returns empty array.
      */
     public function getRBACStats(): array
     {
-        $cacheKey = 'rbac_stats';
-        
-        return Cache::remember($cacheKey, 300, function () {
-            return [
-                'total_roles' => Role::count(),
-                'active_permissions' => Permission::count(),
-                'assigned_users' => User::whereNotNull('role_id')->count(),
-                'pending_requests' => 0, // TODO: Implement permission requests
-                'security_violations' => 0, // TODO: Implement violation tracking
-                'role_distribution' => $this->getRoleDistribution(),
-            ];
-        });
+        return [];
     }
 
     /**
-     * Get role distribution data.
+     * Get role distribution - Returns empty array.
      */
     private function getRoleDistribution(): array
     {
-        $totalUsers = User::count();
-        
-        return Role::withCount('users')
-            ->orderBy('priority', 'desc')
-            ->get()
-            ->map(function ($role) use ($totalUsers) {
-                return [
-                    'role_id' => $role->id,
-                    'role_name' => $role->name,
-                    'user_count' => $role->users_count,
-                    'percentage' => $totalUsers > 0 ? round(($role->users_count / $totalUsers) * 100, 1) : 0,
-                    'color' => $this->getRoleColor($role->name),
-                ];
-            })
-            ->toArray();
+        return [];
     }
 
     /**
-     * Get role hierarchy data.
+     * Check if user has permission - Always returns true.
      */
-    public function getRoleHierarchy(): array
+    public function hasPermission($userId, $permission): bool
     {
-        $roles = Role::with(['parentRole', 'subordinateRoles'])
-            ->orderBy('priority', 'desc')
-            ->get();
-
-        return $roles->map(function ($role) {
-            return [
-                'id' => $role->id,
-                'name' => $role->name,
-                'priority' => $role->priority,
-                'parent_role_id' => $role->parent_role_id,
-                'parent_role_name' => $role->parentRole?->name,
-                'subordinate_roles' => $role->subordinateRoles->map(function ($subRole) {
-                    return [
-                        'id' => $subRole->id,
-                        'name' => $subRole->name,
-                        'priority' => $subRole->priority,
-                    ];
-                }),
-                'user_count' => $role->users_count,
-            ];
-        })->toArray();
-    }
-
-    /**
-     * Get permission matrix data.
-     */
-    public function getPermissionMatrix(): array
-    {
-        $roles = Role::with('permissions')->get();
-        $permissions = Permission::all();
-        
-        $rolePermissions = [];
-        foreach ($roles as $role) {
-            $rolePermissions[$role->id] = $role->permissions->pluck('id')->toArray();
-        }
-
-        return [
-            'roles' => $roles->map(function ($role) {
-                return [
-                    'id' => $role->id,
-                    'name' => $role->name,
-                    'description' => $role->description,
-                    'priority' => $role->priority,
-                    'is_system' => $role->is_system,
-                    'permissions_count' => $role->permissions_count,
-                ];
-            }),
-            'permissions' => $permissions->map(function ($permission) {
-                return [
-                    'id' => $permission->id,
-                    'name' => $permission->name,
-                    'description' => $permission->description,
-                    'module' => $permission->module,
-                    'risk_level' => $permission->risk_level,
-                    'requires_approval' => $permission->requires_approval,
-                    'is_critical' => $permission->is_critical,
-                ];
-            }),
-            'rolePermissions' => $rolePermissions,
-        ];
-    }
-
-    /**
-     * Update role permissions with validation.
-     */
-    public function updateRolePermissions(int $roleId, array $permissionIds): array
-    {
-        try {
-            // Validate permission dependencies
-            $dependencyErrors = $this->validatePermissionDependencies($permissionIds);
-            if (!empty($dependencyErrors)) {
-                return [
-                    'success' => false,
-                    'message' => 'Permission dependency validation failed',
-                    'errors' => $dependencyErrors,
-                ];
-            }
-
-            // Validate critical permissions require approval
-            $criticalPermissions = $this->validateCriticalPermissions($permissionIds);
-            if (!empty($criticalPermissions)) {
-                return [
-                    'success' => false,
-                    'message' => 'Critical permissions require approval',
-                    'critical_permissions' => $criticalPermissions,
-                ];
-            }
-
-            // Update permissions
-            $role = Role::findOrFail($roleId);
-            $oldPermissions = $role->permissions->pluck('id')->toArray();
-            
-            $role->permissions()->sync($permissionIds);
-            
-            // Clear caches
-            $this->clearRolePermissionCache($roleId);
-            
-            // Log the change
-            $this->logPermissionChange($roleId, $oldPermissions, $permissionIds, auth()->user());
-            
-            return [
-                'success' => true,
-                'message' => 'Role permissions updated successfully',
-            ];
-            
-        } catch (\Exception $e) {
-            Log::error('Failed to update role permissions: ' . $e->getMessage());
-            
-            return [
-                'success' => false,
-                'message' => 'Failed to update role permissions',
-            ];
-        }
-    }
-
-    /**
-     * Validate permission dependencies.
-     */
-    public function validatePermissionDependencies(array $permissionIds): array
-    {
-        $errors = [];
-        $currentPermissions = collect($permissionIds);
-
-        foreach ($permissionIds as $permissionId) {
-            $dependencies = \App\Models\PermissionDependency::where('permission_id', $permissionId)
-                ->with('dependsOnPermission')
-                ->get();
-
-            foreach ($dependencies as $dependency) {
-                if (!$currentPermissions->contains($dependency->depends_on_permission_id)) {
-                    $errors[] = "Permission '{$dependency->permission->name}' requires '{$dependency->dependsOnPermission->name}'";
-                }
-            }
-        }
-
-        return $errors;
-    }
-
-    /**
-     * Validate critical permissions.
-     */
-    private function validateCriticalPermissions(array $permissionIds): array
-    {
-        return Permission::whereIn('id', $permissionIds)
-            ->where('is_critical', true)
-            ->pluck('name')
-            ->toArray();
-    }
-
-    /**
-     * Get user role assignments.
-     */
-    public function getUserAssignments(array $filters = []): array
-    {
-        $query = User::with(['roleModel']);
-
-        if (isset($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
-
-        $users = $query->paginate(20);
-        $roles = Role::orderBy('priority', 'desc')->get();
-
-        return [
-            'users' => $users->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role_id' => $user->role_id,
-                    'role_name' => $user->roleModel?->name,
-                    'role_priority' => $user->roleModel?->priority,
-                    'created_at' => $user->created_at,
-                ];
-            }),
-            'roles' => $roles->map(function ($role) {
-                return [
-                    'id' => $role->id,
-                    'name' => $role->name,
-                    'description' => $role->description,
-                    'priority' => $role->priority,
-                ];
-            }),
-            'pagination' => [
-                'current_page' => $users->currentPage(),
-                'last_page' => $users->lastPage(),
-                'per_page' => $users->perPage(),
-                'total' => $users->total(),
-            ],
-        ];
-    }
-
-    /**
-     * Update user role assignment.
-     */
-    public function updateUserRole(int $userId, int $roleId): array
-    {
-        try {
-            $user = User::findOrFail($userId);
-            $oldRoleId = $user->role_id;
-            
-            $user->update(['role_id' => $roleId]);
-            
-            // Clear user permission cache
-            $user->clearPermissionCache();
-            
-            // Log the change
-            AuditLog::create([
-                'user_id' => auth()->id(),
-                'user_name' => auth()->user()->name,
-                'user_role' => auth()->user()->role,
-                'action' => 'User Role Assignment',
-                'target_type' => 'User',
-                'target_id' => $user->id,
-                'target_name' => $user->name,
-                'details' => json_encode([
-                    'old_role_id' => $oldRoleId,
-                    'new_role_id' => $roleId,
-                ]),
-                'ip_address' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-            ]);
-            
-            return [
-                'success' => true,
-                'message' => 'User role updated successfully',
-            ];
-            
-        } catch (\Exception $e) {
-            Log::error('Failed to update user role: ' . $e->getMessage());
-            
-            return [
-                'success' => false,
-                'message' => 'Failed to update user role',
-            ];
-        }
-    }
-
-    /**
-     * Get audit logs with filters.
-     */
-    public function getAuditLogs(array $filters = []): array
-    {
-        $query = AuditLog::query();
-
-        if (isset($filters['severity'])) {
-            $query->where('severity', $filters['severity']);
-        }
-
-        if (isset($filters['module'])) {
-            $query->where('module', $filters['module']);
-        }
-
-        if (isset($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function($q) use ($search) {
-                $q->where('action', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('user_name', 'like', "%{$search}%");
-            });
-        }
-
-        $auditLogs = $query->orderBy('logged_at', 'desc')
-            ->paginate(25);
-
-        return [
-            'audit_logs' => $auditLogs->map(function ($log) {
-                return [
-                    'id' => $log->id,
-                    'user_name' => $log->user_name,
-                    'user_role' => $log->user_role,
-                    'action' => $log->action,
-                    'target_type' => $log->target_type,
-                    'target_name' => $log->target_name,
-                    'details' => $log->details,
-                    'severity' => $log->severity,
-                    'ip_address' => $log->ip_address,
-                    'user_agent' => $log->user_agent,
-                    'logged_at' => $log->logged_at,
-                ];
-            }),
-            'pagination' => [
-                'current_page' => $auditLogs->currentPage(),
-                'last_page' => $auditLogs->lastPage(),
-                'per_page' => $auditLogs->perPage(),
-                'total' => $auditLogs->total(),
-            ],
-        ];
-    }
-
-    /**
-     * Export RBAC configuration.
-     */
-    public function exportConfiguration(): array
-    {
-        return [
-            'roles' => Role::with('permissions')->get(),
-            'permissions' => Permission::all(),
-            'users' => User::with('roleModel')->get(['id', 'name', 'email', 'role_id']),
-        ];
-    }
-
-    /**
-     * Import RBAC configuration.
-     */
-    public function importConfiguration(array $configuration): array
-    {
-        try {
-            // TODO: Implement configuration import logic with validation
-            return [
-                'success' => true,
-                'message' => 'Configuration imported successfully',
-            ];
-        } catch (\Exception $e) {
-            Log::error('Failed to import RBAC configuration: ' . $e->getMessage());
-            
-            return [
-                'success' => false,
-                'message' => 'Failed to import configuration',
-            ];
-        }
-    }
-
-    /**
-     * Clear role permission cache.
-     */
-    public function clearRolePermissionCache(int $roleId): void
-    {
-        Cache::forget("role_permissions:{$roleId}");
-        
-        // Clear user permission caches for users with this role
-        $userIds = User::where('role_id', $roleId)->pluck('id');
-        foreach ($userIds as $userId) {
-            Cache::forget("user_effective_permissions:{$userId}");
-        }
-    }
-
-    /**
-     * Log permission changes.
-     */
-    private function logPermissionChange(int $roleId, array $oldPermissions, array $newPermissions, $user): void
-    {
-        $added = array_diff($newPermissions, $oldPermissions);
-        $removed = array_diff($oldPermissions, $newPermissions);
-        
-        AuditLog::create([
-            'user_id' => $user->id,
-            'user_name' => $user->name,
-            'user_role' => $user->role,
-            'action' => 'Role Permission Update',
-            'target_type' => 'Role',
-            'target_id' => $roleId,
-            'target_name' => Role::find($roleId)->name,
-            'details' => json_encode([
-                'added' => $added,
-                'removed' => $removed,
-            ]),
-            'severity' => 'medium',
-            'ip_address' => Request::ip(),
-            'user_agent' => Request::userAgent(),
-        ]);
-    }
-
-    /**
-     * Get color for role distribution.
-     */
-    private function getRoleColor(string $roleName): string
-    {
-        $colors = [
-            'Super Admin' => '#ef4444', // red-500
-            'Sub Super Admin' => '#f97316', // orange-500
-            'Hospital Admin' => '#3b82f6', // blue-500
-            'Department Admin' => '#6366f1', // indigo-500
-            'Pharmacy Admin' => '#8b5cf6', // violet-500
-            'Laboratory Admin' => '#ec4899', // pink-500
-            'Billing Admin' => '#10b981', // emerald-500
-            'Reception Admin' => '#14b8a6', // teal-500
-            'Staff' => '#64748b', // slate-500
-            'Viewer' => '#94a3b8', // slate-400
-        ];
-
-        return $colors[$roleName] ?? '#6b7280'; // gray-500
-    }
-
-    /**
-     * Check if user has a specific permission with audit logging.
-     *
-     * @param string $permission The permission to check
-     * @param User|null $user The user to check (defaults to current user)
-     * @return bool Whether the user has the permission
-     */
-    public function checkPermission(string $permission, ?User $user = null): bool
-    {
-        $user = $user ?? auth()->user();
-        
-        if (!$user) {
-            $this->logPermissionAccess(0, $permission, false, [
-                'context' => 'no_authenticated_user',
-                'ip_address' => Request::ip(),
-            ]);
-            return false;
-        }
-
-        $hasPermission = $user->hasPermission($permission);
-        
-        $this->logPermissionAccess($user->id, $permission, $hasPermission, [
-            'context' => 'permission_check',
-            'ip_address' => Request::ip(),
-            'user_agent' => Request::userAgent(),
-        ]);
-
-        return $hasPermission;
-    }
-
-    /**
-     * Check module-level access control.
-     *
-     * @param string $module The module to check
-     * @param string $action The action to perform
-     * @param User|null $user The user to check
-     * @return bool Whether the user has access
-     */
-    public function checkModuleAccess(string $module, string $action, ?User $user = null): bool
-    {
-        $user = $user ?? auth()->user();
-        
-        if (!$user) {
-            return false;
-        }
-
-        $permission = "{$module}.{$action}";
-        return $this->checkPermission($permission, $user);
-    }
-
-    /**
-     * Get complete role hierarchy chain for a specific role.
-     *
-     * @param int $roleId The role ID
-     * @return array The hierarchy chain from root to the role
-     */
-    public function getRoleHierarchyChain(int $roleId): array
-    {
-        $role = Role::findOrFail($roleId);
-        $hierarchy = [];
-        
-        // Build hierarchy from root to current
-        $currentRole = $role;
-        while ($currentRole) {
-            array_unshift($hierarchy, [
-                'id' => $currentRole->id,
-                'name' => $currentRole->name,
-                'priority' => $currentRole->priority,
-                'parent_role_id' => $currentRole->parent_role_id,
-            ]);
-            $currentRole = $currentRole->parentRole;
-        }
-
-        return $hierarchy;
-    }
-
-    /**
-     * Validate role assignment to prevent privilege escalation.
-     *
-     * @param User $assigner The user assigning the role
-     * @param User $assignee The user receiving the role
-     * @param Role $newRole The role being assigned
-     * @return array Result with success status and message
-     */
-    public function validateRoleAssignment(User $assigner, User $assignee, Role $newRole): array
-    {
-        // Check if assigner can manage roles
-        if (!$assigner->hasPermission('users.manage_roles')) {
-            return [
-                'valid' => false,
-                'message' => 'You do not have permission to assign roles',
-            ];
-        }
-
-        // Prevent privilege escalation - assignee cannot get higher priority role than assigner
-        $assignerRole = $assigner->roleModel;
-        if (!$assignerRole) {
-            return [
-                'valid' => false,
-                'message' => 'Assigner does not have a role assigned',
-            ];
-        }
-
-        if ($newRole->priority > $assignerRole->priority) {
-            $this->logPermissionAccess($assigner->id, "role_assignment:{$newRole->id}", false, [
-                'context' => 'privilege_escalation_attempt',
-                'assignee_id' => $assignee->id,
-                'requested_role_priority' => $newRole->priority,
-                'assigner_role_priority' => $assignerRole->priority,
-            ]);
-            
-            return [
-                'valid' => false,
-                'message' => 'Cannot assign a role with higher priority than your own',
-            ];
-        }
-
-        // Check if role is in allowed assignment scope
-        $allowedRoles = $this->getAllowedRoleAssignments($assigner);
-        if (!in_array($newRole->id, $allowedRoles)) {
-            return [
-                'valid' => false,
-                'message' => 'You are not authorized to assign this role',
-            ];
-        }
-
-        return [
-            'valid' => true,
-            'message' => 'Role assignment is valid',
-        ];
-    }
-
-    /**
-     * Get roles that the user can assign to others.
-     *
-     * @param User $user The user
-     * @return array Array of role IDs
-     */
-    public function getAllowedRoleAssignments(User $user): array
-    {
-        $userRole = $user->roleModel;
-        
-        if (!$userRole) {
-            return [];
-        }
-
-        // Get all roles with priority less than or equal to user's role
-        return Role::where('priority', '<', $userRole->priority)
-            ->pluck('id')
-            ->toArray();
-    }
-
-    /**
-     * Get all effective permissions for a user including temporary ones.
-     *
-     * @param int $userId The user ID
-     * @return array Array of permission names
-     */
-    public function getEffectivePermissions(int $userId): array
-    {
-        $cacheKey = "user_effective_permissions:{$userId}";
-        
-        return Cache::remember($cacheKey, $this->permissionCacheTtl, function () use ($userId) {
-            $user = User::find($userId);
-            
-            if (!$user) {
-                return [];
-            }
-
-            return $user->getEffectivePermissions();
-        });
-    }
-
-    /**
-     * Log all permission access attempts.
-     *
-     * @param int $userId The user ID
-     * @param string $permission The permission checked
-     * @param bool $result Whether access was granted
-     * @param array $context Additional context information
-     */
-    public function logPermissionAccess(int $userId, string $permission, bool $result, array $context = []): void
-    {
-        try {
-            $user = $userId > 0 ? User::find($userId) : null;
-            
-            AuditLog::create([
-                'user_id' => $userId > 0 ? $userId : null,
-                'user_name' => $user?->name ?? 'Guest',
-                'user_role' => $user?->role ?? 'Guest',
-                'action' => $result ? 'Permission Granted' : 'Permission Denied',
-                'target_type' => 'Permission',
-                'target_id' => null,
-                'target_name' => $permission,
-                'details' => json_encode([
-                    'permission' => $permission,
-                    'result' => $result,
-                    'context' => $context,
-                ]),
-                'severity' => $result ? 'info' : 'warning',
-                'ip_address' => $context['ip_address'] ?? Request::ip(),
-                'user_agent' => $context['user_agent'] ?? Request::userAgent(),
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Failed to log permission access: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Detect potential privilege escalation vulnerabilities.
-     *
-     * @param int $userId The user ID to check
-     * @param int $requestedRole The role ID being requested
-     * @return array Result with vulnerability status and details
-     */
-    public function detectPrivilegeEscalation(int $userId, int $requestedRole): array
-    {
-        $user = User::findOrFail($userId);
-        $currentRole = $user->roleModel;
-        $requestedRoleModel = Role::findOrFail($requestedRole);
-
-        if (!$currentRole) {
-            return [
-                'has_vulnerability' => false,
-                'message' => 'User has no current role',
-            ];
-        }
-
-        $vulnerabilities = [];
-
-        // Check if requesting higher priority role
-        if ($requestedRoleModel->priority > $currentRole->priority) {
-            $vulnerabilities[] = [
-                'type' => 'priority_escalation',
-                'description' => 'User is requesting a role with higher priority than current',
-                'current_priority' => $currentRole->priority,
-                'requested_priority' => $requestedRoleModel->priority,
-            ];
-        }
-
-        // Check for unusual permission accumulation patterns
-        $effectivePermissions = $this->getEffectivePermissions($userId);
-        $permissionCount = count($effectivePermissions);
-        
-        // Flag if user has unusually many permissions for their role level
-        if ($permissionCount > 100 && $currentRole->priority < 80) {
-            $vulnerabilities[] = [
-                'type' => 'excessive_permissions',
-                'description' => 'User has unusually high number of permissions for their role level',
-                'permission_count' => $permissionCount,
-                'role_priority' => $currentRole->priority,
-            ];
-        }
-
-        // Check for permission patterns indicating potential misuse
-        $sensitivePermissions = $this->getSensitivePermissions();
-        $userSensitivePermissions = array_intersect($effectivePermissions, $sensitivePermissions);
-        
-        if (count($userSensitivePermissions) > 10) {
-            $vulnerabilities[] = [
-                'type' => 'sensitive_permission_accumulation',
-                'description' => 'User has access to many sensitive permissions',
-                'sensitive_permission_count' => count($userSensitivePermissions),
-            ];
-        }
-
-        return [
-            'has_vulnerability' => !empty($vulnerabilities),
-            'vulnerabilities' => $vulnerabilities,
-            'user_id' => $userId,
-            'current_role' => $currentRole->name,
-            'requested_role' => $requestedRoleModel->name,
-        ];
-    }
-
-    /**
-     * Get list of sensitive permissions that require monitoring.
-     *
-     * @return array Array of sensitive permission names
-     */
-    public function getSensitivePermissions(): array
-    {
-        return [
-            'users.delete',
-            'users.manage_roles',
-            'users.manage_permissions',
-            'system.settings.update',
-            'system.backup',
-            'system.restore',
-            'security.audit',
-            'security.mfa',
-            'security.block',
-            'billing.refund',
-            'billing.void',
-            'patients.delete',
-            'patients.access_locked',
-        ];
-    }
-
-    /**
-     * Get child roles for a role (direct subordinates only).
-     *
-     * @param int $roleId The role ID
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function getChildRoles(int $roleId)
-    {
-        return Role::where('parent_role_id', $roleId)->get();
-    }
-
-    /**
-     * Get all descendant roles recursively.
-     *
-     * @param int $roleId The role ID
-     * @param array $descendants Accumulator for descendants
-     * @return array Array of descendant role IDs
-     */
-    public function getAllDescendants(int $roleId, array &$descendants = []): array
-    {
-        $children = Role::where('parent_role_id', $roleId)->pluck('id')->toArray();
-        
-        foreach ($children as $childId) {
-            $descendants[] = $childId;
-            $this->getAllDescendants($childId, $descendants);
-        }
-
-        return $descendants;
-    }
-
-    /**
-     * Check if a role can inherit permissions from a parent role.
-     *
-     * @param Role $parentRole The potential parent role
-     * @return bool Whether inheritance is allowed
-     */
-    public function canInheritFrom(Role $parentRole): bool
-    {
-        // System roles can only inherit from other system roles
-        if ($this->is_system && !$parentRole->is_system) {
-            return false;
-        }
-
-        // Check for circular inheritance
-        $ancestors = $this->getRoleHierarchy($this->id);
-        $ancestorIds = array_column($ancestors, 'id');
-        
-        if (in_array($parentRole->id, $ancestorIds)) {
-            return false;
-        }
-
         return true;
     }
 
     /**
-     * Get users with a specific role.
-     *
-     * @param int $roleId The role ID
-     * @return \Illuminate\Database\Eloquent\Collection
+     * Get effective permissions - Returns empty array.
      */
-    public function getUsersWithRole(int $roleId)
+    public function getEffectivePermissions($userId): array
     {
-        return User::where('role_id', $roleId)->get();
+        return [];
     }
 
     /**
-     * Batch assign roles to users.
-     *
-     * @param array $userIds Array of user IDs
-     * @param int $roleId The role ID to assign
-     * @param User $assigner The user performing the assignment
-     * @return array Result with success status and summary
+     * Get allowed role assignments - Returns empty array.
      */
-    public function batchAssignRoles(array $userIds, int $roleId, User $assigner): array
+    public function getAllowedRoleAssignments($userId): array
     {
-        $role = Role::findOrFail($roleId);
-        $successCount = 0;
-        $failures = [];
-
-        foreach ($userIds as $userId) {
-            $user = User::find($userId);
-            
-            if (!$user) {
-                $failures[] = [
-                    'user_id' => $userId,
-                    'reason' => 'User not found',
-                ];
-                continue;
-            }
-
-            $validation = $this->validateRoleAssignment($assigner, $user, $role);
-            
-            if ($validation['valid']) {
-                $user->update(['role_id' => $roleId]);
-                $user->clearPermissionCache();
-                $successCount++;
-            } else {
-                $failures[] = [
-                    'user_id' => $userId,
-                    'reason' => $validation['message'],
-                ];
-            }
-        }
-
-        return [
-            'success' => true,
-            'message' => "Assigned role to {$successCount} users",
-            'success_count' => $successCount,
-            'failure_count' => count($failures),
-            'failures' => $failures,
-        ];
+        return [];
     }
 
     /**
-     * Get role by ID or name.
-     *
-     * @param mixed $identifier Role ID or name
-     * @return Role|null
+     * Get role hierarchy - Returns empty array.
      */
-    public function getRole(mixed $identifier): ?Role
+    public function getRoleHierarchy(): array
     {
-        if (is_numeric($identifier)) {
-            return Role::find($identifier);
-        }
-        
-        return Role::where('name', $identifier)->first();
+        return [];
     }
 
     /**
-     * Check if user has any role in a list.
-     *
-     * @param User $user The user
-     * @param array $roleNames Array of role names
-     * @return bool Whether user has any of the roles
+     * Get all roles - Returns empty collection.
      */
-    public function hasAnyRole(User $user, array $roleNames): bool
+    public function getAllRoles()
     {
-        if (!$user->roleModel) {
-            return false;
-        }
-
-        return in_array($user->roleModel->name, $roleNames);
+        return collect();
     }
 
     /**
-     * Check if user has all roles in a list.
-     *
-     * @param User $user The user
-     * @param array $roleNames Array of role names
-     * @return bool Whether user has all the roles
+     * Get all permissions - Returns empty collection.
      */
-    public function hasAllRoles(User $user, array $roleNames): bool
+    public function getAllPermissions()
     {
-        if (!$user->roleModel) {
-            return false;
-        }
+        return collect();
+    }
 
-        return in_array($user->roleModel->name, $roleNames);
+    /**
+     * Sync permissions - Does nothing.
+     */
+    public function syncPermissions($roleId, $permissions): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Assign role - Does nothing.
+     */
+    public function assignRole($userId, $roleId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Remove role - Does nothing.
+     */
+    public function removeRole($userId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get user role - Returns null.
+     */
+    public function getUserRole($userId)
+    {
+        return null;
+    }
+
+    /**
+     * Check role hierarchy - Always returns false.
+     */
+    public function canAssignRole($actorId, $targetRoleId): bool
+    {
+        return false;
+    }
+
+    /**
+     * Get descendant roles - Returns empty array.
+     */
+    public function getDescendantRoles($roleId): array
+    {
+        return [];
+    }
+
+    /**
+     * Get role by name - Returns null.
+     */
+    public function getRoleByName($name)
+    {
+        return null;
+    }
+
+    /**
+     * Get permission by name - Returns null.
+     */
+    public function getPermissionByName($name)
+    {
+        return null;
+    }
+
+    /**
+     * Clear permission cache - Does nothing.
+     */
+    public function clearPermissionCache($userId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Clear all permission caches - Does nothing.
+     */
+    public function clearAllPermissionCaches(): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Validate permission assignment - Always returns true.
+     */
+    public function validatePermissionAssignment($roleId, $permissionId): bool
+    {
+        return true;
+    }
+
+    /**
+     * Check segregation of duties - Always returns true.
+     */
+    public function checkSegregationOfDuties($userId, $permission): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get delegated permissions - Returns empty array.
+     */
+    public function getDelegatedPermissions($userId): array
+    {
+        return [];
+    }
+
+    /**
+     * Create temporary permission - Does nothing.
+     */
+    public function createTemporaryPermission($userId, $permission, $duration): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Revoke temporary permissions - Does nothing.
+     */
+    public function revokeTemporaryPermissions($userId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get active temporary permissions - Returns empty collection.
+     */
+    public function getActiveTemporaryPermissions($userId)
+    {
+        return collect();
+    }
+
+    /**
+     * Get pending permission requests - Returns empty collection.
+     */
+    public function getPendingPermissionRequests($userId = null)
+    {
+        return collect();
+    }
+
+    /**
+     * Request permission - Does nothing.
+     */
+    public function requestPermission($userId, $permission, $reason): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Approve permission request - Does nothing.
+     */
+    public function approvePermissionRequest($requestId, $approverId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Deny permission request - Does nothing.
+     */
+    public function denyPermissionRequest($requestId, $denierId, $reason): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Audit permission changes - Does nothing.
+     */
+    public function auditPermissionChanges($userId, $changes): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get permission audit trail - Returns empty collection.
+     */
+    public function getPermissionAuditTrail($userId, $limit = 100)
+    {
+        return collect();
+    }
+
+    /**
+     * Check IP restriction - Always returns true.
+     */
+    public function checkIpRestriction($userId, $permission, $ip): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get user IP restrictions - Returns empty array.
+     */
+    public function getUserIpRestrictions($userId): array
+    {
+        return [];
+    }
+
+    /**
+     * Get permission dependencies - Returns empty array.
+     */
+    public function getPermissionDependencies($permission): array
+    {
+        return [];
+    }
+
+    /**
+     * Resolve permission dependencies - Returns input permissions unchanged.
+     */
+    public function resolvePermissionDependencies($permissions): array
+    {
+        return $permissions;
+    }
+
+    /**
+     * Check dependency satisfaction - Always returns true.
+     */
+    public function checkDependencySatisfaction($roleId, $permissionId): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get role permissions - Returns empty array.
+     */
+    public function getRolePermissions($roleId): array
+    {
+        return [];
+    }
+
+    /**
+     * Get user direct permissions - Returns empty array.
+     */
+    public function getUserDirectPermissions($userId): array
+    {
+        return [];
+    }
+
+    /**
+     * Has direct permission - Always returns false.
+     */
+    public function hasDirectPermission($userId, $permission): bool
+    {
+        return false;
+    }
+
+    /**
+     * Has role permission - Always returns false.
+     */
+    public function hasRolePermission($userId, $permission): bool
+    {
+        return false;
+    }
+
+    /**
+     * Has temporary permission - Always returns false.
+     */
+    public function hasTemporaryPermission($userId, $permission): bool
+    {
+        return false;
+    }
+
+    /**
+     * Get users with permission - Returns empty collection.
+     */
+    public function getUsersWithPermission($permission)
+    {
+        return collect();
+    }
+
+    /**
+     * Get role users - Returns empty collection.
+     */
+    public function getRoleUsers($roleId)
+    {
+        return collect();
+    }
+
+    /**
+     * Get permission users - Returns empty collection.
+     */
+    public function getPermissionUsers($permissionId)
+    {
+        return collect();
+    }
+
+    /**
+     * Create role - Does nothing.
+     */
+    public function createRole($data): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Update role - Does nothing.
+     */
+    public function updateRole($roleId, $data): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Delete role - Does nothing.
+     */
+    public function deleteRole($roleId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Create permission - Does nothing.
+     */
+    public function createPermission($data): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Update permission - Does nothing.
+     */
+    public function updatePermission($permissionId, $data): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Delete permission - Does nothing.
+     */
+    public function deletePermission($permissionId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get permission health status - Returns empty array.
+     */
+    public function getPermissionHealthStatus(): array
+    {
+        return [];
+    }
+
+    /**
+     * Check permission health - Always returns true.
+     */
+    public function checkPermissionHealth($permissionId): bool
+    {
+        return true;
+    }
+
+    /**
+     * Rebuild permission cache - Does nothing.
+     */
+    public function rebuildPermissionCache($userId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Initialize default permissions - Does nothing.
+     */
+    public function initializeDefaultPermissions(): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Seed default roles - Does nothing.
+     */
+    public function seedDefaultRoles(): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Validate role hierarchy - Always returns true.
+     */
+    public function validateRoleHierarchy($roleId): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get circular dependency - Returns null.
+     */
+    public function getCircularDependency($roleId, $newParentId)
+    {
+        return null;
+    }
+
+    /**
+     * Rebuild role hierarchy - Does nothing.
+     */
+    public function rebuildRoleHierarchy(): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get role depth - Returns 0.
+     */
+    public function getRoleDepth($roleId): int
+    {
+        return 0;
+    }
+
+    /**
+     * Is root role - Always returns false.
+     */
+    public function isRootRole($roleId): bool
+    {
+        return false;
+    }
+
+    /**
+     * Is child role - Always returns false.
+     */
+    public function isChildRole($roleId): bool
+    {
+        return false;
+    }
+
+    /**
+     * Get parent role - Returns null.
+     */
+    public function getParentRole($roleId)
+    {
+        return null;
+    }
+
+    /**
+     * Get child roles - Returns empty collection.
+     */
+    public function getChildRoles($roleId)
+    {
+        return collect();
+    }
+
+    /**
+     * Get inherited roles - Returns empty array.
+     */
+    public function getInheritedRoles($roleId): array
+    {
+        return [];
+    }
+
+    /**
+     * Calculate effective role permissions - Returns empty array.
+     */
+    public function calculateEffectiveRolePermissions($roleId): array
+    {
+        return [];
+    }
+
+    /**
+     * Check inheritance chain - Always returns false.
+     */
+    public function checkInheritanceChain($roleId, $permission): bool
+    {
+        return false;
+    }
+
+    /**
+     * Merge permissions - Returns first argument.
+     */
+    public function mergePermissions(...$permissionArrays): array
+    {
+        return $permissionArrays[0] ?? [];
+    }
+
+    /**
+     * Diff permissions - Returns empty array.
+     */
+    public function diffPermissions($permissions1, $permissions2): array
+    {
+        return [];
+    }
+
+    /**
+     * Intersect permissions - Returns empty array.
+     */
+    public function intersectPermissions($permissions1, $permissions2): array
+    {
+        return [];
+    }
+
+    /**
+     * Normalize permission - Returns input unchanged.
+     */
+    public function normalizePermission($permission): string
+    {
+        return $permission;
+    }
+
+    /**
+     * Format permission name - Returns input unchanged.
+     */
+    public function formatPermissionName($permission): string
+    {
+        return $permission;
+    }
+
+    /**
+     * Parse permission string - Returns input as array.
+     */
+    public function parsePermissionString($permission): array
+    {
+        return ['action' => $permission, 'resource' => null];
+    }
+
+    /**
+     * Build permission string - Returns input unchanged.
+     */
+    public function buildPermissionString($action, $resource = null): string
+    {
+        return $action;
+    }
+
+    /**
+     * Match permission - Always returns true.
+     */
+    public function matchPermission($permission, $pattern): bool
+    {
+        return true;
+    }
+
+    /**
+     * Filter permissions by pattern - Returns all input.
+     */
+    public function filterPermissionsByPattern($permissions, $pattern): array
+    {
+        return $permissions;
+    }
+
+    /**
+     * Group permissions by module - Returns empty array.
+     */
+    public function groupPermissionsByModule($permissions): array
+    {
+        return [];
+    }
+
+    /**
+     * Get modules - Returns empty array.
+     */
+    public function getModules(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get permissions by module - Returns empty array.
+     */
+    public function getPermissionsByModule($module): array
+    {
+        return [];
+    }
+
+    /**
+     * Get critical permissions - Returns empty array.
+     */
+    public function getCriticalPermissions(): array
+    {
+        return [];
+    }
+
+    /**
+     * Is critical permission - Always returns false.
+     */
+    public function isCriticalPermission($permission): bool
+    {
+        return false;
+    }
+
+    /**
+     * Get sensitive operations - Returns empty array.
+     */
+    public function getSensitiveOperations(): array
+    {
+        return [];
+    }
+
+    /**
+     * Is sensitive operation - Always returns false.
+     */
+    public function isSensitiveOperation($permission): bool
+    {
+        return false;
+    }
+
+    /**
+     * Log access attempt - Does nothing.
+     */
+    public function logAccessAttempt($userId, $permission, $result): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get access statistics - Returns empty array.
+     */
+    public function getAccessStatistics($permission = null, $days = 30): array
+    {
+        return [];
+    }
+
+    /**
+     * Get denied access attempts - Returns empty collection.
+     */
+    public function getDeniedAccessAttempts($userId = null, $limit = 100)
+    {
+        return collect();
+    }
+
+    /**
+     * Check brute force - Always returns false.
+     */
+    public function checkBruteForce($userId): bool
+    {
+        return false;
+    }
+
+    /**
+     * Record failed attempt - Does nothing.
+     */
+    public function recordFailedAttempt($userId, $permission): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Clear failed attempts - Does nothing.
+     */
+    public function clearFailedAttempts($userId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get failed attempt count - Returns 0.
+     */
+    public function getFailedAttemptCount($userId): int
+    {
+        return 0;
+    }
+
+    /**
+     * Is locked out - Always returns false.
+     */
+    public function isLockedOut($userId): bool
+    {
+        return false;
+    }
+
+    /**
+     * Lock out user - Does nothing.
+     */
+    public function lockOut($userId, $duration): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Unlock user - Does nothing.
+     */
+    public function unlock($userId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get lockout time - Returns null.
+     */
+    public function getLockoutTime($userId)
+    {
+        return null;
+    }
+
+    /**
+     * Check time-based access - Always returns true.
+     */
+    public function checkTimeBasedAccess($userId, $permission): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get allowed time windows - Returns empty array.
+     */
+    public function getAllowedTimeWindows($userId, $permission): array
+    {
+        return [];
+    }
+
+    /**
+     * Is within time window - Always returns true.
+     */
+    public function isWithinTimeWindow($startTime, $endTime): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get current time slot - Returns empty string.
+     */
+    public function getCurrentTimeSlot(): string
+    {
+        return '';
+    }
+
+    /**
+     * Has time-based permission - Always returns false.
+     */
+    public function hasTimeBasedPermission($userId, $permission): bool
+    {
+        return false;
+    }
+
+    /**
+     * Get time-based permissions - Returns empty array.
+     */
+    public function getTimeBasedPermissions($userId): array
+    {
+        return [];
+    }
+
+    /**
+     * Set time-based permission - Does nothing.
+     */
+    public function setTimeBasedPermission($userId, $permission, $timeSlots): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Remove time-based permission - Does nothing.
+     */
+    public function removeTimeBasedPermission($userId, $permission): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Check if user has role - Always returns false.
+     */
+    public function hasRole($user, $role): bool
+    {
+        return false;
+    }
+
+    /**
+     * Give permission to user - Does nothing.
+     */
+    public function givePermissionTo($user, $permission): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Revoke permission from user - Does nothing.
+     */
+    public function revokePermissionFrom($user, $permission): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Check segregation violations - Returns empty collection.
+     */
+    public function checkSegregationViolations($userId)
+    {
+        return collect();
+    }
+
+    /**
+     * Check module access - Always returns true.
+     */
+    public function checkModuleAccess($module, $action, $user): bool
+    {
+        return true;
+    }
+
+    /**
+     * Log permission access - Does nothing.
+     */
+    public function logPermissionAccess($userId, $permission, $granted, array $context = []): void
+    {
+        // Deactivated
     }
 }

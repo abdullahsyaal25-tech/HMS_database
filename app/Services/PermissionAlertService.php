@@ -7,229 +7,325 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use App\Mail\PermissionAlertNotification;
 
+/**
+ * Permission Alert Service - DEACTIVATED
+ * 
+ * This service has been deactivated as part of RBAC cleanup.
+ * All methods now return safe default values.
+ * 
+ * @deprecated This service is no longer in use
+ */
 class PermissionAlertService
 {
     protected $config;
 
+    /**
+     * Constructor - now disabled.
+     */
     public function __construct()
     {
-        $this->config = config('permission-monitoring');
+        $this->config = config('permission-monitoring', []);
     }
 
     /**
-     * Create a new alert
+     * Create a new alert - Returns null.
      */
-    public function createAlert(string $alertType, string $title, string $message, array $data = [], int $userId = null): PermissionAlert
+    public function createAlert(string $alertType, string $title, string $message, array $data = [], int $userId = null)
     {
-        if (!$this->config['enabled']) {
-            return null;
-        }
-
-        $alert = PermissionAlert::create([
-            'alert_type' => $alertType,
-            'title' => $title,
-            'message' => $message,
-            'data' => json_encode($data),
-            'status' => 'active',
-            'user_id' => $userId,
-        ]);
-
-        // Handle alert based on type configuration
-        $this->handleAlert($alert);
-
-        return $alert;
+        // Deactivated - always return null
+        return null;
     }
 
     /**
-     * Handle alert actions (email, notifications, etc.)
+     * Handle alert actions - Does nothing.
      */
     protected function handleAlert(PermissionAlert $alert): void
     {
-        $alertConfig = $this->config['alerting']['levels'][$alert->alert_type] ?? [];
-
-        // Send email if configured
-        if ($alertConfig['email_alert'] ?? false) {
-            $this->sendEmailAlert($alert);
-        }
-
-        // Log alert
-        Log::channel('permission-alerts')->{$this->getLogLevel($alert->alert_type)}(
-            "Permission Alert [{$alert->alert_type}]: {$alert->title} - {$alert->message}",
-            $alert->toArray()
-        );
-
-        // Auto-escalate if configured
-        if ($alertConfig['auto_escalate'] ?? false) {
-            $this->escalateAlert($alert);
-        }
+        // Deactivated
     }
 
     /**
-     * Send email alert
+     * Send email alert - Does nothing.
      */
     protected function sendEmailAlert(PermissionAlert $alert): void
     {
-        if (!$this->config['alerting']['email']['enabled']) {
-            return;
-        }
-
-        try {
-            Mail::to($this->config['alerting']['email']['recipients'])
-                ->send(new PermissionAlertNotification($alert));
-        } catch (\Exception $e) {
-            Log::error('Failed to send permission alert email', [
-                'alert_id' => $alert->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        // Deactivated
     }
 
     /**
-     * Get log level based on alert type
+     * Send in-app notification - Does nothing.
      */
-    protected function getLogLevel(string $alertType): string
+    protected function sendInAppNotification(PermissionAlert $alert): void
     {
-        return match ($alertType) {
-            'critical' => 'emergency',
-            'high' => 'error',
-            'medium' => 'warning',
-            'low' => 'info',
-            default => 'info',
-        };
+        // Deactivated
     }
 
     /**
-     * Escalate alert (placeholder for escalation logic)
+     * Get all alerts - Returns empty collection.
      */
-    protected function escalateAlert(PermissionAlert $alert): void
+    public function getAllAlerts(string $status = null)
     {
-        // Implementation for escalation (e.g., notify higher authorities, create incident tickets)
-        Log::warning('Alert escalated', ['alert_id' => $alert->id]);
-
-        // Could integrate with external systems here
+        return collect();
     }
 
     /**
-     * Acknowledge alert
+     * Get alerts by type - Returns empty collection.
      */
-    public function acknowledgeAlert(int $alertId, int $userId): bool
+    public function getAlertsByType(string $alertType)
     {
-        $alert = PermissionAlert::find($alertId);
-        if (!$alert) {
-            return false;
-        }
-
-        $alert->update([
-            'status' => 'acknowledged',
-            'updated_at' => now(),
-        ]);
-
-        Log::info('Alert acknowledged', [
-            'alert_id' => $alertId,
-            'user_id' => $userId,
-        ]);
-
-        return true;
+        return collect();
     }
 
     /**
-     * Resolve alert
+     * Get user alerts - Returns empty collection.
      */
-    public function resolveAlert(int $alertId, int $userId): bool
+    public function getUserAlerts(int $userId)
     {
-        $alert = PermissionAlert::find($alertId);
-        if (!$alert) {
-            return false;
-        }
-
-        $alert->update([
-            'status' => 'resolved',
-            'updated_at' => now(),
-        ]);
-
-        Log::info('Alert resolved', [
-            'alert_id' => $alertId,
-            'user_id' => $userId,
-        ]);
-
-        return true;
+        return collect();
     }
 
     /**
-     * Get active alerts
+     * Get active alerts - Returns empty collection.
      */
-    public function getActiveAlerts(string $alertType = null): \Illuminate\Database\Eloquent\Collection
+    public function getActiveAlerts()
     {
-        $query = PermissionAlert::where('status', 'active')
-            ->orderBy('created_at', 'desc');
-
-        if ($alertType) {
-            $query->where('alert_type', $alertType);
-        }
-
-        return $query->get();
+        return collect();
     }
 
     /**
-     * Get alert statistics
+     * Get resolved alerts - Returns empty collection.
      */
-    public function getAlertStatistics(\Carbon\Carbon $startDate = null, \Carbon\Carbon $endDate = null): array
+    public function getResolvedAlerts(int $limit = 100)
     {
-        $startDate = $startDate ?: now()->subDays(30);
-        $endDate = $endDate ?: now();
+        return collect();
+    }
 
-        $stats = [
-            'total_alerts' => PermissionAlert::whereBetween('created_at', [$startDate, $endDate])->count(),
-            'by_type' => PermissionAlert::whereBetween('created_at', [$startDate, $endDate])
-                ->selectRaw('alert_type, COUNT(*) as count')
-                ->groupBy('alert_type')
-                ->pluck('count', 'alert_type')
-                ->toArray(),
-            'by_status' => PermissionAlert::whereBetween('created_at', [$startDate, $endDate])
-                ->selectRaw('status, COUNT(*) as count')
-                ->groupBy('status')
-                ->pluck('count', 'status')
-                ->toArray(),
-            'active_alerts' => PermissionAlert::where('status', 'active')->count(),
-            'unresolved_critical' => PermissionAlert::where('status', '!=', 'resolved')
-                ->where('alert_type', 'critical')
-                ->count(),
+    /**
+     * Resolve alert - Does nothing.
+     */
+    public function resolveAlert(int $alertId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Dismiss alert - Does nothing.
+     */
+    public function dismissAlert(int $alertId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Bulk resolve alerts - Does nothing.
+     */
+    public function bulkResolveAlerts(array $alertIds): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Delete old alerts - Does nothing.
+     */
+    public function deleteOldAlerts(int $days = 30): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get alert statistics - Returns empty array.
+     */
+    public function getAlertStatistics(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get alert count by type - Returns empty array.
+     */
+    public function getAlertCountByType(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get alert trends - Returns empty array.
+     */
+    public function getAlertTrends(int $days = 7): array
+    {
+        return [];
+    }
+
+    /**
+     * Check if alerts are enabled - Always returns false.
+     */
+    public function isAlertsEnabled(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Enable alerts - Does nothing.
+     */
+    public function enableAlerts(): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Disable alerts - Does nothing.
+     */
+    public function disableAlerts(): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Configure alert thresholds - Does nothing.
+     */
+    public function configureAlertThresholds(array $thresholds): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get alert thresholds - Returns empty array.
+     */
+    public function getAlertThresholds(): array
+    {
+        return [];
+    }
+
+    /**
+     * Check threshold - Always returns false.
+     */
+    public function checkThreshold(string $alertType, $value): bool
+    {
+        return false;
+    }
+
+    /**
+     * Trigger alert - Does nothing.
+     */
+    public function triggerAlert(string $alertType, string $title, string $message, array $data = []): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Clear alert - Does nothing.
+     */
+    public function clearAlert(int $alertId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Export alerts - Returns empty array.
+     */
+    public function exportAlerts(array $filters = []): array
+    {
+        return [];
+    }
+
+    /**
+     * Get alert configuration - Returns empty array.
+     */
+    public function getAlertConfiguration(): array
+    {
+        return [];
+    }
+
+    /**
+     * Update alert configuration - Does nothing.
+     */
+    public function updateAlertConfiguration(array $config): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Test alert notification - Does nothing.
+     */
+    public function testAlertNotification(string $type): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get notification channels - Returns empty array.
+     */
+    public function getNotificationChannels(): array
+    {
+        return [];
+    }
+
+    /**
+     * Set notification channel - Does nothing.
+     */
+    public function setNotificationChannel(string $channel, bool $enabled): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get alert recipients - Returns empty array.
+     */
+    public function getAlertRecipients(string $alertType): array
+    {
+        return [];
+    }
+
+    /**
+     * Add alert recipient - Does nothing.
+     */
+    public function addAlertRecipient(string $alertType, int $userId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Remove alert recipient - Does nothing.
+     */
+    public function removeAlertRecipient(string $alertType, int $userId): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get service status - Returns deactivated.
+     */
+    public function getServiceStatus(): array
+    {
+        return [
+            'status' => 'deactivated',
+            'message' => 'Permission alert service is deactivated',
         ];
-
-        return $stats;
     }
 
     /**
-     * Create security alert for suspicious activity
+     * Create security alert - Returns null (deactivated).
      */
-    public function createSecurityAlert(string $title, string $message, array $context = []): PermissionAlert
+    public function createSecurityAlert(string $title, string $message, array $data = []): ?PermissionAlert
     {
-        return $this->createAlert('high', $title, $message, array_merge($context, ['category' => 'security']));
+        // Deactivated
+        return null;
     }
 
     /**
-     * Create performance alert
+     * Create critical alert - Returns null (deactivated).
      */
-    public function createPerformanceAlert(string $title, string $message, array $metrics = []): PermissionAlert
+    public function createCriticalAlert(string $title, string $message, array $data = []): ?PermissionAlert
     {
-        return $this->createAlert('medium', $title, $message, array_merge($metrics, ['category' => 'performance']));
+        // Deactivated
+        return null;
     }
 
     /**
-     * Create critical system alert
+     * Log failed attempt - Does nothing.
      */
-    public function createCriticalAlert(string $title, string $message, array $data = []): PermissionAlert
+    public function logFailedAttempt(array $data = []): void
     {
-        return $this->createAlert('critical', $title, $message, $data);
-    }
-
-    /**
-     * Clean up old alerts
-     */
-    public function cleanupOldAlerts(int $daysOld = 90): int
-    {
-        return PermissionAlert::where('created_at', '<', now()->subDays($daysOld))
-            ->where('status', 'resolved')
-            ->delete();
+        // Deactivated
     }
 }

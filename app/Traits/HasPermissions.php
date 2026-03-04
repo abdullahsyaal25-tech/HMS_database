@@ -203,6 +203,134 @@ trait HasPermissions
     }
 
     /**
+     * Check if user is an Admin.
+     * Admin has full access to admin functions.
+     */
+    public function isAdmin(): bool
+    {
+        // Check roleModel first
+        if ($this->roleModel) {
+            $adminSlugs = ['super-admin', 'admin'];
+            return in_array($this->roleModel->slug, $adminSlugs);
+        }
+        
+        // Fallback for legacy role string
+        $adminRoles = ['Super Admin', 'Admin'];
+        return in_array($this->role, $adminRoles);
+    }
+
+    /**
+     * Check if user is Staff (non-admin user).
+     */
+    public function isStaff(): bool
+    {
+        return !$this->isAdmin();
+    }
+
+    /**
+     * Define module access for different roles.
+     * Maps roles to their allowed modules.
+     *
+     * @return array Module names that the role can access
+     */
+    public function getAllowedModules(): array
+    {
+        // Super Admin and Admin have access to all modules
+        if ($this->isSuperAdmin() || $this->isAdmin()) {
+            return [
+                'patients',
+                'doctors',
+                'departments',
+                'appointments',
+                'laboratory',
+                'pharmacy',
+                'reports',
+                'settings',
+                'users',
+                'roles',
+                'permissions',
+            ];
+        }
+
+        // Get the role slug
+        $roleSlug = null;
+        if ($this->roleModel) {
+            $roleSlug = $this->roleModel->slug;
+        }
+
+        // Legacy role string fallback
+        if (!$roleSlug) {
+            $roleSlug = $this->role;
+        }
+
+        // Department-specific admin roles
+        return match ($roleSlug) {
+            'laboratory-admin' => [
+                'laboratory',
+            ],
+            'pharmacy-admin' => [
+                'pharmacy',
+            ],
+            'reception-admin' => [
+                'patients',
+                'doctors',
+                'departments',
+                'appointments',
+            ],
+            default => [],
+        };
+    }
+
+    /**
+     * Check if the user can access a specific module.
+     *
+     * @param string $module The module name to check access for
+     * @return bool True if the user can access the module
+     */
+    public function canAccessModule(string $module): bool
+    {
+        // Super Admin and Admin have access to all modules
+        if ($this->isSuperAdmin() || $this->isAdmin()) {
+            return true;
+        }
+
+        $allowedModules = $this->getAllowedModules();
+        
+        return in_array($module, $allowedModules);
+    }
+
+    /**
+     * Check if the user is a department-specific admin.
+     * Department admins include: Laboratory Admin, Pharmacy Admin, Reception Admin
+     *
+     * @return bool True if the user is a department admin
+     */
+    public function isDepartmentAdmin(): bool
+    {
+        // Get the role slug
+        $roleSlug = null;
+        if ($this->roleModel) {
+            $roleSlug = $this->roleModel->slug;
+        }
+
+        // Legacy role string fallback
+        if (!$roleSlug) {
+            $roleSlug = $this->role;
+        }
+
+        $departmentAdminRoles = [
+            'laboratory-admin',
+            'Laboratory Admin',
+            'pharmacy-admin',
+            'Pharmacy Admin',
+            'reception-admin',
+            'Reception Admin',
+        ];
+
+        return in_array($roleSlug, $departmentAdminRoles);
+    }
+
+    /**
      * Relationship to the new Role model.
      */
     public function roleModel()

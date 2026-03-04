@@ -11,7 +11,7 @@ use App\Models\TemporaryPermission;
 use App\Models\User;
 use App\Models\UserPermission;
 use App\Services\AuditLogService;
-use App\Services\RBACService;
+use App\Services\RBACService;   
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -41,24 +41,57 @@ class PermissionsController extends Controller
      */
     public function index(): Response
     {
-        $permissions = Permission::all();
-        $roles = \App\Models\Role::with('permissions')->get();
+        // Get all permissions with proper formatting for frontend
+        $permissions = Permission::all()->map(function ($permission) {
+            return [
+                'id' => $permission->id,
+                'name' => $permission->name,
+                'description' => $permission->description ?? '',
+                'resource' => $permission->resource ?? '',
+                'action' => $permission->action ?? '',
+                'category' => $permission->category,
+                'module' => $permission->module,
+                'risk_level' => $permission->risk_level ?? 'low',
+                'is_critical' => $permission->is_critical ?? false,
+            ];
+        });
+        
+        // Get roles with their permissions
+        $roles = \App\Models\Role::with('permissions')->get()->map(function ($role) {
+            return [
+                'id' => $role->id,
+                'name' => $role->name,
+                'description' => $role->description ?? '',
+                'is_default' => $role->is_default ?? false,
+                'permissions' => $role->permissions->map(function ($perm) {
+                    return [
+                        'id' => $perm->id,
+                        'name' => $perm->name,
+                        'description' => $perm->description ?? '',
+                        'resource' => $perm->resource ?? '',
+                        'action' => $perm->action ?? '',
+                        'category' => $perm->category,
+                        'module' => $perm->module,
+                    ];
+                })->toArray(),
+            ];
+        });
         
         // Categorize permissions
         $categories = Permission::distinct()->pluck('category')->filter()->values();
         $modules = Permission::distinct()->pluck('module')->filter()->values();
         
         // Get all permission IDs for scope - admins can assign ANY permission to ANY role
-        $allPermissionIds = $permissions->pluck('id')->toArray();
+        $allPermissionIds = $permissions->pluck('id')->all();
         
         // Get role permissions mapping
         $rolePermissions = [];
         $rolePermissionScopes = [];
         foreach ($roles as $role) {
-            $rolePermissions[$role->id] = $role->permissions->pluck('id')->toArray();
+            $rolePermissions[$role['id']] = array_column($role['permissions'], 'id');
             // RBAC: Scope includes ALL permissions - admins can assign any permission to any role
             // This allows selecting new permissions that weren't previously assigned
-            $rolePermissionScopes[$role->id] = $allPermissionIds;
+            $rolePermissionScopes[$role['id']] = $allPermissionIds;
         }
 
         // Legacy roles mapping for backward compatibility
@@ -184,34 +217,48 @@ class PermissionsController extends Controller
     /**
      * Reset role permissions to default state.
      */
-    public function resetRolePermissions(string $role)
+    public function resetRolePermissions(string $roleIdentifier)
     {
+        // Try to find the role by ID first, then by name
+        $role = \App\Models\Role::find($roleIdentifier);
+        $roleName = $role ? $role->name : $roleIdentifier;
+        
         // Define default permissions for each role
         $defaultPermissions = [
             'Super Admin' => [], // Super Admin gets all permissions implicitly
-            'Reception Admin' => [],
-            'Pharmacy Admin' => [],
-            'Laboratory Admin' => [],
-            'Sub Super Admin' => [],
+            'Reception Admin' => ['view-appointments', 'create-appointments', 'edit-appointments', 'view-patients', 'create-patients'],
+            'Pharmacy Admin' => ['view-pharmacy', 'view-medicines', 'edit-medicines', 'view-sales'],
+            'Laboratory Admin' => ['view-laboratory', 'view-lab-test-requests', 'process-lab-test-requests', 'view-lab-tests'],
+            'Sub Super Admin' => ['view-admin-dashboard', 'view-users', 'view-patients', 'view-appointments'],
         ];
 
         // Validate the role
-        if (!isset($defaultPermissions[$role])) {
+        if (!isset($defaultPermissions[$roleName])) {
             return response()->json(['error' => 'Invalid role specified.'], 400);
         }
 
         // Clear existing role permissions
-        RolePermission::where('role', $role)->delete();
+        if ($role) {
+            // For normalized roles, use the relationship
+            $role->permissions()->sync([]);
+        } else {
+            // For legacy roles
+            RolePermission::where('role', $roleName)->delete();
+        }
 
         // Get permission IDs for default permissions
-        $permissionIds = Permission::whereIn('name', $defaultPermissions[$role])->pluck('id')->toArray();
+        $permissionIds = Permission::whereIn('name', $defaultPermissions[$roleName])->pluck('id')->toArray();
 
         // Add default permissions
-        foreach ($permissionIds as $permissionId) {
-            RolePermission::create([
-                'role' => $role,
-                'permission_id' => $permissionId,
-            ]);
+        if ($role) {
+            $role->permissions()->sync($permissionIds);
+        } else {
+            foreach ($permissionIds as $permissionId) {
+                RolePermission::create([
+                    'role' => $roleName,
+                    'permission_id' => $permissionId,
+                ]);
+            }
         }
 
         return response()->json(['success' => 'Role permissions reset to default successfully.']);

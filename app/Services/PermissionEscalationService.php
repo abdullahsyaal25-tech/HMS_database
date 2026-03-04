@@ -13,6 +13,14 @@ use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
+/**
+ * Permission Escalation Service - DEACTIVATED
+ * 
+ * This service has been deactivated as part of RBAC cleanup.
+ * All methods now return safe default values.
+ * 
+ * @deprecated This service is no longer in use
+ */
 class PermissionEscalationService
 {
     /**
@@ -31,644 +39,301 @@ class PermissionEscalationService
     protected int $defaultEscalationDuration = 24;
 
     /**
-     * Escalation levels with their approval requirements.
+     * Escalation levels with their approval requirements - Empty.
      */
-    protected array $escalationLevels = [
-        1 => [
-            'name' => 'Temporary Access',
-            'duration_hours' => 24,
-            'approvers' => ['department_admin'],
-            'auto_approve' => false,
-        ],
-        2 => [
-            'name' => 'Extended Access',
-            'duration_hours' => 168, // 7 days
-            'approvers' => ['hospital_admin', 'department_admin'],
-            'auto_approve' => false,
-        ],
-        3 => [
-            'name' => 'Privileged Access',
-            'duration_hours' => 720, // 30 days
-            'approvers' => ['sub-super-admin', 'hospital_admin'],
-            'auto_approve' => false,
-        ],
-        4 => [
-            'name' => 'Emergency Access',
-            'duration_hours' => 4,
-            'approvers' => ['super-admin', 'sub-super-admin'],
-            'auto_approve' => false,
-            'requires_justification' => true,
-        ],
-    ];
+    protected array $escalationLevels = [];
 
     /**
-     * Create a permission escalation request.
-     *
-     * @param int $requesterId The user requesting escalation
-     * @param array $requestedPermissions Array of permission names
-     * @param string $justification Business justification
-     * @param int $duration Duration in hours (optional)
-     * @param int|null $escalationLevel Escalation level (1-4)
-     * @return array Result with success status and message
+     * Request emergency access - Returns null.
      */
-    public function createEscalationRequest(
-        int $requesterId,
-        array $requestedPermissions,
-        string $justification,
-        ?int $duration = null,
-        ?int $escalationLevel = 1
-    ): array {
-        try {
-            $requester = User::findOrFail($requesterId);
-
-            // Validate escalation level
-            if (!isset($this->escalationLevels[$escalationLevel])) {
-                return [
-                    'success' => false,
-                    'message' => 'Invalid escalation level',
-                ];
-            }
-
-            $levelConfig = $this->escalationLevels[$escalationLevel];
-
-            // Validate requested permissions exist
-            $validPermissions = Permission::whereIn('name', $requestedPermissions)->pluck('name')->toArray();
-            $invalidPermissions = array_diff($requestedPermissions, $validPermissions);
-
-            if (!empty($invalidPermissions)) {
-                return [
-                    'success' => false,
-                    'message' => 'Invalid permissions requested',
-                    'invalid_permissions' => $invalidPermissions,
-                ];
-            }
-
-            // Determine duration
-            $escalationDuration = $duration ?? $levelConfig['duration_hours'];
-
-            // Validate duration doesn't exceed maximum
-            if ($escalationDuration > $this->maxEscalationDuration) {
-                $escalationDuration = $this->maxEscalationDuration;
-            }
-
-            // Create the escalation request
-            $escalationRequest = PermissionChangeRequest::create([
-                'requester_id' => $requesterId,
-                'requested_permissions' => $validPermissions,
-                'justification' => $justification,
-                'duration_hours' => $escalationDuration,
-                'escalation_level' => $escalationLevel,
-                'status' => 'pending',
-                'requested_at' => now(),
-                'expires_at' => now()->addHours($escalationDuration),
-            ]);
-
-            // Get approval chain
-            $approvalChain = $this->getApprovalChain($requesterId, $escalationLevel);
-
-            // Log the request
-            $this->auditEscalationEvent('escalation_requested', $escalationRequest->id, $requesterId, [
-                'permissions' => $validPermissions,
-                'duration_hours' => $escalationDuration,
-                'escalation_level' => $escalationLevel,
-                'approval_chain' => $approvalChain,
-            ]);
-
-            // Notify potential approvers
-            $this->notifyApprovers($escalationRequest, $approvalChain);
-
-            return [
-                'success' => true,
-                'message' => 'Escalation request submitted successfully',
-                'request_id' => $escalationRequest->id,
-                'approval_chain' => $approvalChain,
-                'expires_at' => $escalationRequest->expires_at,
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('Failed to create escalation request: ' . $e->getMessage());
-
-            return [
-                'success' => false,
-                'message' => 'Failed to create escalation request',
-            ];
-        }
+    public function requestEmergencyAccess(int $userId, string $permission, string $reason): ?TemporaryPermission
+    {
+        // Deactivated - always return null
+        return null;
     }
 
     /**
-     * Get the approval chain for an escalation request.
-     *
-     * @param int $requesterId The user requesting escalation
-     * @param int $escalationLevel The escalation level
-     * @return array Array of approvers with their details
+     * Approve emergency access - Does nothing.
      */
-    public function getApprovalChain(int $requesterId, int $escalationLevel): array
+    public function approveEmergencyAccess(int $requestId, int $approverId): void
     {
-        $requester = User::findOrFail($requesterId);
-        $levelConfig = $this->escalationLevels[$escalationLevel];
-        $approverRoles = $levelConfig['approvers'];
-
-        $approvalChain = [];
-
-        foreach ($approverRoles as $roleSlug) {
-            $approvers = User::whereHas('roleModel', function ($query) use ($roleSlug) {
-                $query->where('slug', $roleSlug);
-            })->get();
-
-            foreach ($approvers as $approver) {
-                // Don't include the requester as their own approver
-                if ($approver->id !== $requesterId) {
-                    $approvalChain[] = [
-                        'user_id' => $approver->id,
-                        'name' => $approver->name,
-                        'role' => $approver->roleModel->name ?? $approver->role,
-                        'role_slug' => $approver->roleModel->slug ?? $roleSlug,
-                        'order' => array_search($roleSlug, $approverRoles) + 1,
-                    ];
-                }
-            }
-        }
-
-        return $approvalChain;
+        // Deactivated
     }
 
     /**
-     * Approve an escalation request.
-     *
-     * @param int $approverId The user approving the request
-     * @param int $requestId The escalation request ID
-     * @return array Result with success status and message
+     * Deny emergency access - Does nothing.
      */
-    public function approveEscalation(int $approverId, int $requestId): array
+    public function denyEmergencyAccess(int $requestId, int $denierId, string $reason): void
     {
-        try {
-            $approver = User::findOrFail($approverId);
-            $escalationRequest = PermissionChangeRequest::findOrFail($requestId);
-
-            // Validate approver can approve this request
-            $approvalChain = $this->getApprovalChain($escalationRequest->requester_id, $escalationRequest->escalation_level);
-            $canApprove = collect($approvalChain)->contains('user_id', $approverId);
-
-            if (!$canApprove) {
-                return [
-                    'success' => false,
-                    'message' => 'You are not authorized to approve this request',
-                ];
-            }
-
-            // Check if already approved by this approver
-            $approvals = $escalationRequest->approvals ?? [];
-            if (collect($approvals)->contains('approver_id', $approverId)) {
-                return [
-                    'success' => false,
-                    'message' => 'You have already approved this request',
-                ];
-            }
-
-            // Add approval
-            $approvals[] = [
-                'approver_id' => $approverId,
-                'approver_name' => $approver->name,
-                'approved_at' => now()->toIso8601String(),
-            ];
-
-            // Check if all required approvers have approved
-            $requiredApprovers = count($approvalChain);
-            $currentApprovals = count($approvals);
-
-            $escalationRequest->update([
-                'approvals' => $approvals,
-                'approver_id' => $approverId,
-                'approved_at' => $currentApprovals >= $requiredApprovers ? now() : null,
-                'status' => $currentApprovals >= $requiredApprovers ? 'approved' : 'pending',
-            ]);
-
-            $this->auditEscalationEvent('escalation_approved', $requestId, $approverId, [
-                'approvals' => $approvals,
-                'fully_approved' => $currentApprovals >= $requiredApprovers,
-            ]);
-
-            if ($currentApprovals >= $requiredApprovers) {
-                // Auto-activate if fully approved
-                return $this->activateEscalation($requestId);
-            }
-
-            return [
-                'success' => true,
-                'message' => 'Escalation request approved',
-                'approvals_received' => $currentApprovals,
-                'approvals_required' => $requiredApprovers,
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('Failed to approve escalation request: ' . $e->getMessage());
-
-            return [
-                'success' => false,
-                'message' => 'Failed to approve escalation request',
-            ];
-        }
+        // Deactivated
     }
 
     /**
-     * Deny an escalation request.
-     *
-     * @param int $approverId The user denying the request
-     * @param int $requestId The escalation request ID
-     * @param string $reason Reason for denial
-     * @return array Result with success status and message
+     * Check if user has emergency access - Always returns false.
      */
-    public function denyEscalation(int $approverId, int $requestId, string $reason): array
+    public function hasEmergencyAccess(int $userId, string $permission): bool
     {
-        try {
-            $approver = User::findOrFail($approverId);
-            $escalationRequest = PermissionChangeRequest::findOrFail($requestId);
-
-            // Validate approver can deny this request
-            $approvalChain = $this->getApprovalChain($escalationRequest->requester_id, $escalationRequest->escalation_level);
-            $canDeny = collect($approvalChain)->contains('user_id', $approverId);
-
-            if (!$canDeny) {
-                return [
-                    'success' => false,
-                    'message' => 'You are not authorized to deny this request',
-                ];
-            }
-
-            $escalationRequest->update([
-                'status' => 'denied',
-                'approver_id' => $approverId,
-                'denied_at' => now(),
-                'denial_reason' => $reason,
-            ]);
-
-            $this->auditEscalationEvent('escalation_denied', $requestId, $approverId, [
-                'reason' => $reason,
-            ]);
-
-            return [
-                'success' => true,
-                'message' => 'Escalation request denied',
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('Failed to deny escalation request: ' . $e->getMessage());
-
-            return [
-                'success' => false,
-                'message' => 'Failed to deny escalation request',
-            ];
-        }
+        return false;
     }
 
     /**
-     * Activate an approved escalation request.
-     *
-     * @param int $requestId The escalation request ID
-     * @return array Result with success status and message
+     * Revoke emergency access - Does nothing.
      */
-    public function activateEscalation(int $requestId): array
+    public function revokeEmergencyAccess(int $userId, string $permission): void
     {
-        try {
-            $escalationRequest = PermissionChangeRequest::findOrFail($requestId);
-
-            if ($escalationRequest->status !== 'approved') {
-                return [
-                    'success' => false,
-                    'message' => 'Escalation request must be approved before activation',
-                ];
-            }
-
-            $requester = User::findOrFail($escalationRequest->requester_id);
-
-            // Create temporary permissions for the requester
-            $permissions = $escalationRequest->requested_permissions;
-            $expiresAt = $escalationRequest->expires_at;
-
-            foreach ($permissions as $permissionName) {
-                $permission = Permission::where('name', $permissionName)->first();
-
-                if ($permission) {
-                    TemporaryPermission::create([
-                        'user_id' => $requester->id,
-                        'permission_id' => $permission->id,
-                        'granted_by' => $escalationRequest->approver_id,
-                        'granted_at' => now(),
-                        'expires_at' => $expiresAt,
-                        'reason' => $escalationRequest->justification,
-                        'is_active' => true,
-                    ]);
-
-                    // Clear user permission cache
-                    $requester->clearPermissionCache();
-                }
-            }
-
-            $escalationRequest->update([
-                'status' => 'active',
-                'activated_at' => now(),
-            ]);
-
-            $this->auditEscalationEvent('escalation_activated', $requestId, $escalationRequest->approver_id, [
-                'permissions' => $permissions,
-                'expires_at' => $expiresAt,
-            ]);
-
-            return [
-                'success' => true,
-                'message' => 'Escalation activated successfully',
-                'permissions' => $permissions,
-                'expires_at' => $expiresAt,
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('Failed to activate escalation: ' . $e->getMessage());
-
-            return [
-                'success' => false,
-                'message' => 'Failed to activate escalation',
-            ];
-        }
+        // Deactivated
     }
 
     /**
-     * Expire an escalation request when duration ends.
-     *
-     * @param int $requestId The escalation request ID
-     * @return array Result with success status and message
+     * Get active emergency accesses - Returns empty collection.
      */
-    public function expireEscalation(int $requestId): array
+    public function getActiveEmergencyAccesses()
     {
-        try {
-            $escalationRequest = PermissionChangeRequest::findOrFail($requestId);
-
-            if ($escalationRequest->status !== 'active') {
-                return [
-                    'success' => false,
-                    'message' => 'Escalation is not active',
-                ];
-            }
-
-            $requester = User::findOrFail($escalationRequest->requester_id);
-
-            // Deactivate temporary permissions
-            TemporaryPermission::where('user_id', $requester->id)
-                ->where('reason', 'like', '%' . $escalationRequest->id . '%')
-                ->orWhere('expires_at', $escalationRequest->expires_at)
-                ->update(['is_active' => false]);
-
-            $escalationRequest->update([
-                'status' => 'expired',
-                'expired_at' => now(),
-            ]);
-
-            // Clear user permission cache
-            $requester->clearPermissionCache();
-
-            $this->auditEscalationEvent('escalation_expired', $requestId, $requester->id, []);
-
-            return [
-                'success' => true,
-                'message' => 'Escalation expired successfully',
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('Failed to expire escalation: ' . $e->getMessage());
-
-            return [
-                'success' => false,
-                'message' => 'Failed to expire escalation',
-            ];
-        }
+        return collect();
     }
 
     /**
-     * Get pending approvals for an approver.
-     *
-     * @param int $approverId The approver user ID
-     * @return array Array of pending escalation requests
+     * Get expired emergency accesses - Returns empty collection.
      */
-    public function getPendingApprovals(int $approverId): array
+    public function getExpiredEmergencyAccesses()
     {
-        $approver = User::findOrFail($approverId);
-        $approverRoleSlug = $approver->roleModel->slug ?? '';
-
-        $pendingRequests = PermissionChangeRequest::where('status', 'pending')
-            ->where('requester_id', '!=', $approverId)
-            ->get();
-
-        $filteredRequests = [];
-
-        foreach ($pendingRequests as $request) {
-            $approvalChain = $this->getApprovalChain($request->requester_id, $request->escalation_level);
-
-            foreach ($approvalChain as $approverInfo) {
-                if ($approverInfo['user_id'] === $approverId) {
-                    // Check if already approved
-                    $approvals = $request->approvals ?? [];
-                    $alreadyApproved = collect($approvals)->contains('approver_id', $approverId);
-
-                    if (!$alreadyApproved) {
-                        $filteredRequests[] = [
-                            'request_id' => $request->id,
-                            'requester_id' => $request->requester_id,
-                            'requester_name' => User::find($request->requester_id)?->name,
-                            'permissions' => $request->requested_permissions,
-                            'justification' => $request->justification,
-                            'duration_hours' => $request->duration_hours,
-                            'escalation_level' => $request->escalation_level,
-                            'escalation_level_name' => $this->escalationLevels[$request->escalation_level]['name'],
-                            'requested_at' => $request->requested_at,
-                            'expires_at' => $request->expires_at,
-                            'order' => $approverInfo['order'],
-                        ];
-                    }
-                }
-            }
-        }
-
-        // Sort by order and then by requested_at
-        usort($filteredRequests, function ($a, $b) {
-            if ($a['order'] !== $b['order']) {
-                return $a['order'] <=> $b['order'];
-            }
-            return $a['requested_at'] <=> $b['requested_at'];
-        });
-
-        return $filteredRequests;
+        return collect();
     }
 
     /**
-     * Grant emergency access with 4-hour limit.
-     *
-     * @param int $userId The user to grant emergency access
-     * @param string $reason Reason for emergency access
-     * @param int|null $approverId The user granting the access
-     * @return array Result with success status and message
+     * Cleanup expired accesses - Does nothing.
      */
-    public function emergencyAccess(int $userId, string $reason, ?int $approverId = null): array
+    public function cleanupExpiredAccesses(): void
     {
-        try {
-            $user = User::findOrFail($userId);
-            $approver = $approverId ? User::find($approverId) : null;
-
-            // Get emergency permissions (subset of critical permissions)
-            $emergencyPermissions = Permission::where('risk_level', '>=', 3)
-                ->orWhere('is_critical', true)
-                ->pluck('name')
-                ->toArray();
-
-            $expiresAt = now()->addHours($this->emergencyAccessDuration);
-
-            // Create temporary permissions
-            foreach ($emergencyPermissions as $permissionName) {
-                $permission = Permission::where('name', $permissionName)->first();
-
-                if ($permission) {
-                    TemporaryPermission::create([
-                        'user_id' => $user->id,
-                        'permission_id' => $permission->id,
-                        'granted_by' => $approverId,
-                        'granted_at' => now(),
-                        'expires_at' => $expiresAt,
-                        'reason' => "Emergency access: {$reason}",
-                        'is_active' => true,
-                        'is_emergency' => true,
-                    ]);
-                }
-            }
-
-            // Clear user permission cache
-            $user->clearPermissionCache();
-
-            $this->auditEscalationEvent('emergency_access_granted', 0, $userId, [
-                'permissions' => $emergencyPermissions,
-                'expires_at' => $expiresAt,
-                'reason' => $reason,
-                'granted_by' => $approver?->name,
-            ]);
-
-            return [
-                'success' => true,
-                'message' => 'Emergency access granted for 4 hours',
-                'permissions' => $emergencyPermissions,
-                'expires_at' => $expiresAt,
-                'emergency_duration_hours' => $this->emergencyAccessDuration,
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('Failed to grant emergency access: ' . $e->getMessage());
-
-            return [
-                'success' => false,
-                'message' => 'Failed to grant emergency access',
-            ];
-        }
+        // Deactivated
     }
 
     /**
-     * Audit an escalation event.
-     *
-     * @param string $event Event type
-     * @param int $requestId Escalation request ID
-     * @param int $userId User involved
-     * @param array $details Additional details
+     * Request permission escalation - Returns null.
      */
-    public function auditEscalationEvent(string $event, int $requestId, int $userId, array $details = []): void
+    public function requestPermissionEscalation(int $userId, string $permission, int $level, string $reason): ?PermissionChangeRequest
     {
-        try {
-            $user = User::find($userId);
-            $request = $requestId > 0 ? PermissionChangeRequest::find($requestId) : null;
-
-            AuditLog::create([
-                'user_id' => $userId,
-                'user_name' => $user?->name ?? 'System',
-                'user_role' => $user?->role ?? 'System',
-                'action' => "Escalation: {$event}",
-                'target_type' => 'PermissionEscalation',
-                'target_id' => $requestId,
-                'target_name' => $request ? "Escalation #{$requestId}" : 'N/A',
-                'details' => json_encode([
-                    'event' => $event,
-                    'request_id' => $requestId,
-                    'details' => $details,
-                ]),
-                'severity' => $this->getEventSeverity($event),
-                'ip_address' => Request::ip(),
-                'user_agent' => Request::userAgent(),
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Failed to audit escalation event: ' . $e->getMessage());
-        }
+        // Deactivated
+        return null;
     }
 
     /**
-     * Get severity level for an escalation event.
+     * Approve escalation request - Does nothing.
      */
-    protected function getEventSeverity(string $event): string
+    public function approveEscalationRequest(int $requestId, int $approverId): void
     {
-        $highSeverityEvents = [
-            'escalation_denied',
-            'escalation_expired',
-            'emergency_access_granted',
+        // Deactivated
+    }
+
+    /**
+     * Deny escalation request - Does nothing.
+     */
+    public function denyEscalationRequest(int $requestId, int $denierId, string $reason): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get pending escalation requests - Returns empty collection.
+     */
+    public function getPendingEscalationRequests(int $approverId = null)
+    {
+        return collect();
+    }
+
+    /**
+     * Get escalation history - Returns empty collection.
+     */
+    public function getEscalationHistory(int $userId = null)
+    {
+        return collect();
+    }
+
+    /**
+     * Check escalation eligibility - Always returns false.
+     */
+    public function checkEscalationEligibility(int $userId, string $permission): bool
+    {
+        return false;
+    }
+
+    /**
+     * Get escalation level - Returns 0.
+     */
+    public function getEscalationLevel(string $permission): int
+    {
+        return 0;
+    }
+
+    /**
+     * Get escalation duration - Returns 0.
+     */
+    public function getEscalationDuration(int $level): int
+    {
+        return 0;
+    }
+
+    /**
+     * Auto-approve escalation - Always returns false.
+     */
+    public function isAutoApproved(int $level): bool
+    {
+        return false;
+    }
+
+    /**
+     * Get required approvers - Returns empty array.
+     */
+    public function getRequiredApprovers(int $level): array
+    {
+        return [];
+    }
+
+    /**
+     * Escalate temporarily - Returns null.
+     */
+    public function escalateTemporarily(int $userId, string $permission, int $durationHours): ?TemporaryPermission
+    {
+        // Deactivated
+        return null;
+    }
+
+    /**
+     * Revoke temporary escalation - Does nothing.
+     */
+    public function revokeTemporaryEscalation(int $userId, string $permission): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get active temporary escalations - Returns empty collection.
+     */
+    public function getActiveTemporaryEscalations(int $userId = null)
+    {
+        return collect();
+    }
+
+    /**
+     * Check if escalation is active - Always returns false.
+     */
+    public function isEscalationActive(int $userId, string $permission): bool
+    {
+        return false;
+    }
+
+    /**
+     * Get escalation expiry - Returns null.
+     */
+    public function getEscalationExpiry(int $escalationId)
+    {
+        return null;
+    }
+
+    /**
+     * Extend escalation - Does nothing.
+     */
+    public function extendEscalation(int $escalationId, int $additionalHours): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get escalation statistics - Returns empty array.
+     */
+    public function getEscalationStatistics(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get user escalation count - Returns 0.
+     */
+    public function getUserEscalationCount(int $userId, int $days = 30): int
+    {
+        return 0;
+    }
+
+    /**
+     * Check escalation limit - Always returns true.
+     */
+    public function checkEscalationLimit(int $userId): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get escalation limits - Returns empty array.
+     */
+    public function getEscalationLimits(): array
+    {
+        return [];
+    }
+
+    /**
+     * Update escalation limits - Does nothing.
+     */
+    public function updateEscalationLimits(array $limits): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Get escalation trends - Returns empty array.
+     */
+    public function getEscalationTrends(int $days = 30): array
+    {
+        return [];
+    }
+
+    /**
+     * Get escalation approval workflow - Returns empty array.
+     */
+    public function getEscalationApprovalWorkflow(int $level): array
+    {
+        return [];
+    }
+
+    /**
+     * Validate escalation request - Always returns true.
+     */
+    public function validateEscalationRequest(int $userId, string $permission, int $level): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get escalation policy - Returns empty array.
+     */
+    public function getEscalationPolicy(): array
+    {
+        return [];
+    }
+
+    /**
+     * Update escalation policy - Does nothing.
+     */
+    public function updateEscalationPolicy(array $policy): void
+    {
+        // Deactivated
+    }
+
+    /**
+     * Export escalation data - Returns empty array.
+     */
+    public function exportEscalationData(array $filters = []): array
+    {
+        return [];
+    }
+
+    /**
+     * Get service status - Returns deactivated.
+     */
+    public function getServiceStatus(): array
+    {
+        return [
+            'status' => 'deactivated',
+            'message' => 'Permission escalation service is deactivated',
         ];
-
-        $warningSeverityEvents = [
-            'escalation_requested',
-            'escalation_approved',
-            'escalation_activated',
-        ];
-
-        if (in_array($event, $highSeverityEvents)) {
-            return 'high';
-        }
-
-        if (in_array($event, $warningSeverityEvents)) {
-            return 'warning';
-        }
-
-        return 'info';
-    }
-
-    /**
-     * Notify approvers of pending requests.
-     */
-    protected function notifyApprovers(PermissionChangeRequest $request, array $approvalChain): void
-    {
-        foreach ($approvalChain as $approver) {
-            // TODO: Implement notification system
-            Log::info('Escalation approval notification', [
-                'request_id' => $request->id,
-                'approver_id' => $approver['user_id'],
-                'requester_id' => $request->requester_id,
-            ]);
-        }
-    }
-
-    /**
-     * Get escalation levels configuration.
-     */
-    public function getEscalationLevels(): array
-    {
-        return $this->escalationLevels;
-    }
-
-    /**
-     * Get active escalations for a user.
-     */
-    public function getActiveEscalations(int $userId): array
-    {
-        return PermissionChangeRequest::where('requester_id', $userId)
-            ->where('status', 'active')
-            ->get()
-            ->map(function ($request) {
-                return [
-                    'request_id' => $request->id,
-                    'permissions' => $request->requested_permissions,
-                    'expires_at' => $request->expires_at,
-                    'remaining_hours' => now()->diffInHours($request->expires_at),
-                ];
-            })
-            ->toArray();
     }
 }

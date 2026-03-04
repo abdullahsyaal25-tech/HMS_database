@@ -58,19 +58,27 @@ export default function PharmacyLayout({
     const isAuthenticated = !!user;
     const totalAlerts = (alerts.lowStock || 0) + (alerts.expiringSoon || 0) + (alerts.expired || 0);
 
-    // Check if user is a pharmacy admin
-    const isPharmacyAdminUser = useCallback((): boolean => {
-        if (!user) return false;
+    // Check if user is NOT a super admin (meaning they are a restricted user like pharmacy admin)
+    const isRestrictedUser = useCallback((): boolean => {
+        if (!user) return true; // Not authenticated = restricted
         
+        // If user has is_super_admin flag set to true, they are NOT restricted
+        if (user.is_super_admin === true) {
+            return false;
+        }
+        
+        // Check if user is a super admin by role
         const userRole = user.role;
         const userRoleSlug = user.roleModel?.slug;
         
-        // Check for pharmacy admin role - be more flexible with matching
-        const isPharmacyRole = 
-            userRole?.toLowerCase().includes('pharmacy') ||
-            userRoleSlug?.toLowerCase().includes('pharmacy');
+        if (userRole === 'Super Admin' || 
+            userRole === 'super admin' || 
+            userRoleSlug === 'super-admin') {
+            return false;
+        }
         
-        return !!isPharmacyRole;
+        // If we get here, user is NOT a super admin (could be pharmacy admin or other)
+        return true;
     }, [user]);
 
     // Check if user has a specific permission
@@ -83,8 +91,8 @@ export default function PharmacyLayout({
         // Build navigation items
         const items: NavItem[] = [];
         
-        // Home - only for users who are NOT pharmacy admins (i.e., super admins)
-        if (!isPharmacyAdminUser()) {
+        // Home - only for unrestricted users (super admins)
+        if (!isRestrictedUser()) {
             items.push({
                 title: 'Home',
                 href: '/dashboard',
@@ -101,8 +109,8 @@ export default function PharmacyLayout({
             });
         }
         
-        // Sale Dashboard - only for users who are NOT pharmacy admins (i.e., super admins)
-        if (!isPharmacyAdminUser()) {
+        // Sale Dashboard - only for unrestricted users (super admins)
+        if (!isRestrictedUser()) {
             items.push({
                 title: 'Sale Dashboard',
                 href: '/pharmacy/sales/dashboard',
@@ -235,7 +243,7 @@ export default function PharmacyLayout({
         });
 
         return items;
-    }, [isPharmacyAdminUser, hasPermission]);
+    }, [isRestrictedUser, hasPermission]);
 
     return (
         <AppShell variant="sidebar">

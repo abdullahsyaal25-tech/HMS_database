@@ -8,8 +8,10 @@ interface AppointmentPrintModalProps {
     onClose: () => void;
     appointment: {
         appointment_id: string;
+        patient_id?: string;
         daily_sequence?: number;
         patient?: {
+            id?: number;
             first_name: string;
             father_name?: string;
             gender?: string;
@@ -156,6 +158,10 @@ export function AppointmentPrintModal({ isOpen, onClose, appointment }: Appointm
                     <div class="info-section">
                         <div class="section-title">Patient Information</div>
                         <div class="info-row">
+                            <span class="info-label">Patient ID:</span>
+                            <span class="info-value">${appointment.patient_id || appointment.patient?.id || 'N/A'}</span>
+                        </div>
+                        <div class="info-row">
                             <span class="info-label">Patient Name:</span>
                             <span class="info-value">${patientName}</span>
                         </div>
@@ -174,6 +180,10 @@ export function AppointmentPrintModal({ isOpen, onClose, appointment }: Appointm
                     </div>
                     <div class="info-section">
                         <div class="section-title">Appointment Details</div>
+                        <div class="info-row">
+                            <span class="info-label">Token Number:</span>
+                            <span class="info-value">${appointment.daily_sequence || '#' + appointment.appointment_id}</span>
+                        </div>
                         <div class="info-row">
                             <span class="info-label">Refer To: </span>
                             <span class="info-value">Dr. ${doctorName}</span>
@@ -260,6 +270,10 @@ export function AppointmentPrintModal({ isOpen, onClose, appointment }: Appointm
                     <div className="space-y-2 mb-4">
                         <h3 className="font-semibold text-gray-800 border-b pb-1">Patient Information</h3>
                         <div className="flex justify-between py-1">
+                            <span className="text-gray-600">Patient ID:</span>
+                            <span className="font-medium">{appointment.patient_id || appointment.patient?.id || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between py-1">
                             <span className="text-gray-600">Patient Name:</span>
                             <span className="font-medium">{appointment.patient?.first_name || 'N/A'}</span>
                         </div>
@@ -279,6 +293,10 @@ export function AppointmentPrintModal({ isOpen, onClose, appointment }: Appointm
 
                     <div className="space-y-2 mb-4">
                         <h3 className="font-semibold text-gray-800 border-b pb-1">Appointment Details</h3>
+                        <div className="flex justify-between py-1">
+                            <span className="text-gray-600">Token Number:</span>
+                            <span className="font-medium">{appointment.daily_sequence || '#' + appointment.appointment_id}</span>
+                        </div>
                         <div className="flex justify-between py-1">
                             <span className="text-gray-600">Doctor:</span>
                             <span className="font-medium">Dr. {appointment.doctor?.full_name || 'N/A'}</span>
