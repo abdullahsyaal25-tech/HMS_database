@@ -105,6 +105,15 @@ const defaultPermissions: Record<string, string[]> = {
     'Reception Admin': ['view-appointments', 'create-appointments', 'edit-appointments', 'view-patients', 'create-patients'],
 };
 
+// Format permission name from kebab-case to readable text
+const formatPermissionName = (name: string): string => {
+    if (!name) return '';
+    return name
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+};
+
 export default function PermissionsIndex({
     permissions,
     roles,
@@ -601,7 +610,7 @@ export default function PermissionsIndex({
                                                                     </div>
                                                                     <div className="flex-1 min-w-0">
                                                                         <p className="font-medium text-sm truncate">
-                                                                            {permission.name}
+                                                                            {formatPermissionName(permission.name)}
                                                                         </p>
                                                                         {permission.description && (
                                                                             <p className="text-xs text-gray-500 truncate">

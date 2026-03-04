@@ -293,7 +293,7 @@ class RBACSeeder extends Seeder
             ['name' => 'edit-departments', 'slug' => 'edit_departments', 'description' => 'Edit existing departments', 'resource' => 'departments', 'action' => 'edit', 'category' => 'System Configuration', 'module' => 'departments', 'segregation_group' => 'departments', 'risk_level' => 2],
             
             // Wallet/Finance
-            ['name' => 'wallet.view', 'slug' => 'wallet_view', 'description' => 'View wallet and revenue', 'resource' => 'wallet', 'action' => 'view', 'category' => 'Finance', 'module' => 'wallet', 'segregation_group' => 'finance', 'risk_level' => 2],
+            ['name' => 'view-wallet', 'slug' => 'view_wallet', 'description' => 'View wallet and revenue', 'resource' => 'wallet', 'action' => 'view', 'category' => 'Finance', 'module' => 'wallet', 'segregation_group' => 'finance', 'risk_level' => 2],
         ];
 
         foreach ($permissions as $permission) {
@@ -330,7 +330,7 @@ class RBACSeeder extends Seeder
                 'view-laboratory', 'create-lab-tests', 'edit-lab-tests',
                 'view-reports', 'view-settings', 'view-activity-logs',
                 'view-departments', 'create-departments', 'edit-departments',
-                'wallet.view',
+                'view-wallet',
                 'view-pharmacy', 'manage-medicines', 'process-prescriptions',
                 'view-laboratory', 'manage-lab-tests', 'process-test-results',
                 'view-rbac-dashboard', 'view-permission-matrix', 'view-activity-logs',
@@ -372,7 +372,7 @@ class RBACSeeder extends Seeder
                 'view-appointments', 'create-appointments', 'edit-appointments',
                 'view-reports', 'view-activity-logs',
                 'view-departments', 'create-departments', 'edit-departments',
-                'wallet.view',
+                'view-wallet',
                 'view-permission-templates', 'edit-role-permissions', 'reset-role-permissions'
             ],
             'doctor' => [

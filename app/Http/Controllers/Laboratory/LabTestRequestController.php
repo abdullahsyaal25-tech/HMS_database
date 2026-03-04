@@ -266,8 +266,8 @@ class LabTestRequestController extends Controller
      */
     public function update(UpdateLabTestRequest $request, LabTestRequest $labTestRequest): RedirectResponse|Response
     {
-        // Check permission for lab test request update
-        if (!Auth::user()->hasPermission('laboratory.labrequest.update')) {
+        // Check permission for updating lab test requests
+        if (!Auth::user()->hasPermission('edit-lab-requests')) {
             return Inertia::render('Errors/AccessDenied', [
                 'message' => 'You do not have permission to update lab test requests.'
             ]);
@@ -327,8 +327,8 @@ class LabTestRequestController extends Controller
      */
     public function destroy(LabTestRequest $labTestRequest): RedirectResponse|Response
     {
-        // Check permission for lab test request delete
-        if (!Auth::user()->hasPermission('laboratory.labrequest.delete')) {
+        // Check permission for deleting lab test requests
+        if (!Auth::user()->hasPermission('delete-lab-requests')) {
             return Inertia::render('Errors/AccessDenied', [
                 'message' => 'You do not have permission to delete lab test requests.'
             ]);
@@ -465,7 +465,7 @@ class LabTestRequestController extends Controller
         }
 
         if ($newStatus === 'cancelled') {
-            if (!Auth::user()->hasPermission('laboratory.labrequest.cancel')) {
+            if (!Auth::user()->hasPermission('cancel-lab-requests')) {
                 return Inertia::render('Errors/AccessDenied', [
                     'message' => 'You do not have permission to cancel lab test requests.'
                 ]);

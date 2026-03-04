@@ -23,12 +23,12 @@ class StockController extends Controller
     public function index(Request $request): Response
     {
         $user = Auth::user();
-        
-        // Check if user has appropriate role
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Super Admin'])) {
+
+        // Check if user has appropriate permission
+        if (!$user->hasPermission('view-pharmacy') && !$user->hasPermission('inventory-management')) {
             abort(403, 'Unauthorized access');
         }
-        
+
         $query = Medicine::with('category');
         
         // Apply filters
@@ -103,11 +103,11 @@ class StockController extends Controller
     public function movements(Request $request): Response
     {
         $user = Auth::user();
-        
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Super Admin'])) {
+
+        if (!$user->hasPermission('view-pharmacy') && !$user->hasPermission('inventory-management')) {
             abort(403, 'Unauthorized access');
         }
-        
+
         $query = StockMovement::with(['medicine', 'user'])
             ->orderBy('created_at', 'desc');
         

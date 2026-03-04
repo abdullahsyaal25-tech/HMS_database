@@ -139,7 +139,7 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
                 .print-container {
                     max-width: 210mm;
                     margin: 0 auto;
-                    padding: 10px;
+                    padding: 5px;
                     display: flex;
                     flex-direction: column;
                     align-items: center;
@@ -157,10 +157,9 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
                 .patient-table {
                     width: 100%;
                     border-collapse: collapse;
-                    margin: 10px 0;
+                    margin: 15px auto 10px auto;
                     font-size: 10px;
-                    margin-left: auto;
-                    margin-right: auto;
+                    max-width: 700px;
                 }
                 .patient-table td {
                     border: 1px solid #000;
@@ -184,8 +183,8 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
                     width: 100%;
                     border-collapse: collapse;
                     font-size: 10px;
-                    margin-left: auto;
-                    margin-right: auto;
+                    margin: 10px auto;
+                    max-width: 700px;
                 }
                 .results-table th {
                     border: 1px solid #000;
@@ -365,7 +364,7 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
 
                 <div ref={printRef} className="bg-white p-6 border rounded-lg">
                     {/* Patient Info */}
-                    <table className="w-full border-collapse mb-4 text-xs">
+                    <table className="w-full border-collapse mb-4 text-xs mx-auto" style={{ maxWidth: '700px', marginTop: '15px' }}>
                         <tbody>
                             <tr>
                                 <td className="border border-gray-400 px-1 py-0.5 font-semibold bg-gray-100 w-1/6">Receipt No:</td>
@@ -399,7 +398,7 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
                     </table>
 
                     {/* Results Table */}
-                    <div className="mb-4">
+                    <div className="mb-4 mt-4" style={{ maxWidth: '700px', margin: '10px auto' }}>
                         <h3 className="text-center font-bold text-sm mb-2">{testName || 'Test Results'}</h3>
                         <div className="border rounded overflow-hidden">
                             <table className="w-full text-xs">

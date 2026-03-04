@@ -275,6 +275,16 @@ class PermissionsController extends Controller
     }
 
     /**
+     * Display the user permissions management page (edit view).
+     *
+     * GET /admin/permissions/users/{user}/edit
+     */
+    public function editUserPermissions(User $user): Response
+    {
+        return $this->userPermissions($user);
+    }
+
+    /**
      * Display the user permissions management page.
      *
      * GET /admin/users/{user}/permissions
@@ -357,6 +367,17 @@ class PermissionsController extends Controller
     {
         $startTime = microtime(true);
         $currentUser = Auth::user();
+
+        // DIAGNOSTIC: Log entry
+        \Illuminate\Support\Facades\Log::debug('[PermissionsController] updateUserPermissions called', [
+            'url' => $request->fullUrl(),
+            'method' => $request->method(),
+            'user_id' => $user->id,
+            'current_user_id' => $currentUser->id,
+            'permissions' => $request->input('permissions'),
+            'grant_permissions' => $request->input('grant_permissions'),
+            'revoke_permissions' => $request->input('revoke_permissions'),
+        ]);
 
         // Additional authorization checks
         if (!$currentUser->isSuperAdmin()) {
@@ -535,7 +556,7 @@ class PermissionsController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.users.permissions.edit', $user->id)
+            ->route('admin.users.permissions', $user->id)
             ->with('success', "Permission '{$permission->name}' revoked successfully.");
     }
 

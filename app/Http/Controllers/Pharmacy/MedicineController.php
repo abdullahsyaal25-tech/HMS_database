@@ -215,7 +215,10 @@ class MedicineController extends Controller
      */
     public function create(): Response
     {
-        $this->authorizeMedicineModify();
+        // Check for create-medicines permission specifically for creating new medicines
+        if (!auth()->user()?->hasPermission('create-medicines')) {
+            abort(403, 'Unauthorized access');
+        }
         
         // Use cached categories instead of loading all
         $categories = $this->getMedicineCategories();
@@ -342,8 +345,8 @@ class MedicineController extends Controller
      */
     public function update(Request $request, string $id): RedirectResponse|Response
     {
-        // Check permission for pharmacy medicine update
-        if (!Auth::user()->hasPermission('pharmacy.medicine.update')) {
+        // Check permission for updating medicines
+        if (!Auth::user()->hasPermission('edit-medicines')) {
             return Inertia::render('Errors/AccessDenied', [
                 'message' => 'You do not have permission to update medicines.'
             ]);
@@ -407,8 +410,8 @@ class MedicineController extends Controller
      */
     public function destroy(Request $request, string $id): RedirectResponse|Response
     {
-        // Check permission for pharmacy medicine delete
-        if (!Auth::user()->hasPermission('pharmacy.medicine.delete')) {
+        // Check permission for deleting medicines
+        if (!Auth::user()->hasPermission('delete-medicines')) {
             return Inertia::render('Errors/AccessDenied', [
                 'message' => 'You do not have permission to delete medicines.'
             ]);
@@ -454,8 +457,8 @@ class MedicineController extends Controller
      */
     public function updateStock(Request $request, string $id): RedirectResponse|Response
     {
-        // Check permission for pharmacy medicine stock update
-        if (!Auth::user()->hasPermission('pharmacy.medicine.update-stock')) {
+        // Check permission for updating medicine stock
+        if (!Auth::user()->hasPermission('update-medicine-stock')) {
             return Inertia::render('Errors/AccessDenied', [
                 'message' => 'You do not have permission to update medicine stock.'
             ]);

@@ -15,7 +15,7 @@ class QualityControlController extends Controller
     public function index(): Response
     {
         // Check permission for quality control access
-        if (!Auth::user()->hasPermission('laboratory.qc.update')) {
+        if (!Auth::user()->hasPermission('quality-control')) {
             return Inertia::render('Errors/AccessDenied', [
                 'message' => 'You do not have permission to access quality control.'
             ]);

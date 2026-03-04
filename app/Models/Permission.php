@@ -5,12 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Str;
 
 class Permission extends Model
 {
     use HasFactory;
     protected $fillable = [
         'name',
+        'slug',
         'description',
         'resource',
         'action',
@@ -23,6 +25,18 @@ class Permission extends Model
         'hipaa_impact',
         'is_critical',
     ];
+
+    /**
+     * Boot the model.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function ($permission) {
+            if (empty($permission->slug)) {
+                $permission->slug = Str::slug($permission->name);
+            }
+        });
+    }
 
     protected $casts = [
         'requires_approval' => 'boolean',

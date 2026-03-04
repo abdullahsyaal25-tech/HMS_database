@@ -779,8 +779,8 @@ class SalesController extends Controller
      */
     public function void(Request $request, string $id): RedirectResponse|Response
     {
-        // Check permission for pharmacy sales void/delete
-        if (!Auth::user()->hasPermission('pharmacy.sales.void')) {
+        // Check permission for voiding sales
+        if (!Auth::user()->hasPermission('void-sales')) {
             return Inertia::render('Errors/AccessDenied', [
                 'message' => 'You do not have permission to void sales.'
             ]);

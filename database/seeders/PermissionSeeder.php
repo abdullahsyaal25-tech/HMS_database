@@ -65,96 +65,15 @@ class PermissionSeeder extends Seeder
 
     /**
      * Get all permissions based on the RBAC design document.
+     * Note: All dot-notation (custom) permissions have been removed.
+     * Only standard kebab-case permissions are kept.
      */
     private function getPermissions(): array
     {
         return [
-            // Authentication Permissions (AUTH)
+            // User Management Permissions (Standard Kebab-Case)
             [
-                'name' => 'auth.login',
-                'description' => 'Login to the system',
-                'module' => 'Authentication',
-                'category' => 'Authentication',
-                'risk_level' => 'low',
-                'requires_mfa' => false,
-                'requires_approval' => false,
-            ],
-            [
-                'name' => 'auth.logout',
-                'description' => 'Logout from the system',
-                'module' => 'Authentication',
-                'category' => 'Authentication',
-                'risk_level' => 'low',
-                'requires_mfa' => false,
-                'requires_approval' => false,
-            ],
-            [
-                'name' => 'auth.mfa.enable',
-                'description' => 'Enable MFA for own account',
-                'module' => 'Authentication',
-                'category' => 'Authentication',
-                'risk_level' => 'medium',
-                'requires_mfa' => true,
-                'requires_approval' => false,
-            ],
-            [
-                'name' => 'auth.mfa.disable',
-                'description' => 'Disable MFA for own account',
-                'module' => 'Authentication',
-                'category' => 'Authentication',
-                'risk_level' => 'medium',
-                'requires_mfa' => true,
-                'requires_approval' => false,
-            ],
-            [
-                'name' => 'auth.mfa.manage',
-                'description' => 'Manage MFA settings for other users',
-                'module' => 'Authentication',
-                'category' => 'Authentication',
-                'risk_level' => 'high',
-                'requires_mfa' => true,
-                'requires_approval' => true,
-            ],
-            [
-                'name' => 'auth.password.reset',
-                'description' => 'Reset user passwords',
-                'module' => 'Authentication',
-                'category' => 'Authentication',
-                'risk_level' => 'high',
-                'requires_mfa' => true,
-                'requires_approval' => true,
-            ],
-            [
-                'name' => 'auth.password.change',
-                'description' => 'Change own password',
-                'module' => 'Authentication',
-                'category' => 'Authentication',
-                'risk_level' => 'low',
-                'requires_mfa' => false,
-                'requires_approval' => false,
-            ],
-            [
-                'name' => 'auth.session.view',
-                'description' => 'View active sessions',
-                'module' => 'Authentication',
-                'category' => 'Authentication',
-                'risk_level' => 'medium',
-                'requires_mfa' => true,
-                'requires_approval' => false,
-            ],
-            [
-                'name' => 'auth.session.terminate',
-                'description' => 'Terminate sessions',
-                'module' => 'Authentication',
-                'category' => 'Authentication',
-                'risk_level' => 'high',
-                'requires_mfa' => true,
-                'requires_approval' => true,
-            ],
-
-            // User Management Permissions (USR)
-            [
-                'name' => 'users.view',
+                'name' => 'view-users',
                 'description' => 'View user list',
                 'module' => 'User Management',
                 'category' => 'User Management',
@@ -163,16 +82,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'users.view_all',
-                'description' => 'View all users including sensitive data',
-                'module' => 'User Management',
-                'category' => 'User Management',
-                'risk_level' => 'medium',
-                'requires_mfa' => true,
-                'requires_approval' => false,
-            ],
-            [
-                'name' => 'users.create',
+                'name' => 'create-users',
                 'description' => 'Create new users',
                 'module' => 'User Management',
                 'category' => 'User Management',
@@ -181,7 +91,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'users.update',
+                'name' => 'edit-users',
                 'description' => 'Update user information',
                 'module' => 'User Management',
                 'category' => 'User Management',
@@ -190,7 +100,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'users.delete',
+                'name' => 'delete-users',
                 'description' => 'Delete users',
                 'module' => 'User Management',
                 'category' => 'User Management',
@@ -199,7 +109,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
             [
-                'name' => 'users.manage_roles',
+                'name' => 'manage-user-roles',
                 'description' => 'Assign roles to users',
                 'module' => 'User Management',
                 'category' => 'User Management',
@@ -208,7 +118,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
             [
-                'name' => 'users.manage_permissions',
+                'name' => 'manage-user-permissions',
                 'description' => 'Assign permissions to users',
                 'module' => 'User Management',
                 'category' => 'User Management',
@@ -216,28 +126,10 @@ class PermissionSeeder extends Seeder
                 'requires_mfa' => true,
                 'requires_approval' => true,
             ],
-            [
-                'name' => 'users.export',
-                'description' => 'Export user data',
-                'module' => 'User Management',
-                'category' => 'User Management',
-                'risk_level' => 'medium',
-                'requires_mfa' => true,
-                'requires_approval' => false,
-            ],
-            [
-                'name' => 'users.view_audit',
-                'description' => 'View user audit logs',
-                'module' => 'User Management',
-                'category' => 'User Management',
-                'risk_level' => 'medium',
-                'requires_mfa' => true,
-                'requires_approval' => false,
-            ],
 
-            // Patient Management Permissions (PAT)
+            // Patient Management Permissions
             [
-                'name' => 'patients.view',
+                'name' => 'view-patients',
                 'description' => 'View patient list',
                 'module' => 'Patient Management',
                 'category' => 'Patient Management',
@@ -246,16 +138,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'patients.view_own',
-                'description' => 'View assigned patients only',
-                'module' => 'Patient Management',
-                'category' => 'Patient Management',
-                'risk_level' => 'low',
-                'requires_mfa' => false,
-                'requires_approval' => false,
-            ],
-            [
-                'name' => 'patients.create',
+                'name' => 'create-patients',
                 'description' => 'Register new patients',
                 'module' => 'Patient Management',
                 'category' => 'Patient Management',
@@ -264,7 +147,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'patients.update',
+                'name' => 'edit-patients',
                 'description' => 'Update patient information',
                 'module' => 'Patient Management',
                 'category' => 'Patient Management',
@@ -273,7 +156,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'patients.delete',
+                'name' => 'delete-patients',
                 'description' => 'Delete patient records',
                 'module' => 'Patient Management',
                 'category' => 'Patient Management',
@@ -282,7 +165,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
             [
-                'name' => 'patients.medical_records',
+                'name' => 'view-medical-records',
                 'description' => 'Access medical records',
                 'module' => 'Patient Management',
                 'category' => 'Patient Management',
@@ -291,7 +174,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'patients.medical_records.write',
+                'name' => 'write-medical-records',
                 'description' => 'Write medical records',
                 'module' => 'Patient Management',
                 'category' => 'Patient Management',
@@ -299,47 +182,10 @@ class PermissionSeeder extends Seeder
                 'requires_mfa' => false,
                 'requires_approval' => false,
             ],
-            [
-                'name' => 'patients.history',
-                'description' => 'View patient history',
-                'module' => 'Patient Management',
-                'category' => 'Patient Management',
-                'risk_level' => 'medium',
-                'requires_mfa' => false,
-                'requires_approval' => false,
-            ],
-            [
-                'name' => 'patients.export',
-                'description' => 'Export patient data',
-                'module' => 'Patient Management',
-                'category' => 'Patient Management',
-                'risk_level' => 'medium',
-                'requires_mfa' => true,
-                'requires_approval' => false,
-            ],
-            [
-                'name' => 'patients.merge',
-                'description' => 'Merge duplicate patient records',
-                'module' => 'Patient Management',
-                'category' => 'Patient Management',
-                'risk_level' => 'high',
-                'requires_mfa' => true,
-                'requires_approval' => true,
-            ],
-            [
-                'name' => 'patients.access_locked',
-                'description' => 'Access locked patient records',
-                'module' => 'Patient Management',
-                'category' => 'Patient Management',
-                'risk_level' => 'critical',
-                'requires_mfa' => true,
-                'requires_approval' => true,
-                'is_critical' => true,
-            ],
 
-            // Appointment Management Permissions (APT)
+            // Appointment Management Permissions
             [
-                'name' => 'appointments.view',
+                'name' => 'view-appointments',
                 'description' => 'View appointment list',
                 'module' => 'Appointment Management',
                 'category' => 'Appointment Management',
@@ -348,16 +194,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'appointments.view_own',
-                'description' => 'View own appointments',
-                'module' => 'Appointment Management',
-                'category' => 'Appointment Management',
-                'risk_level' => 'low',
-                'requires_mfa' => false,
-                'requires_approval' => false,
-            ],
-            [
-                'name' => 'appointments.create',
+                'name' => 'create-appointments',
                 'description' => 'Create appointments',
                 'module' => 'Appointment Management',
                 'category' => 'Appointment Management',
@@ -366,7 +203,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'appointments.update',
+                'name' => 'edit-appointments',
                 'description' => 'Update appointments',
                 'module' => 'Appointment Management',
                 'category' => 'Appointment Management',
@@ -375,7 +212,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'appointments.delete',
+                'name' => 'delete-appointments',
                 'description' => 'Cancel/delete appointments',
                 'module' => 'Appointment Management',
                 'category' => 'Appointment Management',
@@ -384,7 +221,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'appointments.approve',
+                'name' => 'approve-appointments',
                 'description' => 'Approve appointments',
                 'module' => 'Appointment Management',
                 'category' => 'Appointment Management',
@@ -393,7 +230,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'appointments.manage_all',
+                'name' => 'manage-all-appointments',
                 'description' => 'Manage all appointments',
                 'module' => 'Appointment Management',
                 'category' => 'Appointment Management',
@@ -401,39 +238,10 @@ class PermissionSeeder extends Seeder
                 'requires_mfa' => false,
                 'requires_approval' => false,
             ],
-            [
-                'name' => 'appointments.export',
-                'description' => 'Export appointment data',
-                'module' => 'Appointment Management',
-                'category' => 'Appointment Management',
-                'risk_level' => 'low',
-                'requires_mfa' => false,
-                'requires_approval' => false,
-            ],
 
-            // Wallet & Revenue Tracking Permissions (WLT)
+            // Pharmacy Permissions
             [
-                'name' => 'wallet.view',
-                'description' => 'View wallet and revenue tracking',
-                'module' => 'Wallet',
-                'category' => 'Finance',
-                'risk_level' => 'medium',
-                'requires_mfa' => false,
-                'requires_approval' => false,
-            ],
-            [
-                'name' => 'wallet.manage',
-                'description' => 'Manage wallet transactions',
-                'module' => 'Wallet',
-                'category' => 'Finance',
-                'risk_level' => 'high',
-                'requires_mfa' => true,
-                'requires_approval' => false,
-            ],
-
-            // Pharmacy Permissions (PHM)
-            [
-                'name' => 'pharmacy.view',
+                'name' => 'view-pharmacy',
                 'description' => 'View pharmacy data',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
@@ -442,7 +250,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'pharmacy.medicines.view',
+                'name' => 'view-medicines',
                 'description' => 'View medicine inventory',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
@@ -451,7 +259,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'pharmacy.medicines.create',
+                'name' => 'create-medicines',
                 'description' => 'Add new medicines',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
@@ -460,7 +268,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'pharmacy.medicines.update',
+                'name' => 'edit-medicines',
                 'description' => 'Update medicine information',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
@@ -469,7 +277,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'pharmacy.medicines.delete',
+                'name' => 'delete-medicines',
                 'description' => 'Delete medicines',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
@@ -478,7 +286,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
             [
-                'name' => 'pharmacy.inventory',
+                'name' => 'manage-inventory',
                 'description' => 'Manage inventory',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
@@ -487,7 +295,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'pharmacy.inventory.adjust',
+                'name' => 'adjust-inventory',
                 'description' => 'Adjust inventory levels',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
@@ -496,7 +304,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'pharmacy.stock.receive',
+                'name' => 'receive-stock',
                 'description' => 'Receive stock',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
@@ -505,7 +313,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'pharmacy.stock.count',
+                'name' => 'count-stock',
                 'description' => 'Perform stock count',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
@@ -514,8 +322,17 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'pharmacy.sales',
-                'description' => 'Process sales',
+                'name' => 'view-sales',
+                'description' => 'View sales records',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'create-sales',
+                'description' => 'Create new sales',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
                 'risk_level' => 'medium',
@@ -523,7 +340,25 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'pharmacy.prescriptions',
+                'name' => 'delete-sales',
+                'description' => 'Delete sales records',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'void-sales',
+                'description' => 'Void sales transactions',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'process-prescriptions',
                 'description' => 'Process prescriptions',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
@@ -532,8 +367,17 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'pharmacy.suppliers',
-                'description' => 'Manage suppliers',
+                'name' => 'view-suppliers',
+                'description' => 'View suppliers',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'create-suppliers',
+                'description' => 'Create suppliers',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
                 'risk_level' => 'medium',
@@ -541,8 +385,17 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'pharmacy.orders',
-                'description' => 'Manage purchase orders',
+                'name' => 'view-purchases',
+                'description' => 'View purchase orders',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'create-purchases',
+                'description' => 'Create purchase orders',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
                 'risk_level' => 'medium',
@@ -550,7 +403,25 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'pharmacy.reports',
+                'name' => 'receive-purchases',
+                'description' => 'Receive purchases',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'cancel-purchases',
+                'description' => 'Cancel purchases',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'view-pharmacy-reports',
                 'description' => 'View pharmacy reports',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
@@ -559,7 +430,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'pharmacy.reports.export',
+                'name' => 'export-pharmacy-reports',
                 'description' => 'Export pharmacy reports',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
@@ -568,8 +439,17 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'pharmacy.alerts.manage',
-                'description' => 'Manage alerts',
+                'name' => 'view-alerts',
+                'description' => 'View alerts',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'manage-alerts',
+                'description' => 'Manage pharmacy alerts',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
                 'risk_level' => 'medium',
@@ -577,8 +457,44 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'pharmacy.categories',
-                'description' => 'Manage categories',
+                'name' => 'manage-medicine-categories',
+                'description' => 'Manage medicine categories',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'view-low-stock-medicines',
+                'description' => 'View low stock medicines',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'view-expired-medicines',
+                'description' => 'View expired medicines',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'delete-expired-medicines',
+                'description' => 'Delete expired medicines',
+                'module' => 'Pharmacy',
+                'category' => 'Pharmacy',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'update-medicine-stock',
+                'description' => 'Update medicine stock',
                 'module' => 'Pharmacy',
                 'category' => 'Pharmacy',
                 'risk_level' => 'medium',
@@ -586,9 +502,9 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
 
-            // Laboratory Permissions (LAB)
+            // Laboratory Permissions
             [
-                'name' => 'laboratory.view',
+                'name' => 'view-laboratory',
                 'description' => 'View laboratory data',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -597,7 +513,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'laboratory.tests.view',
+                'name' => 'view-lab-tests',
                 'description' => 'View available tests',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -606,7 +522,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'laboratory.tests.create',
+                'name' => 'create-lab-tests',
                 'description' => 'Create new test types',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -615,7 +531,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'laboratory.tests.update',
+                'name' => 'edit-lab-tests',
                 'description' => 'Update test configurations',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -624,7 +540,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'laboratory.tests.delete',
+                'name' => 'delete-lab-tests',
                 'description' => 'Delete test types',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -633,7 +549,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
             [
-                'name' => 'laboratory.requests.view',
+                'name' => 'view-lab-requests',
                 'description' => 'View test requests',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -642,7 +558,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'laboratory.requests.create',
+                'name' => 'create-lab-requests',
                 'description' => 'Create test requests',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -651,7 +567,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'laboratory.requests.process',
+                'name' => 'process-lab-requests',
                 'description' => 'Process test requests',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -660,7 +576,16 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'laboratory.results.view',
+                'name' => 'cancel-lab-requests',
+                'description' => 'Cancel test requests',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'view-lab-results',
                 'description' => 'View test results',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -669,7 +594,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'laboratory.results.enter',
+                'name' => 'enter-lab-results',
                 'description' => 'Enter test results',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -678,7 +603,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'laboratory.results.validate',
+                'name' => 'validate-lab-results',
                 'description' => 'Validate test results',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -687,8 +612,26 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'laboratory.results.critical',
+                'name' => 'handle-critical-values',
                 'description' => 'Handle critical values',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'view-lab-materials',
+                'description' => 'View lab materials',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'create-lab-materials',
+                'description' => 'Create lab materials',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
                 'risk_level' => 'medium',
@@ -696,7 +639,25 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'laboratory.quality',
+                'name' => 'edit-lab-materials',
+                'description' => 'Edit lab materials',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'delete-lab-materials',
+                'description' => 'Delete lab materials',
+                'module' => 'Laboratory',
+                'category' => 'Laboratory',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'quality-control',
                 'description' => 'Quality control',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -705,7 +666,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'laboratory.reports',
+                'name' => 'view-lab-reports',
                 'description' => 'View laboratory reports',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -714,7 +675,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'laboratory.reports.export',
+                'name' => 'export-lab-reports',
                 'description' => 'Export laboratory reports',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -723,9 +684,9 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
 
-            // Report Permissions (RPT)
+            // Reports Permissions
             [
-                'name' => 'reports.view',
+                'name' => 'view-reports',
                 'description' => 'View reports',
                 'module' => 'Reports',
                 'category' => 'Reports',
@@ -734,7 +695,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'reports.create',
+                'name' => 'create-reports',
                 'description' => 'Create custom reports',
                 'module' => 'Reports',
                 'category' => 'Reports',
@@ -743,7 +704,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'reports.export',
+                'name' => 'export-reports',
                 'description' => 'Export reports',
                 'module' => 'Reports',
                 'category' => 'Reports',
@@ -752,7 +713,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'reports.scheduled',
+                'name' => 'scheduled-reports',
                 'description' => 'Manage scheduled reports',
                 'module' => 'Reports',
                 'category' => 'Reports',
@@ -761,7 +722,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'reports.audit',
+                'name' => 'view-audit-reports',
                 'description' => 'View audit reports',
                 'module' => 'Reports',
                 'category' => 'Reports',
@@ -770,7 +731,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'reports.financial',
+                'name' => 'view-financial-reports',
                 'description' => 'View financial reports',
                 'module' => 'Reports',
                 'category' => 'Reports',
@@ -779,7 +740,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'reports.hospital',
+                'name' => 'view-hospital-reports',
                 'description' => 'View hospital-wide reports',
                 'module' => 'Reports',
                 'category' => 'Reports',
@@ -788,7 +749,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'reports.department',
+                'name' => 'view-department-reports',
                 'description' => 'View department reports',
                 'module' => 'Reports',
                 'category' => 'Reports',
@@ -797,7 +758,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'reports.compliance',
+                'name' => 'view-compliance-reports',
                 'description' => 'View compliance reports',
                 'module' => 'Reports',
                 'category' => 'Reports',
@@ -806,9 +767,9 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
 
-            // System Configuration Permissions (SYS)
+            // System Configuration Permissions
             [
-                'name' => 'system.settings.view',
+                'name' => 'view-settings',
                 'description' => 'View system settings',
                 'module' => 'System Configuration',
                 'category' => 'System',
@@ -817,7 +778,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'system.settings.update',
+                'name' => 'edit-settings',
                 'description' => 'Update system settings',
                 'module' => 'System Configuration',
                 'category' => 'System',
@@ -826,7 +787,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
             [
-                'name' => 'system.backup',
+                'name' => 'manage-backups',
                 'description' => 'Manage backups',
                 'module' => 'System Configuration',
                 'category' => 'System',
@@ -835,7 +796,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
             [
-                'name' => 'system.restore',
+                'name' => 'restore-backups',
                 'description' => 'Restore from backup',
                 'module' => 'System Configuration',
                 'category' => 'System',
@@ -845,7 +806,7 @@ class PermissionSeeder extends Seeder
                 'is_critical' => true,
             ],
             [
-                'name' => 'system.maintenance',
+                'name' => 'maintenance-mode',
                 'description' => 'Perform maintenance',
                 'module' => 'System Configuration',
                 'category' => 'System',
@@ -854,7 +815,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
             [
-                'name' => 'system.logging',
+                'name' => 'manage-logging',
                 'description' => 'Manage logging settings',
                 'module' => 'System Configuration',
                 'category' => 'System',
@@ -863,7 +824,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
             [
-                'name' => 'system.api.manage',
+                'name' => 'manage-api-keys',
                 'description' => 'Manage API keys',
                 'module' => 'System Configuration',
                 'category' => 'System',
@@ -872,7 +833,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
             [
-                'name' => 'system.integrations',
+                'name' => 'manage-integrations',
                 'description' => 'Manage integrations',
                 'module' => 'System Configuration',
                 'category' => 'System',
@@ -881,7 +842,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
             [
-                'name' => 'system.cache',
+                'name' => 'manage-cache',
                 'description' => 'Manage cache',
                 'module' => 'System Configuration',
                 'category' => 'System',
@@ -890,7 +851,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'system.departments',
+                'name' => 'manage-departments',
                 'description' => 'Manage departments',
                 'module' => 'System Configuration',
                 'category' => 'System',
@@ -899,9 +860,9 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
 
-            // Security Permissions (SEC)
+            // Security Permissions
             [
-                'name' => 'security.audit',
+                'name' => 'view-audit-logs',
                 'description' => 'View audit logs',
                 'module' => 'Security',
                 'category' => 'Security',
@@ -910,7 +871,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'security.alerts',
+                'name' => 'view-security-alerts',
                 'description' => 'View security alerts',
                 'module' => 'Security',
                 'category' => 'Security',
@@ -919,7 +880,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'security.mfa',
+                'name' => 'manage-mfa',
                 'description' => 'Manage MFA settings',
                 'module' => 'Security',
                 'category' => 'Security',
@@ -928,7 +889,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
             [
-                'name' => 'security.password.policy',
+                'name' => 'manage-password-policy',
                 'description' => 'Manage password policy',
                 'module' => 'Security',
                 'category' => 'Security',
@@ -937,7 +898,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
             [
-                'name' => 'security.ip_restrictions',
+                'name' => 'manage-ip-restrictions',
                 'description' => 'Manage IP restrictions',
                 'module' => 'Security',
                 'category' => 'Security',
@@ -946,7 +907,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
             [
-                'name' => 'security.sessions',
+                'name' => 'manage-sessions',
                 'description' => 'Manage sessions',
                 'module' => 'Security',
                 'category' => 'Security',
@@ -955,7 +916,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'security.analyze',
+                'name' => 'security-analysis',
                 'description' => 'Security analysis',
                 'module' => 'Security',
                 'category' => 'Security',
@@ -964,13 +925,199 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'security.block',
+                'name' => 'block-users',
                 'description' => 'Block users/IPs',
                 'module' => 'Security',
                 'category' => 'Security',
                 'risk_level' => 'high',
                 'requires_mfa' => true,
                 'requires_approval' => true,
+            ],
+
+            // Super Admin Permission
+            [
+                'name' => 'super-admin',
+                'description' => 'Full system access',
+                'module' => 'System',
+                'category' => 'System',
+                'risk_level' => 'critical',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+                'is_critical' => true,
+            ],
+
+            // Role Management Permissions
+            [
+                'name' => 'view-roles',
+                'description' => 'View roles',
+                'module' => 'Role Management',
+                'category' => 'User Management',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'create-roles',
+                'description' => 'Create roles',
+                'module' => 'Role Management',
+                'category' => 'User Management',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'edit-roles',
+                'description' => 'Edit roles',
+                'module' => 'Role Management',
+                'category' => 'User Management',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'delete-roles',
+                'description' => 'Delete roles',
+                'module' => 'Role Management',
+                'category' => 'User Management',
+                'risk_level' => 'critical',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+                'is_critical' => true,
+            ],
+
+            // Permission Management Permissions
+            [
+                'name' => 'view-permissions',
+                'description' => 'View permissions',
+                'module' => 'Permission Management',
+                'category' => 'User Management',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'create-permissions',
+                'description' => 'Create permissions',
+                'module' => 'Permission Management',
+                'category' => 'User Management',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'edit-permissions',
+                'description' => 'Edit permissions',
+                'module' => 'Permission Management',
+                'category' => 'User Management',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+            [
+                'name' => 'delete-permissions',
+                'description' => 'Delete permissions',
+                'module' => 'Permission Management',
+                'category' => 'User Management',
+                'risk_level' => 'critical',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+                'is_critical' => true,
+            ],
+
+            // Doctor Management Permissions
+            [
+                'name' => 'view-doctors',
+                'description' => 'View doctors',
+                'module' => 'Doctor Management',
+                'category' => 'Hospital',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'create-doctors',
+                'description' => 'Create doctors',
+                'module' => 'Doctor Management',
+                'category' => 'Hospital',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'edit-doctors',
+                'description' => 'Edit doctors',
+                'module' => 'Doctor Management',
+                'category' => 'Hospital',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'delete-doctors',
+                'description' => 'Delete doctors',
+                'module' => 'Doctor Management',
+                'category' => 'Hospital',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+
+            // Department Management Permissions
+            [
+                'name' => 'view-departments',
+                'description' => 'View departments',
+                'module' => 'Department Management',
+                'category' => 'Hospital',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'create-departments',
+                'description' => 'Create departments',
+                'module' => 'Department Management',
+                'category' => 'Hospital',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'edit-departments',
+                'description' => 'Edit departments',
+                'module' => 'Department Management',
+                'category' => 'Hospital',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'delete-departments',
+                'description' => 'Delete departments',
+                'module' => 'Department Management',
+                'category' => 'Hospital',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+            ],
+
+            // Wallet/Revenue Permissions
+            [
+                'name' => 'view-wallet',
+                'description' => 'View wallet and revenue tracking',
+                'module' => 'Wallet',
+                'category' => 'Finance',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'manage-wallet',
+                'description' => 'Manage wallet transactions',
+                'module' => 'Wallet',
+                'category' => 'Finance',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => false,
             ],
         ];
     }

@@ -348,8 +348,8 @@ class ReportController extends Controller
      */
     public function deleteExpired(Request $request): RedirectResponse|Response
     {
-        // Check permission for pharmacy delete expired medicines
-        if (!Auth::user()->hasPermission('pharmacy.medicine.delete-expired')) {
+        // Check permission for deleting expired medicines
+        if (!Auth::user()->hasPermission('delete-expired-medicines')) {
             return Inertia::render('Errors/AccessDenied', [
                 'message' => 'You do not have permission to delete expired medicines.'
             ]);

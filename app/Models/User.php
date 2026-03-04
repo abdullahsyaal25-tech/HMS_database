@@ -21,6 +21,22 @@ class User extends Authenticatable
     use HasFactory, Notifiable, TwoFactorAuthenticatable, HasApiTokens, HasPermissions;
 
     /**
+     * Boot the model.
+     */
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::deleting(function ($user) {
+            \Log::warning('USER DELETED', [
+                'user_id' => $user->id,
+                'username' => $user->username,
+                'trace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10),
+            ]);
+        });
+    }
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>

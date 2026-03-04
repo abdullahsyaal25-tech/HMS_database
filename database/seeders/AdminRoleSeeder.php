@@ -74,63 +74,6 @@ class AdminRoleSeeder extends Seeder
                 'is_super_admin' => true,
             ],
 
-            // Priority 90 - Sub Super Admin
-            [
-                'name' => 'Sub Super Admin',
-                'slug' => 'sub-super-admin',
-                'description' => 'Administrative access to all modules except Super Admin management',
-                'priority' => 90,
-                'parent_role_id' => 1, // Super Admin
-                'module_access' => ['*'],
-                'data_visibility_scope' => ['*'],
-                'user_management_capabilities' => ['manage_users', 'manage_roles', 'manage_departments'],
-                'system_configuration_access' => ['read', 'modify'],
-                'reporting_permissions' => ['view', 'export', 'generate'],
-                'role_specific_limitations' => ['cannot_manage_super_admin', 'cannot_modify_super_admin_role'],
-                'mfa_required' => true,
-                'mfa_grace_period_days' => null,
-                'session_timeout_minutes' => 20,
-                'concurrent_session_limit' => 1,
-            ],
-
-            // Priority 80 - Hospital Admin
-            [
-                'name' => 'Hospital Admin',
-                'slug' => 'hospital-admin',
-                'description' => 'Full access to hospital operations within assigned hospital',
-                'priority' => 80,
-                'parent_role_id' => 2, // Sub Super Admin
-                'module_access' => ['patients', 'appointments', 'billing', 'pharmacy', 'laboratory', 'departments', 'staff', 'reports'],
-                'data_visibility_scope' => ['hospital_id' => 'current'],
-                'user_management_capabilities' => ['manage_staff', 'manage_department_heads'],
-                'system_configuration_access' => [],
-                'reporting_permissions' => ['view', 'export', 'generate'],
-                'role_specific_limitations' => ['hospital_scope_only'],
-                'mfa_required' => true,
-                'mfa_grace_period_days' => null,
-                'session_timeout_minutes' => 30,
-                'concurrent_session_limit' => 2,
-            ],
-
-            // Priority 70 - Department Admin
-            [
-                'name' => 'Department Admin',
-                'slug' => 'department-admin',
-                'description' => 'Full access to assigned department(s) with staff management',
-                'priority' => 70,
-                'parent_role_id' => 3, // Hospital Admin
-                'module_access' => ['department_specific_modules'],
-                'data_visibility_scope' => ['department_id' => 'assigned'],
-                'user_management_capabilities' => ['manage_own_staff'],
-                'system_configuration_access' => [],
-                'reporting_permissions' => ['view_department', 'export_department'],
-                'role_specific_limitations' => ['department_scope_only', 'no_cross_department_access'],
-                'mfa_required' => false,
-                'mfa_grace_period_days' => 7,
-                'session_timeout_minutes' => 45,
-                'concurrent_session_limit' => 2,
-            ],
-
             // Priority 60 - Module Admins
             [
                 'name' => 'Pharmacy Admin',
@@ -186,43 +129,6 @@ class AdminRoleSeeder extends Seeder
                 'concurrent_session_limit' => 3,
             ],
 
-            // Priority 30 - Staff
-            [
-                'name' => 'Staff',
-                'slug' => 'staff',
-                'description' => 'Limited feature access for daily operations',
-                'priority' => 30,
-                'parent_role_id' => 5, // Module Admin (default parent)
-                'module_access' => ['assigned_work_area'],
-                'data_visibility_scope' => ['assigned_patients', 'assigned_tasks'],
-                'user_management_capabilities' => [],
-                'system_configuration_access' => [],
-                'reporting_permissions' => ['view_own', 'export_own'],
-                'role_specific_limitations' => ['no_delete', 'no_financial_access', 'no_user_management'],
-                'mfa_required' => false,
-                'mfa_grace_period_days' => null,
-                'session_timeout_minutes' => 120,
-                'concurrent_session_limit' => 3,
-            ],
-
-            // Priority 10 - Viewer
-            [
-                'name' => 'Viewer',
-                'slug' => 'viewer',
-                'description' => 'Read-only access to public information and assigned reports',
-                'priority' => 10,
-                'parent_role_id' => 9, // Staff
-                'module_access' => ['public_info'],
-                'data_visibility_scope' => ['public' => true],
-                'user_management_capabilities' => [],
-                'system_configuration_access' => [],
-                'reporting_permissions' => ['view_public'],
-                'role_specific_limitations' => ['read_only', 'no_export', 'no_create', 'no_update', 'no_delete'],
-                'mfa_required' => false,
-                'mfa_grace_period_days' => null,
-                'session_timeout_minutes' => 240,
-                'concurrent_session_limit' => null, // Unlimited
-            ],
         ];
     }
 }

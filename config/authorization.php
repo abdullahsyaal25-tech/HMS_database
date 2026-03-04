@@ -118,19 +118,16 @@ return [
     */
     'critical_permissions' => [
         'super-admin',
-        'admin.users.delete',
-        'admin.roles.delete',
-        'admin.permissions.delete',
-        'system.backup.delete',
-        'system.settings.modify',
-        'system.maintenance',
-        'billing.refund',
-        'billing.void',
-        'patients.delete',
-        'patients.access_locked',
-        'doctors.delete',
-        'medicines.delete',
-        'audit.logs.delete',
+        'delete-users',
+        'delete-roles',
+        'delete-permissions',
+        'delete-patients',
+        'delete-doctors',
+        'delete-medicines',
+        'view-audit-logs',
+        'restore-backups',
+        'edit-settings',
+        'maintenance-mode',
     ],
 
     /*
@@ -142,9 +139,7 @@ return [
     */
     'privileged_roles' => [
         'super-admin',
-        'sub-super-admin',
         'hospital-admin',
-        'system-admin',
     ],
 
     /*
@@ -156,29 +151,30 @@ return [
     'permission_categories' => [
         'critical' => [
             'super-admin',
-            'admin.users.delete',
-            'admin.roles.delete',
-            'system.settings.modify',
+            'delete-users',
+            'delete-roles',
+            'delete-permissions',
+            'restore-backups',
         ],
         'high' => [
-            'admin.users.update',
-            'admin.roles.update',
-            'admin.permissions.assign',
-            'billing.refund',
-            'billing.void',
+            'edit-users',
+            'edit-roles',
+            'manage-user-permissions',
+            'view-financial-reports',
+            'edit-settings',
         ],
         'medium' => [
-            'admin.users.view',
-            'admin.roles.view',
-            'admin.permissions.view',
-            'patients.update',
-            'doctors.update',
+            'view-users',
+            'view-roles',
+            'view-permissions',
+            'edit-patients',
+            'edit-doctors',
         ],
         'low' => [
-            'patients.view',
-            'doctors.view',
-            'appointments.view',
-            'reports.view',
+            'view-patients',
+            'view-doctors',
+            'view-appointments',
+            'view-reports',
         ],
     ],
 

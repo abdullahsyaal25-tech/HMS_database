@@ -25,7 +25,7 @@ class PurchaseController extends Controller
     {
         $user = Auth::user();
         
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Super Admin'])) {
+        if (!$user->hasPermission('view-purchases')) {
             abort(403, 'Unauthorized access');
         }
         
@@ -87,7 +87,8 @@ class PurchaseController extends Controller
     {
         $user = Auth::user();
         
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Super Admin'])) {
+        // Use permission-based check instead of role-based
+        if (!$user->hasPermission('create-purchases')) {
             abort(403, 'Unauthorized access');
         }
         
@@ -111,7 +112,7 @@ class PurchaseController extends Controller
     {
         $user = Auth::user();
         
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Super Admin'])) {
+        if (!$user->hasPermission('create-purchases')) {
             abort(403, 'Unauthorized access');
         }
         
@@ -199,7 +200,7 @@ class PurchaseController extends Controller
     {
         $user = Auth::user();
         
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Super Admin'])) {
+        if (!$user->hasPermission('view-purchases')) {
             abort(403, 'Unauthorized access');
         }
         
@@ -215,11 +216,11 @@ class PurchaseController extends Controller
      */
     public function receive(Request $request, Purchase $purchase): RedirectResponse|Response
     {
-        // Check permission for pharmacy purchase receive
-        if (!Auth::user()->hasPermission('pharmacy.purchase.receive')) {
-            // return Inertia::render('Errors/AccessDenied', [
-            //     'message' => 'You do not have permission to receive purchases.'
-            // ]);
+        // Check permission for receiving purchases
+        if (!Auth::user()->hasPermission('receive-purchases')) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to receive purchases.'
+            ]);
         }
         
         $user = Auth::user();
@@ -282,8 +283,8 @@ class PurchaseController extends Controller
      */
     public function cancel(Request $request, Purchase $purchase): RedirectResponse|Response
     {
-        // Check permission for pharmacy purchase cancel
-        if (!Auth::user()->hasPermission('pharmacy.purchase.cancel')) {
+        // Check permission for canceling purchases
+        if (!Auth::user()->hasPermission('cancel-purchases')) {
             return Inertia::render('Errors/AccessDenied', [
                 'message' => 'You do not have permission to cancel purchases.'
             ]);
@@ -344,7 +345,7 @@ class PurchaseController extends Controller
     {
         $user = Auth::user();
         
-        if (!$user->hasAnyRole(['Hospital Admin', 'Pharmacy Admin', 'Super Admin'])) {
+        if (!$user->hasPermission('create-suppliers')) {
             abort(403, 'Unauthorized access');
         }
         

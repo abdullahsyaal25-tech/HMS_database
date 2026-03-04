@@ -130,7 +130,8 @@ export default function EditUserPermissions({ user, allPermissions, userPermissi
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        router.visit(`/admin/permissions/users/${user.id}`, {
+        // Use the route that matches the page URL pattern: /admin/users/{user}/permissions
+        router.visit(`/admin/users/${user.id}/permissions`, {
             method: 'post',
             data: {
                 permissions: selectedPermissions,
@@ -173,15 +174,26 @@ export default function EditUserPermissions({ user, allPermissions, userPermissi
         }
     };
 
+    // Format permission name from kebab-case to readable text
+    const formatPermissionName = (name: string): string => {
+        if (!name) return '';
+        return name
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    };
+
     const selectedCount = selectedPermissions.length;
     const totalPermissions = allPermissions.length;
     const isAllSelected = selectedCount === totalPermissions;
     const isNoneSelected = selectedCount === 0;
 
     // Check if user can edit this user
-    const canEdit = !auth.user.is_super_admin || user.is_super_admin 
-        ? auth.user.is_super_admin && !user.is_super_admin
-        : true;
+    // Super admins can edit anyone except other super admins (unless they are the only super admin)
+    // Regular admins can edit non-super-admin users
+    const canEdit = auth.user.is_super_admin
+        ? !user.is_super_admin  // Super admin can edit non-super-admins
+        : !user.is_super_admin; // Regular admin can edit non-super-admins
 
     return (
         <HospitalLayout header="Edit User Permissions">
@@ -384,7 +396,7 @@ export default function EditUserPermissions({ user, allPermissions, userPermissi
                                                                     "font-medium text-sm",
                                                                     isSelected ? "text-blue-900" : "text-gray-700"
                                                                 )}>
-                                                                    {permission.name}
+                                                                    {formatPermissionName(permission.name)}
                                                                 </span>
                                                                 {isCritical && (
                                                                     <Badge className="text-[10px] px-1 py-0 h-5 bg-red-100 text-red-700 border-red-200">

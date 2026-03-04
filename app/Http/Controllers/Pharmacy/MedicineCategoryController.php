@@ -104,8 +104,8 @@ class MedicineCategoryController extends Controller
      */
     public function update(Request $request, string $id): RedirectResponse|Response
     {
-        // Check permission for pharmacy category update
-        if (!Auth::user()->hasPermission('pharmacy.category.update')) {
+        // Check permission for updating medicine categories
+        if (!Auth::user()->hasPermission('manage-medicine-categories')) {
             return Inertia::render('Errors/AccessDenied', [
                 'message' => 'You do not have permission to update medicine categories.'
             ]);
@@ -136,8 +136,8 @@ class MedicineCategoryController extends Controller
      */
     public function destroy(Request $request, string $id): RedirectResponse|Response
     {
-        // Check permission for pharmacy category delete
-        if (!Auth::user()->hasPermission('pharmacy.category.delete')) {
+        // Check permission for deleting medicine categories
+        if (!Auth::user()->hasPermission('manage-medicine-categories')) {
             return Inertia::render('Errors/AccessDenied', [
                 'message' => 'You do not have permission to delete medicine categories.'
             ]);

@@ -249,13 +249,8 @@ class CheckPermission
             // Use AuthorizationService for standardized unauthorized access handling
             return $this->authorizationService->handleUnauthorizedAccess(
                 $request,
-                $permission,
-                $user,
-                [
-                    'reason' => 'permission_denied',
-                    'request_id' => $requestId,
-                    'risk_level' => $this->isCriticalPermission($permission) ? 'critical' : 'medium',
-                ]
+                "Access denied: '{$permission}' permission required.",
+                403
             );
         }
 

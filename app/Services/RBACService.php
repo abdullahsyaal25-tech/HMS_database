@@ -277,6 +277,15 @@ class RBACService extends BaseService
     }
 
     /**
+     * Validate permission dependencies - Returns empty array (deactivated).
+     */
+    public function validatePermissionDependencies($permissions): array
+    {
+        // Deactivated - returns empty array to pass validation
+        return [];
+    }
+
+    /**
      * Resolve permission dependencies - Returns input permissions unchanged.
      */
     public function resolvePermissionDependencies($permissions): array

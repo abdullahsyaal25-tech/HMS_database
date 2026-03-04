@@ -64,57 +64,58 @@ class PharmacyAdminPermissionsTest extends TestCase
         $permissions = [
             // Core pharmacy access
             ['name' => 'view-pharmacy', 'description' => 'View pharmacy section'],
-            
+
             // Medicine management
             ['name' => 'view-medicines', 'description' => 'View medicines list'],
             ['name' => 'create-medicines', 'description' => 'Create new medicines'],
             ['name' => 'edit-medicines', 'description' => 'Edit medicine information'],
             ['name' => 'delete-medicines', 'description' => 'Delete medicines'],
-            
+
             // Sales management
             ['name' => 'view-sales', 'description' => 'View sales records'],
             ['name' => 'create-sales', 'description' => 'Create new sales'],
             ['name' => 'delete-sales', 'description' => 'Delete sales records'],
-            
+            ['name' => 'void-sales', 'description' => 'Void sales transactions'],
+
             // Stock management
             ['name' => 'view-inventory', 'description' => 'View inventory'],
             ['name' => 'manage-inventory', 'description' => 'Manage inventory levels'],
+            ['name' => 'adjust-inventory', 'description' => 'Adjust inventory levels'],
+            ['name' => 'receive-stock', 'description' => 'Receive stock'],
+            ['name' => 'count-stock', 'description' => 'Perform stock count'],
             ['name' => 'view-low-stock-medicines', 'description' => 'View low stock medicines'],
             ['name' => 'view-expired-medicines', 'description' => 'View expired medicines'],
-            
+            ['name' => 'delete-expired-medicines', 'description' => 'Delete expired medicines'],
+            ['name' => 'update-medicine-stock', 'description' => 'Update medicine stock'],
+
             // Purchase management
             ['name' => 'view-purchases', 'description' => 'View purchase orders'],
             ['name' => 'create-purchases', 'description' => 'Create purchase orders'],
+            ['name' => 'receive-purchases', 'description' => 'Receive purchases'],
+            ['name' => 'cancel-purchases', 'description' => 'Cancel purchases'],
             ['name' => 'view-suppliers', 'description' => 'View suppliers'],
             ['name' => 'create-suppliers', 'description' => 'Create suppliers'],
-            
+
             // Reports
             ['name' => 'view-reports', 'description' => 'View reports'],
             ['name' => 'view-pharmacy-reports', 'description' => 'View pharmacy reports'],
-            
+            ['name' => 'export-pharmacy-reports', 'description' => 'Export pharmacy reports'],
+
             // Alerts
             ['name' => 'view-alerts', 'description' => 'View alerts'],
             ['name' => 'manage-alerts', 'description' => 'Manage pharmacy alerts'],
-            
-            // Alternative permission naming conventions used in the app
-            ['name' => 'manage-medicines', 'description' => 'Manage medicines (combined permission)'],
-            ['name' => 'pharmacy.medicines.view', 'description' => 'View pharmacy medicines (API format)'],
-            ['name' => 'pharmacy.medicines.create', 'description' => 'Create pharmacy medicines (API format)'],
-            ['name' => 'pharmacy.medicines.update', 'description' => 'Update pharmacy medicines (API format)'],
-            ['name' => 'pharmacy.medicines.delete', 'description' => 'Delete pharmacy medicines (API format)'],
-            ['name' => 'pharmacy.sales', 'description' => 'Process pharmacy sales'],
-            ['name' => 'pharmacy.inventory', 'description' => 'Manage pharmacy inventory'],
-            ['name' => 'pharmacy.purchase.receive', 'description' => 'Receive pharmacy purchases'],
-            ['name' => 'pharmacy.alerts.manage', 'description' => 'Manage pharmacy alerts'],
-            ['name' => 'pharmacy.reports', 'description' => 'View pharmacy reports'],
-            ['name' => 'pharmacy.category.update', 'description' => 'Update pharmacy categories'],
-            ['name' => 'pharmacy.category.delete', 'description' => 'Delete pharmacy categories'],
+
+            // Categories
+            ['name' => 'manage-medicine-categories', 'description' => 'Manage medicine categories'],
+
+            // Prescriptions
+            ['name' => 'process-prescriptions', 'description' => 'Process prescriptions'],
         ];
 
         foreach ($permissions as $perm) {
             // Generate slug from name
             $slug = str_replace(['.', '-'], '_', $perm['name']);
-            
+
             // Use updateOrCreate to handle existing permissions and set slug via DB
             $permission = Permission::where('name', $perm['name'])->first();
             if (!$permission) {
@@ -140,30 +141,29 @@ class PharmacyAdminPermissionsTest extends TestCase
             'view-sales',
             'create-sales',
             'delete-sales',
+            'void-sales',
             'view-inventory',
             'manage-inventory',
+            'adjust-inventory',
+            'receive-stock',
+            'count-stock',
             'view-low-stock-medicines',
             'view-expired-medicines',
+            'delete-expired-medicines',
+            'update-medicine-stock',
             'view-purchases',
             'create-purchases',
+            'receive-purchases',
+            'cancel-purchases',
             'view-suppliers',
             'create-suppliers',
             'view-reports',
             'view-pharmacy-reports',
+            'export-pharmacy-reports',
             'view-alerts',
             'manage-alerts',
-            'manage-medicines',
-            'pharmacy.medicines.view',
-            'pharmacy.medicines.create',
-            'pharmacy.medicines.update',
-            'pharmacy.medicines.delete',
-            'pharmacy.sales',
-            'pharmacy.inventory',
-            'pharmacy.purchase.receive',
-            'pharmacy.alerts.manage',
-            'pharmacy.reports',
-            'pharmacy.category.update',
-            'pharmacy.category.delete',
+            'manage-medicine-categories',
+            'process-prescriptions',
         ];
     }
 
@@ -281,9 +281,10 @@ class PharmacyAdminPermissionsTest extends TestCase
         $purchasePermissions = [
             'view-purchases',
             'create-purchases',
+            'receive-purchases',
+            'cancel-purchases',
             'view-suppliers',
             'create-suppliers',
-            'pharmacy.purchase.receive',
         ];
 
         foreach ($purchasePermissions as $permission) {
@@ -302,7 +303,7 @@ class PharmacyAdminPermissionsTest extends TestCase
         $reportPermissions = [
             'view-reports',
             'view-pharmacy-reports',
-            'pharmacy.reports',
+            'export-pharmacy-reports',
         ];
 
         foreach ($reportPermissions as $permission) {
@@ -321,7 +322,6 @@ class PharmacyAdminPermissionsTest extends TestCase
         $alertPermissions = [
             'view-alerts',
             'manage-alerts',
-            'pharmacy.alerts.manage',
         ];
 
         foreach ($alertPermissions as $permission) {
@@ -333,22 +333,24 @@ class PharmacyAdminPermissionsTest extends TestCase
     }
 
     /**
-     * Test API-style permissions used in newer controllers
+     * Test stock management permissions
      */
-    public function test_pharmacy_admin_has_api_style_permissions(): void
+    public function test_pharmacy_admin_has_stock_management_permissions(): void
     {
-        $apiPermissions = [
-            'pharmacy.medicines.view',
-            'pharmacy.medicines.create',
-            'pharmacy.medicines.update',
-            'pharmacy.medicines.delete',
-            'pharmacy.sales',
-            'pharmacy.inventory',
-            'pharmacy.category.update',
-            'pharmacy.category.delete',
+        $stockPermissions = [
+            'adjust-inventory',
+            'receive-stock',
+            'count-stock',
+            'update-medicine-stock',
+            'delete-expired-medicines',
+            'void-sales',
+            'receive-purchases',
+            'cancel-purchases',
+            'manage-medicine-categories',
+            'process-prescriptions',
         ];
 
-        foreach ($apiPermissions as $permission) {
+        foreach ($stockPermissions as $permission) {
             $this->assertTrue(
                 $this->pharmacyAdmin->hasPermission($permission),
                 "Pharmacy admin should have {$permission} permission"

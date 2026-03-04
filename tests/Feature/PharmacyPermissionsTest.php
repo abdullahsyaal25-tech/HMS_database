@@ -36,11 +36,11 @@ class PharmacyPermissionsTest extends TestCase
             Permission::create($perm);
         }
 
-        // Create pharmacy role
-        $this->pharmacyRole = Role::create([
-            'name' => 'Pharmacy Admin',
-            'description' => 'Pharmacy Administrator'
-        ]);
+        // Create pharmacy role with unique name to avoid conflicts
+        $this->pharmacyRole = Role::firstOrCreate(
+            ['name' => 'Test Pharmacy Admin'],
+            ['description' => 'Pharmacy Administrator for Testing']
+        );
 
         // Assign pharmacy permissions to role
         $pharmacyPermissions = Permission::whereIn('name', [
@@ -74,7 +74,7 @@ class PharmacyPermissionsTest extends TestCase
     public function test_pharmacy_user_has_correct_role(): void
     {
         $this->assertEquals($this->pharmacyRole->id, $this->pharmacyUser->role_id);
-        $this->assertEquals('Pharmacy Admin', $this->pharmacyUser->role->name);
+        $this->assertEquals('Test Pharmacy Admin', $this->pharmacyUser->role->name);
     }
 
     /**
