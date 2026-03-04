@@ -243,10 +243,14 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                                 <span>Services Subtotal:</span>
                                 <span>${formatCurrency(servicesFinalTotal)}</span>
                             </div>
-                            ${(Math.max(0, servicesSubtotal - servicesFinalTotal) + Math.min(servicesFinalTotal, additionalDiscount)) > 0 ? `
                             <div class="financial-row discount-row">
-                                <span>Total Discount:</span>
-                                <span>-${formatCurrency(Math.max(0, servicesSubtotal - servicesFinalTotal) + Math.min(servicesFinalTotal, additionalDiscount))}</span>
+                                <span>Services Discount:</span>
+                                <span>-${formatCurrency(servicesDiscount > 0 ? servicesDiscount : (servicesSubtotal - servicesFinalTotal))}</span>
+                            </div>
+                            ${additionalDiscount > 0 ? `
+                            <div class="financial-row discount-row">
+                                <span>Additional Discount:</span>
+                                <span>-${formatCurrency(Math.min(servicesFinalTotal, additionalDiscount))}</span>
                             </div>
                             ` : ''}
                             <div class="total-row">
@@ -398,12 +402,16 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                                 ))}
                                 <div className="flex justify-between py-1">
                                     <span className="text-gray-600">Services Subtotal:</span>
-                                    <span className="font-medium">{formatCurrency(servicesFinalTotal)}</span>
+                                    <span className="font-medium">{formatCurrency(servicesSubtotal)}</span>
                                 </div>
-                                {(Math.max(0, servicesSubtotal - servicesFinalTotal) + Math.min(servicesFinalTotal, additionalDiscount)) > 0 && (
+                                <div className="flex justify-between py-1 text-green-600">
+                                    <span>Services Discount:</span>
+                                    <span className="font-medium">-{formatCurrency(servicesDiscount > 0 ? servicesDiscount : Math.max(0, servicesSubtotal - servicesFinalTotal))}</span>
+                                </div>
+                                {additionalDiscount > 0 && (
                                     <div className="flex justify-between py-1 text-green-600">
-                                        <span>Total Discount:</span>
-                                        <span className="font-medium">-{formatCurrency(Math.max(0, servicesSubtotal - servicesFinalTotal) + Math.min(servicesFinalTotal, additionalDiscount))}</span>
+                                        <span>Additional Discount:</span>
+                                        <span className="font-medium">-{formatCurrency(Math.min(servicesFinalTotal, additionalDiscount))}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between py-2 bg-gray-100 px-2 rounded mt-2">

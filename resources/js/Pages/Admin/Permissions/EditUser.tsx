@@ -70,9 +70,9 @@ export default function EditUserPermissions({ user, allPermissions, userPermissi
     // Filter permissions based on search and module
     const filteredPermissions = allPermissions.filter(permission => {
         const matchesSearch = !searchQuery || 
-            permission.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            permission.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            permission.resource.toLowerCase().includes(searchQuery.toLowerCase());
+            String(permission.name || '').toLowerCase().includes(String(searchQuery).toLowerCase()) ||
+            String(permission.description || '').toLowerCase().includes(String(searchQuery).toLowerCase()) ||
+            String(permission.resource || '').toLowerCase().includes(String(searchQuery).toLowerCase());
         
         const matchesModule = filterModule === 'all' || permission.module === filterModule;
         
@@ -80,14 +80,14 @@ export default function EditUserPermissions({ user, allPermissions, userPermissi
     });
 
     const filteredByModule = Object.keys(permissionsByModule)
-        .filter(m => filterModule === 'all' || m === filterModule)
+        .filter(m => filterModule === 'all' || String(m) === String(filterModule))
         .sort()
         .reduce((acc, key) => {
             acc[key] = permissionsByModule[key].filter(p => 
                 !searchQuery || 
-                p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                p.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                p.resource.toLowerCase().includes(searchQuery.toLowerCase())
+                String(p.name || '').toLowerCase().includes(String(searchQuery).toLowerCase()) ||
+                String(p.description || '').toLowerCase().includes(String(searchQuery).toLowerCase()) ||
+                String(p.resource || '').toLowerCase().includes(String(searchQuery).toLowerCase())
             );
             return acc;
         }, {} as Record<string, Permission[]>);
@@ -130,7 +130,7 @@ export default function EditUserPermissions({ user, allPermissions, userPermissi
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        router.visit(`/admin/users/${user.id}/permissions`, {
+        router.visit(`/admin/permissions/users/${user.id}`, {
             method: 'post',
             data: {
                 permissions: selectedPermissions,
@@ -147,7 +147,7 @@ export default function EditUserPermissions({ user, allPermissions, userPermissi
     };
 
     const getModuleIcon = (module: string) => {
-        const m = module.toLowerCase();
+        const m = String(module).toLowerCase();
         if (m.includes('user') || m.includes('permission')) {
             return <Users className="h-4 w-4" />;
         }
@@ -161,7 +161,7 @@ export default function EditUserPermissions({ user, allPermissions, userPermissi
     };
 
     const getRiskBadgeColor = (risk?: string) => {
-        switch (risk?.toLowerCase()) {
+        switch (String(risk || '').toLowerCase()) {
             case 'high':
                 return 'bg-red-100 text-red-700 border-red-200';
             case 'medium':

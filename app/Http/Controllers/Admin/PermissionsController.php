@@ -154,6 +154,16 @@ class PermissionsController extends Controller
      */
     public function updateRolePermissions(Request $request, string $roleIdentifier)
     {
+        // DIAGNOSTIC: Log entry
+        \Illuminate\Support\Facades\Log::debug('[PermissionsController] updateRolePermissions called', [
+            'url' => $request->fullUrl(),
+            'method' => $request->method(),
+            'role_identifier' => $roleIdentifier,
+            'expects_json' => $request->expectsJson(),
+            'header_x_inertia' => $request->header('X-Inertia'),
+            'permissions' => $request->permissions,
+        ]);
+        
         // RBAC: Validate that all permissions being set belong to this role's scope
         $requestedPermissions = $request->permissions ?? [];
         
@@ -288,7 +298,10 @@ class PermissionsController extends Controller
                 'id' => $permission->id,
                 'name' => $permission->name,
                 'description' => $permission->description,
+                'resource' => $permission->resource ?? '',
+                'action' => $permission->action ?? '',
                 'module' => $permission->module ?? 'System',
+                'category' => $permission->category ?? 'General',
                 'risk_level' => $permission->risk_level ?? 'low',
                 'is_critical' => $permission->is_critical ?? false,
             ];

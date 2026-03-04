@@ -235,62 +235,47 @@ export default function PermissionsIndex({
         .filter(category => category.permissions.length > 0);
 
     // Save role permissions
-    const handleSave = async () => {
+    const handleSave = () => {
         if (!selectedRole) return;
 
         setIsSubmitting(true);
         setErrorMessage(null);
 
-        try {
-            const response = await fetch(`/admin/permissions/roles/${selectedRole.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                body: JSON.stringify({
-                    permissions: selectedPermissions,
-                }),
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
+        // Use Inertia router for proper CSRF handling
+        router.visit(`/admin/permissions/roles/${selectedRole.id}`, {
+            method: 'post',
+            data: {
+                permissions: selectedPermissions,
+                _method: 'PUT',
+            },
+            preserveScroll: true,
+            onSuccess: () => {
                 setSuccessMessage(`Permissions updated successfully for ${selectedRole.name}`);
                 setPendingChanges(null);
-                // Refresh the page data
                 router.reload({ only: ['roles', 'rolePermissions', 'legacyRolePermissions'] });
-            } else {
-                setErrorMessage(data.error || 'Failed to update permissions');
-            }
-        } catch (error) {
-            setErrorMessage('An error occurred while saving permissions');
-            console.error('Error saving permissions:', error);
-        } finally {
-            setIsSubmitting(false);
-            setShowConfirmDialog(false);
-        }
+                setIsSubmitting(false);
+                setShowConfirmDialog(false);
+            },
+            onError: (errors) => {
+                setErrorMessage(Object.values(errors).join(', ') || 'Failed to update permissions');
+                setIsSubmitting(false);
+                setShowConfirmDialog(false);
+            },
+        });
     };
 
     // Reset role permissions to default
-    const handleReset = async () => {
+    const handleReset = () => {
         if (!selectedRole) return;
 
         setIsSubmitting(true);
         setErrorMessage(null);
 
-        try {
-            const response = await fetch(`/admin/permissions/roles/${selectedRole.id}/reset`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
+        // Use Inertia router for proper CSRF handling
+        router.visit(`/admin/permissions/roles/${selectedRole.id}/reset`, {
+            method: 'post',
+            preserveScroll: true,
+            onSuccess: () => {
                 setSuccessMessage(`Permissions reset to default for ${selectedRole.name}`);
                 // Get default permissions and update state
                 const defaults = defaultPermissions[selectedRole.name] || [];
@@ -299,18 +284,16 @@ export default function PermissionsIndex({
                     .map(p => p.id);
                 setSelectedPermissions(defaultPermIds);
                 setPendingChanges(null);
-                // Refresh the page data
                 router.reload({ only: ['roles', 'rolePermissions', 'legacyRolePermissions'] });
-            } else {
-                setErrorMessage(data.error || 'Failed to reset permissions');
-            }
-        } catch (error) {
-            setErrorMessage('An error occurred while resetting permissions');
-            console.error('Error resetting permissions:', error);
-        } finally {
-            setIsSubmitting(false);
-            setShowResetDialog(false);
-        }
+                setIsSubmitting(false);
+                setShowResetDialog(false);
+            },
+            onError: (errors) => {
+                setErrorMessage(Object.values(errors).join(', ') || 'Failed to reset permissions');
+                setIsSubmitting(false);
+                setShowResetDialog(false);
+            },
+        });
     };
 
     // Back to roles list
