@@ -88,17 +88,38 @@ class LabTestResultController extends Controller
             $query->whereDate('created_at', '<=', $dateTo);
         }
         
-        $labTestResults = $query->latest()
+        $paginatedResults = $query->latest()
             ->paginate(100)
             ->withQueryString();
         
         // Transform the collection to map 'test' to 'labTest'
-        $labTestResults->getCollection()->transform(function ($result) {
+        $paginatedResults->getCollection()->transform(function ($result) {
             $data = $result->toArray();
             $data['labTest'] = $data['test'] ?? null;
             unset($data['test']);
             return $data;
         });
+
+        // Format pagination data
+        $labTestResults = [
+            'data' => $paginatedResults->items(),
+            'links' => [
+                'first' => $paginatedResults->url(1),
+                'last' => $paginatedResults->url($paginatedResults->lastPage()),
+                'prev' => $paginatedResults->previousPageUrl(),
+                'next' => $paginatedResults->nextPageUrl(),
+            ],
+            'meta' => [
+                'current_page' => $paginatedResults->currentPage(),
+                'from' => $paginatedResults->firstItem(),
+                'last_page' => $paginatedResults->lastPage(),
+                'links' => $paginatedResults->linkCollection()->toArray(),
+                'path' => $paginatedResults->path(),
+                'per_page' => $paginatedResults->perPage(),
+                'to' => $paginatedResults->lastItem(),
+                'total' => $paginatedResults->total(),
+            ],
+        ];
         
         // Get filter options
         $patients = Patient::select('id', 'patient_id', 'first_name', 'father_name')->get();

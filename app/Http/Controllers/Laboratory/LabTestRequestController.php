@@ -116,7 +116,28 @@ class LabTestRequestController extends Controller
             }
         }
 
-        $labTestRequests = $query->latest()->paginate(100)->withQueryString();
+        $paginatedRequests = $query->latest()->paginate(100)->withQueryString();
+
+        // Format pagination data
+        $labTestRequests = [
+            'data' => $paginatedRequests->items(),
+            'links' => [
+                'first' => $paginatedRequests->url(1),
+                'last' => $paginatedRequests->url($paginatedRequests->lastPage()),
+                'prev' => $paginatedRequests->previousPageUrl(),
+                'next' => $paginatedRequests->nextPageUrl(),
+            ],
+            'meta' => [
+                'current_page' => $paginatedRequests->currentPage(),
+                'from' => $paginatedRequests->firstItem(),
+                'last_page' => $paginatedRequests->lastPage(),
+                'links' => $paginatedRequests->linkCollection()->toArray(),
+                'path' => $paginatedRequests->path(),
+                'per_page' => $paginatedRequests->perPage(),
+                'to' => $paginatedRequests->lastItem(),
+                'total' => $paginatedRequests->total(),
+            ],
+        ];
 
         $departments = Department::select('id', 'name')->orderBy('name')->get();
 

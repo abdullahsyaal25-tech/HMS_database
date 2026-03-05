@@ -78,7 +78,28 @@ class LabMaterialController extends Controller
             }
         }
 
-        $labMaterials = $query->latest()->paginate(25)->withQueryString();
+        $paginatedMaterials = $query->latest()->paginate(25)->withQueryString();
+
+        // Format pagination data
+        $labMaterials = [
+            'data' => $paginatedMaterials->items(),
+            'links' => [
+                'first' => $paginatedMaterials->url(1),
+                'last' => $paginatedMaterials->url($paginatedMaterials->lastPage()),
+                'prev' => $paginatedMaterials->previousPageUrl(),
+                'next' => $paginatedMaterials->nextPageUrl(),
+            ],
+            'meta' => [
+                'current_page' => $paginatedMaterials->currentPage(),
+                'from' => $paginatedMaterials->firstItem(),
+                'last_page' => $paginatedMaterials->lastPage(),
+                'links' => $paginatedMaterials->linkCollection()->toArray(),
+                'path' => $paginatedMaterials->path(),
+                'per_page' => $paginatedMaterials->perPage(),
+                'to' => $paginatedMaterials->lastItem(),
+                'total' => $paginatedMaterials->total(),
+            ],
+        ];
 
         // Get lab tests for filter dropdown
         $labTests = LabTest::select('id', 'test_code', 'name')->orderBy('name')->get();

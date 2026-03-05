@@ -25,6 +25,8 @@ import {
   XCircle,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   LayoutGrid,
   List,
   AlertCircle,
@@ -179,6 +181,13 @@ export default function LabTestRequestIndex({
   const handleReset = () => {
     setActiveFilters({});
     router.get('/laboratory/lab-test-requests', {}, {
+      preserveState: true,
+      preserveScroll: true,
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    router.get('/laboratory/lab-test-requests', { ...activeFilters, page }, {
       preserveState: true,
       preserveScroll: true,
     });
@@ -568,64 +577,100 @@ export default function LabTestRequestIndex({
           </p>
         </div>
 
-        {/* Pagination */}
-        {(labTestRequests.meta?.last_page || 0) > 1 && (
-          <div className="flex items-center justify-between py-4 border-t border-gray-200">
-            <p className="text-sm text-gray-600 font-medium">
-              Showing {labTestRequests.meta?.from || 0} to {labTestRequests.meta?.to || 0} of {labTestRequests.meta?.total || 0} results
-            </p>
-            <div className="flex items-center gap-2">
-              {/* Previous Button */}
-              <Link
-                href={labTestRequests.links.prev || '#'}
-                className={cn(
-                  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
-                  'h-10 px-4 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900',
-                  'shadow-sm hover:shadow-md',
-                  !labTestRequests.links.prev && 'opacity-50 cursor-not-allowed pointer-events-none'
-                )}
-              >
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Previous
-              </Link>
+        {/* Pagination - always visible */}
+        <div className="flex items-center justify-between mt-6">
+          <p className="text-sm text-muted-foreground">
+            Showing {labTestRequests.meta?.from || 0} to {labTestRequests.meta?.to || 0} of {labTestRequests.meta?.total || 0} results
+          </p>
+          <div className="flex items-center gap-1">
+            {/* First Page */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              disabled={labTestRequests.meta?.current_page === 1}
+              onClick={() => handlePageChange(1)}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            
+            {/* Previous Page */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              disabled={!labTestRequests.links?.prev}
+              onClick={() => handlePageChange((labTestRequests.meta?.current_page || 1) - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            {/* Page Numbers */}
+            {(() => {
+              const current = labTestRequests.meta?.current_page || 1;
+              const last = labTestRequests.meta?.last_page || 1;
+              const pages: (number | string)[] = [];
               
-              {/* Page Numbers */}
-              <div className="flex items-center gap-1">
-                {labTestRequests.meta.links
-                  .filter(link => !link.label.includes('Previous') && !link.label.includes('Next'))
-                  .map((link, index) => (
-                    <Link
-                      key={index}
-                      href={link.url || '#'}
-                      className={cn(
-                        'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-10 w-10',
-                        link.active
-                          ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
-                          : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900',
-                        !link.url && 'opacity-50 cursor-not-allowed pointer-events-none'
-                      )}
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
-              </div>
+              if (last <= 7) {
+                for (let i = 1; i <= last; i++) pages.push(i);
+              } else {
+                if (current <= 4) {
+                  for (let i = 1; i <= 5; i++) pages.push(i);
+                  pages.push('...');
+                  pages.push(last);
+                } else if (current >= last - 3) {
+                  pages.push(1);
+                  pages.push('...');
+                  for (let i = last - 4; i <= last; i++) pages.push(i);
+                } else {
+                  pages.push(1);
+                  pages.push('...');
+                  for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+                  pages.push('...');
+                  pages.push(last);
+                }
+              }
               
-              {/* Next Button */}
-              <Link
-                href={labTestRequests.links.next || '#'}
-                className={cn(
-                  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
-                  'h-10 px-4 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900',
-                  'shadow-sm hover:shadow-md',
-                  !labTestRequests.links.next && 'opacity-50 cursor-not-allowed pointer-events-none'
-                )}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-2" />
-              </Link>
-            </div>
+              return pages.map((page, index) => (
+                page === '...' ? (
+                  <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">...</span>
+                ) : (
+                  <Button
+                    key={page}
+                    variant={current === page ? 'default' : 'outline'}
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => handlePageChange(page as number)}
+                  >
+                    {page}
+                  </Button>
+                )
+              ));
+            })()}
+            
+            {/* Next Page */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              disabled={!labTestRequests.links?.next}
+              onClick={() => handlePageChange((labTestRequests.meta?.current_page || 1) + 1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            
+            {/* Last Page */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              disabled={labTestRequests.meta?.current_page === labTestRequests.meta?.last_page}
+              onClick={() => handlePageChange(labTestRequests.meta?.last_page || 1)}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
           </div>
-        )}
+        </div>
       </div>
     </LaboratoryLayout>
   );

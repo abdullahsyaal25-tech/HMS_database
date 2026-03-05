@@ -26,6 +26,8 @@ import {
   List,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   AlertCircle,
   Clock,
   CheckCircle,
@@ -196,6 +198,13 @@ export default function LabTestResultIndex({
   const handleReset = () => {
     setActiveFilters({});
     router.get('/laboratory/lab-test-results', {}, {
+      preserveState: true,
+      preserveScroll: true,
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    router.get('/laboratory/lab-test-results', { ...activeFilters, page }, {
       preserveState: true,
       preserveScroll: true,
     });
@@ -696,56 +705,100 @@ export default function LabTestResultIndex({
           </Card>
         )}
 
-        {/* Pagination */}
-        {(labTestResults.meta?.last_page || 0) > 1 && (
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Showing {labTestResults.meta?.from || 0} to {labTestResults.meta?.to || 0} of {labTestResults.meta?.total || 0} results
-            </p>
-            <div className="flex items-center gap-2">
-              <Link
-                href={labTestResults.links.prev || '#'}
-                className={cn(
-                  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
-                  'h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-                  !labTestResults.links.prev && 'pointer-events-none opacity-50'
-                )}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Link>
-              <div className="flex items-center gap-1">
-                {labTestResults.meta.links
-                  .filter(link => !link.label.includes('Previous') && !link.label.includes('Next'))
-                  .map((link, index) => (
-                    <Link
-                      key={index}
-                      href={link.url || '#'}
-                      className={cn(
-                        'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 w-9',
-                        link.active
-                          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                          : 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-                        !link.url && 'pointer-events-none opacity-50'
-                      )}
-                      dangerouslySetInnerHTML={{ __html: link.label }}
-                    />
-                  ))}
-              </div>
-              <Link
-                href={labTestResults.links.next || '#'}
-                className={cn(
-                  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
-                  'h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-                  !labTestResults.links.next && 'pointer-events-none opacity-50'
-                )}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Link>
-            </div>
+        {/* Pagination - always visible */}
+        <div className="flex items-center justify-between mt-6">
+          <p className="text-sm text-muted-foreground">
+            Showing {labTestResults.meta?.from || 0} to {labTestResults.meta?.to || 0} of {labTestResults.meta?.total || 0} results
+          </p>
+          <div className="flex items-center gap-1">
+            {/* First Page */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              disabled={labTestResults.meta?.current_page === 1}
+              onClick={() => handlePageChange(1)}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            
+            {/* Previous Page */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              disabled={!labTestResults.links?.prev}
+              onClick={() => handlePageChange((labTestResults.meta?.current_page || 1) - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            {/* Page Numbers */}
+            {(() => {
+              const current = labTestResults.meta?.current_page || 1;
+              const last = labTestResults.meta?.last_page || 1;
+              const pages: (number | string)[] = [];
+              
+              if (last <= 7) {
+                for (let i = 1; i <= last; i++) pages.push(i);
+              } else {
+                if (current <= 4) {
+                  for (let i = 1; i <= 5; i++) pages.push(i);
+                  pages.push('...');
+                  pages.push(last);
+                } else if (current >= last - 3) {
+                  pages.push(1);
+                  pages.push('...');
+                  for (let i = last - 4; i <= last; i++) pages.push(i);
+                } else {
+                  pages.push(1);
+                  pages.push('...');
+                  for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+                  pages.push('...');
+                  pages.push(last);
+                }
+              }
+              
+              return pages.map((page, index) => (
+                page === '...' ? (
+                  <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">...</span>
+                ) : (
+                  <Button
+                    key={page}
+                    variant={current === page ? 'default' : 'outline'}
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => handlePageChange(page as number)}
+                  >
+                    {page}
+                  </Button>
+                )
+              ));
+            })()}
+            
+            {/* Next Page */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              disabled={!labTestResults.links?.next}
+              onClick={() => handlePageChange((labTestResults.meta?.current_page || 1) + 1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            
+            {/* Last Page */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              disabled={labTestResults.meta?.current_page === labTestResults.meta?.last_page}
+              onClick={() => handlePageChange(labTestResults.meta?.last_page || 1)}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
           </div>
-        )}
+        </div>
       </div>
     </LaboratoryLayout>
   );

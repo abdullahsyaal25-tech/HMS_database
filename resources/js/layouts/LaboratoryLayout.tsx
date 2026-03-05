@@ -84,21 +84,42 @@ function usePermissionChecker() {
     return { hasPermission, isAuthenticated, user };
 }
 
-// Laboratory-specific navigation items
-const laboratoryNavItems: (NavItem & { permission?: string })[] = [
-    {
-        title: 'Home',
-        href: '/dashboard',
-        icon: Building2,
-        permission: 'view-dashboard',
-    },
-    {
-        title: 'Dashboard',
-        href: '/laboratory',
-        icon: LayoutGrid,
-        permission: 'view-dashboard',
-    },
-        {
+const footerNavItems: NavItem[] = [];
+
+export default function LaboratoryLayout({
+    header,
+    children,
+    showQuickActions = true,
+    alerts = {},
+}: LaboratoryLayoutProps) {
+    const { hasPermission, isAuthenticated, user } = usePermissionChecker();
+
+    const filteredNavItems = useMemo(() => {
+        // Build navigation items dynamically
+        const items: NavItem[] = [];
+
+        // Home - only for Super Admin
+        const showHome = user?.is_super_admin === true;
+        if (showHome) {
+            items.push({
+                title: 'Home',
+                href: '/dashboard',
+                icon: Building2,
+            });
+        }
+
+        // Dashboard - only for Super Admin
+        const showDashboard = user?.is_super_admin === true;
+        if (showDashboard) {
+            items.push({
+                title: 'Dashboard',
+                href: '/laboratory',
+                icon: LayoutGrid,
+            });
+        }
+
+        // Laboratory Materials - visible to all authenticated users
+        items.push({
             title: 'Laboratory Materials',
             href: '/laboratory/materials',
             icon: TestTube,
@@ -114,98 +135,83 @@ const laboratoryNavItems: (NavItem & { permission?: string })[] = [
                     icon: Plus,
                 },
             ],
-        },
- 
-    {
-        title: 'Test Requests',
-        href: '/laboratory/lab-test-requests',
-        icon: ClipboardList,
-        items: [
-            {
-                title: 'All Requests',
-                href: '/laboratory/lab-test-requests',
-                icon: ClipboardList,
-            },
-            {
-                title: 'New Request',
-                href: '/laboratory/lab-test-requests/create',
-                icon: Plus,
-            },
-        ],
-    },
-    {
-        title: 'Test Results',
-        href: '/laboratory/lab-test-results',
-        icon: FileText,
-        items: [
-            {
-                title: 'All Results',
-                href: '/laboratory/lab-test-results',
-                icon: FileText,
-            },
-            {
-                title: 'Add Result',
-                href: '/laboratory/lab-test-results/create',
-                icon: Plus,
-            },
-        ],
-    },
-    {
-        title: 'Lab Tests',
-        href: '/laboratory/lab-tests',
-        icon: FlaskConical,
-        items: [
-            {
-                title: 'All Tests',
-                href: '/laboratory/lab-tests',
-                icon: FlaskConical,
-            },
-            {
-                title: 'Add Test',
-                href: '/laboratory/lab-tests/create',
-                icon: Plus,
-            },
-        ],
-    },
-    {
-        title: 'Reports',
-        href: '/laboratory/reports',
-        icon: FileText,
-        permission: 'laboratory.reports.view',
-        items: [
-            {
-                title: 'Overview',
+        });
+
+        // Test Requests - visible to all authenticated users
+        items.push({
+            title: 'Test Requests',
+            href: '/laboratory/lab-test-requests',
+            icon: ClipboardList,
+            items: [
+                {
+                    title: 'All Requests',
+                    href: '/laboratory/lab-test-requests',
+                    icon: ClipboardList,
+                },
+                {
+                    title: 'New Request',
+                    href: '/laboratory/lab-test-requests/create',
+                    icon: Plus,
+                },
+            ],
+        });
+
+        // Test Results - visible to all authenticated users
+        items.push({
+            title: 'Test Results',
+            href: '/laboratory/lab-test-results',
+            icon: FileText,
+            items: [
+                {
+                    title: 'All Results',
+                    href: '/laboratory/lab-test-results',
+                    icon: FileText,
+                },
+                {
+                    title: 'Add Result',
+                    href: '/laboratory/lab-test-results/create',
+                    icon: Plus,
+                },
+            ],
+        });
+
+        // Lab Tests - visible to all authenticated users
+        items.push({
+            title: 'Lab Tests',
+            href: '/laboratory/lab-tests',
+            icon: FlaskConical,
+            items: [
+                {
+                    title: 'All Tests',
+                    href: '/laboratory/lab-tests',
+                    icon: FlaskConical,
+                },
+                {
+                    title: 'Add Test',
+                    href: '/laboratory/lab-tests/create',
+                    icon: Plus,
+                },
+            ],
+        });
+
+        // Reports - only show if user has permission
+        if (hasPermission('laboratory.reports.view')) {
+            items.push({
+                title: 'Reports',
                 href: '/laboratory/reports',
                 icon: FileText,
-            },
-    
-        ],
-    },
-];
-
-
-const footerNavItems: NavItem[] = [];
-
-export default function LaboratoryLayout({
-    header,
-    children,
-    showQuickActions = true,
-    alerts = {},
-}: LaboratoryLayoutProps) {
-    const { hasPermission, isAuthenticated } = usePermissionChecker();
-
-    const filteredNavItems = useMemo(() => {
-        if (!isAuthenticated) {
-            return laboratoryNavItems;
+                items: [
+                    {
+                        title: 'Overview',
+                        href: '/laboratory/reports',
+                        icon: FileText,
+                    },
+                ],
+            });
         }
 
-        return laboratoryNavItems.filter(item => {
-            if (!item.permission) {
-                return true;
-            }
-            return hasPermission(item.permission);
-        });
-    }, [hasPermission, isAuthenticated]);
+        return items;
+    }, [hasPermission, isAuthenticated, user]);
 
     // Determine if any critical alerts exist
     const hasCriticalAlerts = (alerts.criticalResults ?? 0) > 0;
