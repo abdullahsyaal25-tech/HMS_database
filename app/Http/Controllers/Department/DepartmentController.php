@@ -26,89 +26,81 @@ class DepartmentController extends Controller
     /**
      * Check if user can view departments (Super Admin or Reception with view-departments permission)
      */
-    protected function authorizeDepartmentView(): void
+    protected function authorizeDepartmentView(): bool
     {
         $user = auth()->user();
 
         if (!$user) {
-            abort(403, 'Unauthorized access');
+            return false;
         }
 
         // Super admin can always view
         if ($user->isSuperAdmin()) {
-            return;
+            return true;
         }
 
         // Reception admin and others need view-departments permission
-        if (!$user->hasPermission('view-departments')) {
-            abort(403, 'Unauthorized access. You do not have permission to view departments.');
-        }
+        return $user->hasPermission('view-departments');
     }
 
     /**
      * Check if user can create departments (Super Admin or Reception with create-departments permission)
      */
-    protected function authorizeDepartmentCreate(): void
+    protected function authorizeDepartmentCreate(): bool
     {
         $user = auth()->user();
 
         if (!$user) {
-            abort(403, 'Unauthorized access');
+            return false;
         }
 
         // Super admin can always create
         if ($user->isSuperAdmin()) {
-            return;
+            return true;
         }
 
         // Reception admin and others need create-departments permission
-        if (!$user->hasPermission('create-departments')) {
-            abort(403, 'Unauthorized access. You do not have permission to create departments.');
-        }
+        return $user->hasPermission('create-departments');
     }
 
     /**
      * Check if user can modify departments (Super Admin only - Reception admin cannot modify)
      */
-    protected function authorizeDepartmentModify(): void
+    protected function authorizeDepartmentModify(): bool
     {
         $user = auth()->user();
 
         if (!$user) {
-            abort(403, 'Unauthorized access');
+            return false;
         }
 
         // Super admin can always modify
         if ($user->isSuperAdmin()) {
-            return;
+            return true;
         }
 
         // Check for explicit edit permission - Reception admin should NOT have this
-        if (!$user->hasPermission('edit-departments')) {
-            abort(403, 'Unauthorized access. You do not have permission to modify departments.');
-        }
+        return $user->hasPermission('edit-departments');
     }
 
     /**
      * Check if user can delete departments (Super Admin only - Reception admin cannot delete)
      */
-    protected function authorizeDepartmentDelete(): void
+    protected function authorizeDepartmentDelete(): bool
     {
         $user = auth()->user();
 
         if (!$user) {
-            abort(403, 'Unauthorized access');
+            return false;
         }
 
         // Super admin can always delete
         if ($user->isSuperAdmin()) {
-            return;
+            return true;
         }
 
         // Check for explicit delete permission - Reception admin should NOT have this
-        if (!$user->hasPermission('delete-departments')) {
-            abort(403, 'Unauthorized access. You do not have permission to delete departments.');
-        }
+        return $user->hasPermission('delete-departments');
     }
 
     /**

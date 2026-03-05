@@ -38,7 +38,7 @@ class ReportController extends Controller
     /**
      * Authorize report access using permission system.
      */
-    protected function authorizeReport(string $permission): void
+    protected function authorizeReport(string $permission): bool
     {
         $user = Auth::user();
         
@@ -49,8 +49,10 @@ class ReportController extends Controller
                 'reports',
                 'warning'
             );
-            abort(403, 'Unauthorized: You do not have permission to access this report.');
+            return false;
         }
+        
+        return true;
     }
 
     /**

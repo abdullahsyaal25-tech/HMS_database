@@ -23,21 +23,17 @@ class AppointmentController extends BaseApiController
     /**
      * Check if user can access appointments
      */
-    private function authorizeAppointmentAccess(): void
+    private function authorizeAppointmentAccess(): bool
     {
-        if (!auth()->user()?->hasPermission('view-appointments')) {
-            abort(403, 'Unauthorized access');
-        }
+        return auth()->user()?->hasPermission('view-appointments') ?? false;
     }
 
     /**
      * Check if user can modify appointments
      */
-    private function authorizeAppointmentModify(): void
+    private function authorizeAppointmentModify(): bool
     {
-        if (!auth()->user()?->hasPermission('edit-appointments')) {
-            abort(403, 'Unauthorized access');
-        }
+        return auth()->user()?->hasPermission('edit-appointments') ?? false;
     }
 
     /**
@@ -45,7 +41,9 @@ class AppointmentController extends BaseApiController
      */
     public function index(Request $request): JsonResponse
     {
-        $this->authorizeAppointmentAccess();
+        if (!$this->authorizeAppointmentAccess()) {
+            return $this->unauthorizedResponse('You do not have permission to view appointments.');
+        }
 
         return $this->executeWithErrorHandling(function () use ($request) {
             $perPage = $this->validatePerPage($request->input('per_page', 10));
@@ -70,7 +68,9 @@ class AppointmentController extends BaseApiController
      */
     public function store(StoreAppointmentRequest $request): JsonResponse
     {
-        $this->authorizeAppointmentModify();
+        if (!$this->authorizeAppointmentModify()) {
+            return $this->unauthorizedResponse('You do not have permission to create appointments.');
+        }
 
         return $this->executeWithErrorHandling(function () use ($request) {
             $appointment = $this->appointmentService->createAppointment($request->validated());
@@ -93,7 +93,9 @@ class AppointmentController extends BaseApiController
      */
     public function show(string $id): JsonResponse
     {
-        $this->authorizeAppointmentAccess();
+        if (!$this->authorizeAppointmentAccess()) {
+            return $this->unauthorizedResponse('You do not have permission to view appointments.');
+        }
 
         $appointmentId = $this->validateId($id);
         if (!$appointmentId) {
@@ -115,7 +117,9 @@ class AppointmentController extends BaseApiController
      */
     public function update(UpdateAppointmentRequest $request, string $id): JsonResponse
     {
-        $this->authorizeAppointmentModify();
+        if (!$this->authorizeAppointmentModify()) {
+            return $this->unauthorizedResponse('You do not have permission to update appointments.');
+        }
 
         $appointmentId = $this->validateId($id);
         if (!$appointmentId) {
@@ -142,7 +146,9 @@ class AppointmentController extends BaseApiController
      */
     public function destroy(string $id): JsonResponse
     {
-        $this->authorizeAppointmentModify();
+        if (!$this->authorizeAppointmentModify()) {
+            return $this->unauthorizedResponse('You do not have permission to delete appointments.');
+        }
 
         if (!auth()->user()?->hasPermission('delete-appointments')) {
             return $this->unauthorizedResponse('Unauthorized to delete appointments');
@@ -170,7 +176,9 @@ class AppointmentController extends BaseApiController
      */
     public function cancel(string $id): JsonResponse
     {
-        $this->authorizeAppointmentModify();
+        if (!$this->authorizeAppointmentModify()) {
+            return $this->unauthorizedResponse('You do not have permission to cancel appointments.');
+        }
 
         $appointmentId = $this->validateId($id);
         if (!$appointmentId) {
@@ -194,7 +202,9 @@ class AppointmentController extends BaseApiController
      */
     public function complete(string $id): JsonResponse
     {
-        $this->authorizeAppointmentModify();
+        if (!$this->authorizeAppointmentModify()) {
+            return $this->unauthorizedResponse('You do not have permission to complete appointments.');
+        }
 
         $appointmentId = $this->validateId($id);
         if (!$appointmentId) {

@@ -15,11 +15,9 @@ class ReportController extends BaseApiController
     /**
      * Check if user can access pharmacy
      */
-    private function authorizePharmacyAccess(): void
+    private function authorizePharmacyAccess(): bool
     {
-        if (!auth()->user()?->hasPermission('view-pharmacy')) {
-            abort(403, 'Unauthorized access');
-        }
+        return auth()->user()?->hasPermission('view-pharmacy') ?? false;
     }
 
     /**

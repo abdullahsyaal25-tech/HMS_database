@@ -24,21 +24,17 @@ class MedicineController extends BaseApiController
     /**
      * Check if user can access pharmacy
      */
-    private function authorizePharmacyAccess(): void
+    private function authorizePharmacyAccess(): bool
     {
-        if (!auth()->user()?->hasPermission('view-pharmacy')) {
-            abort(403, 'Unauthorized access');
-        }
+        return auth()->user()?->hasPermission('view-pharmacy') ?? false;
     }
 
     /**
      * Check if user can modify medicines
      */
-    private function authorizeMedicineModify(): void
+    private function authorizeMedicineModify(): bool
     {
-        if (!auth()->user()?->hasPermission('edit-medicines')) {
-            abort(403, 'Unauthorized access');
-        }
+        return auth()->user()?->hasPermission('edit-medicines') ?? false;
     }
 
     /**

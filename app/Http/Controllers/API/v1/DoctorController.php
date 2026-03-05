@@ -13,21 +13,17 @@ class DoctorController extends BaseApiController
     /**
      * Check if user can access doctors
      */
-    private function authorizeDoctorAccess(): void
+    private function authorizeDoctorAccess(): bool
     {
-        if (!auth()->user()?->hasPermission('view-doctors')) {
-            abort(403, 'Unauthorized access');
-        }
+        return auth()->user()?->hasPermission('view-doctors') ?? false;
     }
 
     /**
      * Check if user can modify doctors
      */
-    private function authorizeDoctorModify(): void
+    private function authorizeDoctorModify(): bool
     {
-        if (!auth()->user()?->hasPermission('edit-doctors')) {
-            abort(403, 'Unauthorized access');
-        }
+        return auth()->user()?->hasPermission('edit-doctors') ?? false;
     }
 
     /**
@@ -185,7 +181,9 @@ class DoctorController extends BaseApiController
      */
     public function destroy(string $id): JsonResponse
     {
-        $this->authorizeDoctorModify();
+        if (!$this->authorizeDoctorModify()) {
+            return $this->unauthorizedResponse('You do not have permission to delete doctors.');
+        }
 
         if (!auth()->user()?->hasPermission('delete-doctors')) {
             return $this->unauthorizedResponse('Unauthorized to delete doctors');

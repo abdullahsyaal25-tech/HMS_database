@@ -481,7 +481,11 @@ class AppointmentController extends Controller
      */
     public function show(string $id): Response
     {
-        $this->authorizeAppointmentAccess();
+        if (!$this->authorizeAppointmentAccess()) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to view appointments.'
+            ]);
+        }
         
         $appointment = $this->appointmentService->getAppointmentById($id);
         return Inertia::render('Appointment/Show', [
@@ -494,7 +498,11 @@ class AppointmentController extends Controller
      */
     public function edit(string $id): Response
     {
-        $this->authorizeAppointmentModify();
+        if (!$this->authorizeAppointmentModify()) {
+            return Inertia::render('Errors/AccessDenied', [
+                'message' => 'You do not have permission to edit appointments.'
+            ]);
+        }
         
         $appointment = $this->appointmentService->getAppointmentById($id);
         $formData = $this->appointmentService->getAppointmentFormData();
@@ -509,7 +517,9 @@ class AppointmentController extends Controller
      */
     public function update(Request $request, string $id): RedirectResponse
     {
-        $this->authorizeAppointmentModify();
+        if (!$this->authorizeAppointmentModify()) {
+            return redirect()->back()->withErrors(['error' => 'You do not have permission to update appointments.']);
+        }
         
         $validated = $request->validate([
             'patient_id' => 'required|exists:patients,id',
@@ -559,11 +569,13 @@ class AppointmentController extends Controller
      */
     public function destroy(string $id): RedirectResponse
     {
-        $this->authorizeAppointmentModify();
+        if (!$this->authorizeAppointmentModify()) {
+            return redirect()->back()->withErrors(['error' => 'You do not have permission to delete appointments.']);
+        }
         
         // Require specific delete permission
         if (!auth()->user()?->hasPermission('delete-appointments')) {
-            abort(403, 'Unauthorized access');
+            return redirect()->back()->withErrors(['error' => 'You do not have permission to delete appointments.']);
         }
         
         try {

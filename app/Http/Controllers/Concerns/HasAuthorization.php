@@ -9,21 +9,17 @@ trait HasAuthorization
     /**
      * Check if user can access patients
      */
-    protected function authorizePatientAccess(): void
+    protected function authorizePatientAccess(): bool
     {
-        if (!auth()->user()?->hasPermission('view-patients')) {
-            abort(403, 'Unauthorized access');
-        }
+        return auth()->user()?->hasPermission('view-patients') ?? false;
     }
 
     /**
      * Check if user can modify patients
      */
-    protected function authorizePatientModify(): void
+    protected function authorizePatientModify(): bool
     {
-        if (!auth()->user()?->hasPermission('edit-patients')) {
-            abort(403, 'Unauthorized access');
-        }
+        return auth()->user()?->hasPermission('edit-patients') ?? false;
     }
 
     /**

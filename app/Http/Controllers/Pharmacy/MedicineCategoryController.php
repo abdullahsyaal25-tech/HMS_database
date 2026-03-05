@@ -17,7 +17,7 @@ class MedicineCategoryController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $user = Auth::user();
         
@@ -26,12 +26,22 @@ class MedicineCategoryController extends Controller
             abort(403, 'Unauthorized access');
         }
         
-        $categories = MedicineCategory::withCount('medicines')
-            ->orderBy('name')
-            ->paginate(10);
+        $query = MedicineCategory::withCount('medicines');
+        
+        // Handle search
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+        
+        $categories = $query->orderBy('name')->paginate(2)->withQueryString();
         
         return Inertia::render('Pharmacy/Categories/Index', [
-            'categories' => $categories
+            'categories' => $categories,
+            'query' => $request->search ?? ''
         ]);
     }
 

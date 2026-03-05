@@ -21,21 +21,17 @@ class PatientController extends BaseApiController
     /**
      * Check if user can access patients
      */
-    private function authorizePatientAccess(): void
+    private function authorizePatientAccess(): bool
     {
-        if (!auth()->user()?->hasPermission('view-patients')) {
-            abort(403, 'Unauthorized access');
-        }
+        return auth()->user()?->hasPermission('view-patients') ?? false;
     }
 
     /**
      * Check if user can modify patients
      */
-    private function authorizePatientModify(): void
+    private function authorizePatientModify(): bool
     {
-        if (!auth()->user()?->hasPermission('edit-patients')) {
-            abort(403, 'Unauthorized access');
-        }
+        return auth()->user()?->hasPermission('edit-patients') ?? false;
     }
 
     /**
@@ -71,7 +67,9 @@ class PatientController extends BaseApiController
      */
     public function index(Request $request): JsonResponse
     {
-        $this->authorizePatientAccess();
+        if (!$this->authorizePatientAccess()) {
+            return $this->unauthorizedResponse('You do not have permission to view patients.');
+        }
 
         return $this->executeWithErrorHandling(function () use ($request) {
             $perPage = $this->validatePerPage($request->input('per_page', 10));
@@ -108,7 +106,9 @@ class PatientController extends BaseApiController
      */
     public function store(Request $request): JsonResponse
     {
-        $this->authorizePatientModify();
+        if (!$this->authorizePatientModify()) {
+            return $this->unauthorizedResponse('You do not have permission to create patients.');
+        }
 
         return $this->executeWithErrorHandling(function () use ($request) {
             $validatedData = $request->validate([
@@ -246,7 +246,9 @@ class PatientController extends BaseApiController
      */
     public function destroy(string $id): JsonResponse
     {
-        $this->authorizePatientModify();
+        if (!$this->authorizePatientModify()) {
+            return $this->unauthorizedResponse('You do not have permission to delete patients.');
+        }
 
         if (!auth()->user()?->hasPermission('delete-patients')) {
             return $this->unauthorizedResponse('Unauthorized to delete patients');

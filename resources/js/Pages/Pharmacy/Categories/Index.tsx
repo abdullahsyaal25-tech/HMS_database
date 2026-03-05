@@ -20,6 +20,10 @@ import {
   Trash2,
   ArrowLeft,
   Search,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
@@ -63,6 +67,11 @@ interface CategoryIndexProps {
 }
 
 export default function CategoryIndex({ categories, query = '' }: CategoryIndexProps) {
+  // Debug: Log pagination data
+  console.log('[DEBUG] Categories data:', categories);
+  console.log('[DEBUG] Meta:', categories.meta);
+  console.log('[DEBUG] Last page:', categories.meta?.last_page);
+  
   const [searchTerm, setSearchTerm] = useState(query);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<{id: number; name: string; count: number} | null>(null);
@@ -98,7 +107,7 @@ export default function CategoryIndex({ categories, query = '' }: CategoryIndexP
 
   const confirmDelete = () => {
     if (categoryToDelete) {
-      router.delete(`/pharmacy/categories/${categoryToDelete.id}`);
+      router.delete(route('pharmacy.categories.destroy', categoryToDelete.id));
       setDeleteDialogOpen(false);
       setCategoryToDelete(null);
     }
@@ -295,23 +304,99 @@ export default function CategoryIndex({ categories, query = '' }: CategoryIndexP
                   <strong>{categories.meta?.total || 0}</strong> categories
                 </div>
                 
-                <div className="flex space-x-2">
+                <div className="flex items-center space-x-1">
+                  {/* First Page */}
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={categories.meta.current_page === 1}
+                    onClick={() => router.visit(categories.links.first)}
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  {/* Previous Page */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
                     disabled={!categories.links.prev}
                     onClick={() => categories.links.prev && router.visit(categories.links.prev)}
                   >
-                    Previous
+                    <ChevronLeft className="h-4 w-4" />
                   </Button>
                   
+                  {/* Page Numbers */}
+                  {(() => {
+                    const current = categories.meta.current_page;
+                    const last = categories.meta.last_page;
+                    const pages: (number | string)[] = [];
+                    
+                    if (last <= 7) {
+                      for (let i = 1; i <= last; i++) {
+                        pages.push(i);
+                      }
+                    } else {
+                      if (current <= 4) {
+                        for (let i = 1; i <= 5; i++) pages.push(i);
+                        pages.push('...');
+                        pages.push(last);
+                      } else if (current >= last - 3) {
+                        pages.push(1);
+                        pages.push('...');
+                        for (let i = last - 4; i <= last; i++) pages.push(i);
+                      } else {
+                        pages.push(1);
+                        pages.push('...');
+                        for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+                        pages.push('...');
+                        pages.push(last);
+                      }
+                    }
+                    
+                    return pages.map((page, index) => (
+                      page === '...' ? (
+                        <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">...</span>
+                      ) : (
+                        <Button
+                          key={page}
+                          variant={current === page ? "default" : "outline"}
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => {
+                            const url = new URL(categories.meta.path, window.location.origin);
+                            url.searchParams.set('page', String(page));
+                            if (searchTerm) url.searchParams.set('search', searchTerm);
+                            router.visit(url.toString());
+                          }}
+                        >
+                          {page}
+                        </Button>
+                      )
+                    ));
+                  })()}
+                  
+                  {/* Next Page */}
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
+                    className="h-8 w-8"
                     disabled={!categories.links.next}
                     onClick={() => categories.links.next && router.visit(categories.links.next)}
                   >
-                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  
+                  {/* Last Page */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={categories.meta.current_page === categories.meta.last_page}
+                    onClick={() => router.visit(categories.links.last)}
+                  >
+                    <ChevronsRight className="h-4 w-4" />
                   </Button>
                 </div>
               </div>

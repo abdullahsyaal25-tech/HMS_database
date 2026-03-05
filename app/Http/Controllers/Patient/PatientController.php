@@ -19,89 +19,81 @@ class PatientController extends Controller
     /**
      * Check if user can view patients (Super Admin or Reception with view-patients permission)
      */
-    protected function authorizePatientView(): void
+    protected function authorizePatientView(): bool
     {
         $user = auth()->user();
         
         if (!$user) {
-            abort(403, 'Unauthorized access');
+            return false;
         }
         
         // Super admin can always view
         if ($user->isSuperAdmin()) {
-            return;
+            return true;
         }
         
         // Reception admin and others need view-patients permission
-        if (!$user->hasPermission('view-patients')) {
-            abort(403, 'Unauthorized access. You do not have permission to view patients.');
-        }
+        return $user->hasPermission('view-patients');
     }
 
     /**
      * Check if user can create patients (Super Admin or Reception with create-patients permission)
      */
-    protected function authorizePatientCreate(): void
+    protected function authorizePatientCreate(): bool
     {
         $user = auth()->user();
         
         if (!$user) {
-            abort(403, 'Unauthorized access');
+            return false;
         }
         
         // Super admin can always create
         if ($user->isSuperAdmin()) {
-            return;
+            return true;
         }
         
         // Reception admin and others need create-patients permission
-        if (!$user->hasPermission('create-patients')) {
-            abort(403, 'Unauthorized access. You do not have permission to create patients.');
-        }
+        return $user->hasPermission('create-patients');
     }
 
     /**
      * Check if user can modify patients (Super Admin only - Reception admin cannot modify)
      */
-    protected function authorizePatientModify(): void
+    protected function authorizePatientModify(): bool
     {
         $user = auth()->user();
         
         if (!$user) {
-            abort(403, 'Unauthorized access');
+            return false;
         }
         
         // Super admin can always modify
         if ($user->isSuperAdmin()) {
-            return;
+            return true;
         }
         
         // Check for explicit edit permission - Reception admin should NOT have this
-        if (!$user->hasPermission('edit-patients')) {
-            abort(403, 'Unauthorized access. You do not have permission to modify patients.');
-        }
+        return $user->hasPermission('edit-patients');
     }
 
     /**
      * Check if user can delete patients (Super Admin only - Reception admin cannot delete)
      */
-    protected function authorizePatientDelete(): void
+    protected function authorizePatientDelete(): bool
     {
         $user = auth()->user();
         
         if (!$user) {
-            abort(403, 'Unauthorized access');
+            return false;
         }
         
         // Super admin can always delete
         if ($user->isSuperAdmin()) {
-            return;
+            return true;
         }
         
         // Check for explicit delete permission - Reception admin should NOT have this
-        if (!$user->hasPermission('delete-patients')) {
-            abort(403, 'Unauthorized access. You do not have permission to delete patients.');
-        }
+        return $user->hasPermission('delete-patients');
     }
 
     /**
