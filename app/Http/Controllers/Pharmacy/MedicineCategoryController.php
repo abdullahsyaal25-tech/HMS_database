@@ -40,7 +40,25 @@ class MedicineCategoryController extends Controller
         $categories = $query->orderBy('name')->paginate(2)->withQueryString();
         
         return Inertia::render('Pharmacy/Categories/Index', [
-            'categories' => $categories,
+            'categories' => [
+                'data' => $categories->items(),
+                'links' => [
+                    'first' => $categories->url(1),
+                    'last' => $categories->url($categories->lastPage()),
+                    'prev' => $categories->previousPageUrl(),
+                    'next' => $categories->nextPageUrl(),
+                ],
+                'meta' => [
+                    'current_page' => $categories->currentPage(),
+                    'from' => $categories->firstItem(),
+                    'last_page' => $categories->lastPage(),
+                    'links' => $categories->linkCollection()->toArray(),
+                    'path' => $categories->path(),
+                    'per_page' => $categories->perPage(),
+                    'to' => $categories->lastItem(),
+                    'total' => $categories->total(),
+                ],
+            ],
             'query' => $request->search ?? ''
         ]);
     }

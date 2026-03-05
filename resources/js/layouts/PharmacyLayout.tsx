@@ -58,7 +58,9 @@ export default function PharmacyLayout({
     const isAuthenticated = !!user;
     const totalAlerts = (alerts.lowStock || 0) + (alerts.expiringSoon || 0) + (alerts.expired || 0);
 
-    // Check if user is NOT a super admin (meaning they are a restricted user like pharmacy admin)
+    // Check if user is a restricted user (pharmacy admin only)
+    // Only pharmacy-admin should be restricted from Home, Sales Dashboard, and Pharmacy Dashboard
+    // All other roles (super admin, sub super admin, reception admin, etc.) should have access
     const isRestrictedUser = useCallback((): boolean => {
         if (!user) return true; // Not authenticated = restricted
         
@@ -67,18 +69,19 @@ export default function PharmacyLayout({
             return false;
         }
         
-        // Check if user is a super admin by role
+        // Check if user is a pharmacy admin - ONLY this role should be restricted
         const userRole = user.role;
         const userRoleSlug = user.roleModel?.slug;
         
-        if (userRole === 'Super Admin' || 
-            userRole === 'super admin' || 
-            userRoleSlug === 'super-admin') {
-            return false;
+        // Restrict only pharmacy admin role
+        if (userRoleSlug === 'pharmacy-admin' ||
+            userRole === 'Pharmacy Admin' ||
+            userRole === 'pharmacy admin') {
+            return true;
         }
         
-        // If we get here, user is NOT a super admin (could be pharmacy admin or other)
-        return true;
+        // All other users (super admin, sub super admin, reception admin, etc.) are NOT restricted
+        return false;
     }, [user]);
 
     // Check if user has a specific permission
