@@ -273,12 +273,8 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
             return allNavItems;
         }
         
-        return allNavItems.filter(item => {
-            if (!item.permission) {
-                return true; // Always show items without specific permission requirement
-            }
-            return hasPermission(item.permission);
-        });
+        // Show all navigation items regardless of permissions
+        return allNavItems;
     }, [hasPermission, isAuthenticated]);
 
     // Handle modal close

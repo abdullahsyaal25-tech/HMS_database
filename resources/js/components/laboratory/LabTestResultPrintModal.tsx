@@ -42,6 +42,8 @@ interface LabTestResultPrintModalProps {
             }>;
         };
         performedBy?: { name: string };
+        performed_by?: { name: string };
+        authorized_by?: string;
         performed_at: string;
         results: string;
         notes: string | null;
@@ -158,7 +160,7 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
                 .patient-table {
                     width: 100%;
                     border-collapse: collapse;
-                    margin: 0 auto 10px auto;
+                    margin: 75px auto 10px auto;
                     font-size: 10px;
                     max-width: 700px;
                 }
@@ -236,7 +238,8 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
         const phone = labTestResult.patient?.phone || 'N/A';
         const address = labTestResult.patient?.address || 'N/A';
         const receiptNo = labTestResult.result_id || 'N/A';
-        const userName = labTestResult.performedBy?.name || 'N/A';
+        // Use authorized user (current logged in user) for print
+        const userName = labTestResult.authorized_by || labTestResult.performedBy?.name || labTestResult.performed_by?.name || 'N/A';
         const testDate = labTestResult.performed_at ? new Date(labTestResult.performed_at).toLocaleString('en-US') : 'N/A';
         const printDate = new Date().toLocaleString('en-US');
         const testName = labTestResult.labTest?.name || '';
@@ -346,7 +349,8 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
     const phone = labTestResult.patient?.phone || 'N/A';
     const address = labTestResult.patient?.address || 'N/A';
     const receiptNo = labTestResult.result_id || 'N/A';
-    const userName = labTestResult.performedBy?.name || 'N/A';
+    // Use authorized user (current logged in user) for print
+    const userName = labTestResult.authorized_by || labTestResult.performedBy?.name || labTestResult.performed_by?.name || 'N/A';
     const testDate = labTestResult.performed_at ? new Date(labTestResult.performed_at).toLocaleString('en-US') : 'N/A';
     const printDate = new Date().toLocaleString('en-US');
     const testName = labTestResult.labTest?.name || 'Lab Test';
@@ -368,7 +372,7 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
 
                 <div ref={printRef} className="bg-white p-6 border rounded-lg">
                     {/* Patient Info */}
-                    <table className="w-full border-collapse mb-4 text-xs mx-auto" style={{ maxWidth: '700px', marginTop: '0px' }}>
+                    <table className="w-full border-collapse mb-4 text-xs mx-auto" style={{ maxWidth: '700px', marginTop: '75px' }}>
                         <tbody>
                             <tr>
                                 <td className="border border-gray-400 px-1 py-0.5 font-semibold bg-gray-100 w-1/6">Receipt No:</td>

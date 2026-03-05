@@ -416,13 +416,17 @@ class LabTestResultController extends Controller
         // Load relationships - include reference_ranges from test
         $labTestResult->load(['patient', 'test', 'performedBy']);
         
+        // Add authorized user name for print modal
+        $labTestResultArray = $labTestResult->toArray();
+        $labTestResultArray['authorized_by'] = auth()->user()->name ?? 'System';
+        
         // Determine permissions - no verification process, always allow editing
         $canEdit = $user->hasPermission('edit-lab-test-results');
         $canPrint = true; // Always allow printing for users with view permission
         $canEmail = true;
         
         return Inertia::render('Laboratory/LabTestResults/Show', [
-            'labTestResult' => $labTestResult,
+            'labTestResult' => $labTestResultArray,
             'canEdit' => $canEdit,
             'canVerify' => false, // Verification removed - auto-completed on save
             'canPrint' => $canPrint,
@@ -447,11 +451,15 @@ class LabTestResultController extends Controller
         // Load relationships
         $labTestResult->load(['patient', 'test', 'performedBy']);
         
+        // Add authorized user name for print modal
+        $labTestResultArray = $labTestResult->toArray();
+        $labTestResultArray['authorized_by'] = auth()->user()->name ?? 'System';
+        
         $labTests = LabTest::all();
         $patients = Patient::all();
         
         return Inertia::render('Laboratory/LabTestResults/Edit', [
-            'labTestResult' => $labTestResult,
+            'labTestResult' => $labTestResultArray,
             'labTests' => $labTests,
             'patients' => $patients
         ]);
