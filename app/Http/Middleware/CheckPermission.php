@@ -13,6 +13,7 @@ use App\Services\MfaEnforcementService;
 use App\Services\SessionTimeoutService;
 use App\Services\AuthorizationService;
 use App\Models\PermissionIpRestriction;
+use Inertia\Inertia;
 
 class CheckPermission
 {
@@ -435,7 +436,10 @@ class CheckPermission
             ], 401);
         }
 
-        return redirect()->route('login');
+        return Inertia::render('Errors/AccessDenied', [
+            'message' => $message,
+            'requiredPermission' => null,
+        ])->toResponse($request)->setStatusCode(401);
     }
 
     /**
@@ -450,7 +454,10 @@ class CheckPermission
             ], 403);
         }
 
-        return back()->with('error', $message);
+        return Inertia::render('Errors/AccessDenied', [
+            'message' => $message,
+            'requiredPermission' => session('required_permission'),
+        ])->toResponse($request)->setStatusCode(403);
     }
 
     /**

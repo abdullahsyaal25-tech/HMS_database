@@ -170,6 +170,11 @@ class HandleInertiaRequests extends Middleware
         $userPermissions = $user->userPermissions()->with('permission')->get();
         
         foreach ($userPermissions as $userPermission) {
+            // Skip if permission relationship is null
+            if (!$userPermission->permission) {
+                continue;
+            }
+            
             $permissionName = $userPermission->permission->name;
             
             if ($userPermission->allowed) {

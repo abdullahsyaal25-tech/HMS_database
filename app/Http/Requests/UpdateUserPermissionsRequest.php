@@ -14,8 +14,12 @@ class UpdateUserPermissionsRequest extends FormRequest
     {
         $user = $this->user();
         
-        // Check if user has manage-users or manage-permissions permission
-        return $user && ($user->hasPermission('manage-users') || $user->hasPermission('manage-permissions'));
+        // Check if user has manage-users, manage-permissions, or manage-user-permissions permission
+        return $user && (
+            $user->hasPermission('manage-users') ||
+            $user->hasPermission('manage-permissions') ||
+            $user->hasPermission('manage-user-permissions')
+        );
     }
 
     /**

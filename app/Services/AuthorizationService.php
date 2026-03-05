@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Session;
+use Inertia\Inertia;
 
 
 /**
@@ -61,20 +62,23 @@ class AuthorizationService
     }
 
     /**
-     * Handle unauthorized access attempt - Returns default response.
+     * Handle unauthorized access attempt - Returns AccessDenied page.
      */
     public function handleUnauthorizedAccess(
         Request $request,
         string $message = 'Unauthorized',
         int $code = 403
     ): Response|JsonResponse|RedirectResponse {
-        // Simplified: just redirect to home or return error
+        // Return JSON for API requests
         if ($request->expectsJson()) {
             return response()->json(['message' => $message], $code);
         }
         
-        Session::flash('error', $message);
-        return redirect()->route('dashboard')->with('error', $message);
+        // Render AccessDenied Inertia page
+        return Inertia::render('Errors/AccessDenied', [
+            'message' => $message,
+            'requiredPermission' => session('required_permission'),
+        ])->toResponse($request)->setStatusCode(403);
     }
 
     /**

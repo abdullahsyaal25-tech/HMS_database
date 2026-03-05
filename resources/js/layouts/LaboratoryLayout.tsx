@@ -2,6 +2,7 @@ import { AppShell } from '@/components/app-shell';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
+import { ProfileNav } from '@/components/profile-nav';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -305,7 +306,7 @@ export default function LaboratoryLayout({
                         </div>
                     )}
                     <NavFooter items={footerNavItems} className="mt-auto" />
-                    <NavUser />
+                    <ProfileNav />
                 </SidebarFooter>
             </Sidebar>
 

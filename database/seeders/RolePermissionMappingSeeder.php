@@ -62,21 +62,11 @@ class RolePermissionMappingSeeder extends Seeder
             'laboratory-admin' => [
                 'view-dashboard',
                 'view-patients',
-                'view-laboratory', 'create-lab-tests', 'edit-lab-tests', 'delete-lab-tests',
+                'view-lab-tests', 'create-lab-tests', 'edit-lab-tests', 'delete-lab-tests',
+                'view-lab-test-requests', 'create-lab-test-requests', 'process-lab-test-requests', 'cancel-lab-test-requests',
+                'view-lab-test-results', 'create-lab-test-results', 'validate-lab-test-results',
+                'manage-laboratory',
                 'view-reports',
-            ],
-            
-            'doctor' => [
-                'view-dashboard',
-                'view-patients', 'edit-patients',
-                'view-doctors',
-                'view-appointments', 'edit-appointments',
-                'view-laboratory',
-            ],
-            
-            'patient' => [
-                'view-dashboard',
-                'view-appointments',
             ],
         ];
 

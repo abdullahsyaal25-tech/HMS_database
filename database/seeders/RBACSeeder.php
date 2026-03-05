@@ -347,10 +347,11 @@ class RBACSeeder extends Seeder
             'laboratory-admin' => [
                 'view-dashboard',
                 'view-patients',
-                'view-laboratory', 'create-lab-tests', 'edit-lab-tests', 'delete-lab-tests',
-                'process-test-results', 'quality-control',
-                'view-lab-results', 'create-lab-results', 'edit-lab-results',
-                'manage-lab-materials',
+                'view-lab-tests', 'create-lab-tests', 'edit-lab-tests', 'delete-lab-tests',
+                'view-lab-test-requests', 'create-lab-test-requests', 'process-lab-test-requests', 'cancel-lab-test-requests',
+                'create-lab-test-results', 'edit-lab-test-results', 'validate-lab-test-results',
+                'quality-control',
+                'manage-laboratory',
                 'view-reports',
             ],
             'reception-admin' => [
@@ -375,17 +376,6 @@ class RBACSeeder extends Seeder
                 'view-wallet',
                 'view-permission-templates', 'edit-role-permissions', 'reset-role-permissions'
             ],
-            'doctor' => [
-                'view-dashboard',
-                'view-patients', 'edit-patients',
-                'view-doctors',
-                'view-appointments', 'edit-appointments',
-                'view-laboratory',
-            ],
-            'patient' => [
-                'view-dashboard',
-                'view-appointments',
-            ]
         ];
 
         foreach ($rolePermissions as $roleSlug => $permissionNames) {

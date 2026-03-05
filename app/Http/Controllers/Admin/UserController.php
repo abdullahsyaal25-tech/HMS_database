@@ -266,15 +266,19 @@ class UserController extends Controller
                 'isSuperAdmin' => $user->isSuperAdmin(),
                 'created_at' => $user->created_at,
                 'updated_at' => $user->updated_at,
-                'userPermissions' => $user->userPermissions->map(function ($userPermission) {
-                    return [
-                        'id' => $userPermission->permission->id,
-                        'name' => $userPermission->permission->name,
-                        'description' => $userPermission->permission->description,
-                        'resource' => $userPermission->permission->resource,
-                        'action' => $userPermission->permission->action,
-                    ];
-                }),
+                'userPermissions' => $user->userPermissions
+                    ->filter(function ($userPermission) {
+                        return $userPermission->permission !== null;
+                    })
+                    ->map(function ($userPermission) {
+                        return [
+                            'id' => $userPermission->permission->id,
+                            'name' => $userPermission->permission->name,
+                            'description' => $userPermission->permission->description,
+                            'resource' => $userPermission->permission->resource,
+                            'action' => $userPermission->permission->action,
+                        ];
+                    }),
             ],
             'canDelete' => $canDelete,
             'canEdit' => $canEdit,
@@ -472,7 +476,9 @@ class UserController extends Controller
         $user = User::findOrFail($id);
 
         // Authorization check
-        if (!$currentUser->isSuperAdmin() && !$currentUser->hasPermission('manage-users')) {
+        if (!$currentUser->isSuperAdmin() &&
+            !$currentUser->hasPermission('manage-users') &&
+            !$currentUser->hasPermission('manage-user-permissions')) {
             abort(403, 'Unauthorized to manage user permissions');
         }
 
@@ -640,7 +646,9 @@ class UserController extends Controller
         $currentUser = \Illuminate\Support\Facades\Auth::user();
 
         // Authorization check
-        if (!$currentUser->isSuperAdmin() && !$currentUser->hasPermission('manage-users')) {
+        if (!$currentUser->isSuperAdmin() &&
+            !$currentUser->hasPermission('manage-users') &&
+            !$currentUser->hasPermission('manage-user-permissions')) {
             return response()->json(['error' => 'Unauthorized to manage user permissions'], 403);
         }
 
@@ -922,7 +930,9 @@ class UserController extends Controller
         $currentUser = \Illuminate\Support\Facades\Auth::user();
 
         // Authorization check
-        if (!$currentUser->isSuperAdmin() && !$currentUser->hasPermission('manage-users')) {
+        if (!$currentUser->isSuperAdmin() &&
+            !$currentUser->hasPermission('manage-users') &&
+            !$currentUser->hasPermission('manage-user-permissions')) {
             return redirect()->back()->withErrors(['permission' => 'Unauthorized to revoke user permissions']);
         }
 

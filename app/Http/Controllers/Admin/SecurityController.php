@@ -21,7 +21,9 @@ class SecurityController extends Controller
         ]);
 
         // Check if user has permission to access security center
-        if (!$user->hasPermission('manage-users') && !$user->isSuperAdmin()) {
+        if (!$user->isSuperAdmin() &&
+            !$user->hasPermission('manage-users') &&
+            !$user->hasPermission('manage-permissions')) {
             abort(403, 'Unauthorized access');
         }
 

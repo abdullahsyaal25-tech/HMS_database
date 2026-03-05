@@ -253,7 +253,7 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
 
             
             {
-                title: 'RBAC',
+                title: 'Admin',
                 href: '/admin/rbac',
                 icon: Shield,
                 permission: 'admin.access',
@@ -262,12 +262,6 @@ export default function HospitalLayout({ header, children }: HospitalLayoutProps
                         title: 'User Management',
                         href: '/admin',
                         icon: Users,
-                    },
-                  
-                    {
-                        title: 'Permissions',
-                        href: '/admin/permissions',
-                        icon: Lock,
                     },
                 ],
             },

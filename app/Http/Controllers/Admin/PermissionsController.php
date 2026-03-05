@@ -238,7 +238,7 @@ class PermissionsController extends Controller
             'Super Admin' => [], // Super Admin gets all permissions implicitly
             'Reception Admin' => ['view-appointments', 'create-appointments', 'edit-appointments', 'view-patients', 'create-patients'],
             'Pharmacy Admin' => ['view-pharmacy', 'view-medicines', 'edit-medicines', 'view-sales'],
-            'Laboratory Admin' => ['view-laboratory', 'view-lab-test-requests', 'process-lab-test-requests', 'view-lab-tests'],
+            'Laboratory Admin' => ['view-lab-tests', 'view-lab-test-requests', 'process-lab-test-requests', 'create-lab-test-results', 'manage-laboratory'],
             'Sub Super Admin' => ['view-admin-dashboard', 'view-users', 'view-patients', 'view-appointments'],
         ];
 
@@ -295,7 +295,8 @@ class PermissionsController extends Controller
         $currentUser = Auth::user();
         if (!$currentUser->isSuperAdmin() &&
             !$currentUser->hasPermission('manage-users') &&
-            !$currentUser->hasPermission('manage-permissions')) {
+            !$currentUser->hasPermission('manage-permissions') &&
+            !$currentUser->hasPermission('manage-user-permissions')) {
             abort(403, 'Unauthorized to view user permissions');
         }
 
@@ -502,7 +503,8 @@ class PermissionsController extends Controller
         // Authorization check
         if (!$currentUser->isSuperAdmin() &&
             !$currentUser->hasPermission('manage-users') &&
-            !$currentUser->hasPermission('manage-permissions')) {
+            !$currentUser->hasPermission('manage-permissions') &&
+            !$currentUser->hasPermission('manage-user-permissions')) {
             abort(403, 'Unauthorized to revoke user permissions');
         }
 

@@ -126,6 +126,26 @@ class PermissionSeeder extends Seeder
                 'requires_mfa' => true,
                 'requires_approval' => true,
             ],
+            [
+                'name' => 'manage-users',
+                'description' => 'Manage users (create, edit, delete, view all)',
+                'module' => 'User Management',
+                'category' => 'User Management',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+                'is_critical' => true,
+            ],
+            [
+                'name' => 'manage-permissions',
+                'description' => 'Manage roles and permissions system-wide',
+                'module' => 'User Management',
+                'category' => 'User Management',
+                'risk_level' => 'high',
+                'requires_mfa' => true,
+                'requires_approval' => true,
+                'is_critical' => true,
+            ],
 
             // Patient Management Permissions
             [
@@ -549,7 +569,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => true,
             ],
             [
-                'name' => 'view-lab-requests',
+                'name' => 'view-lab-test-requests',
                 'description' => 'View test requests',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -558,7 +578,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'create-lab-requests',
+                'name' => 'create-lab-test-requests',
                 'description' => 'Create test requests',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -567,7 +587,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'process-lab-requests',
+                'name' => 'process-lab-test-requests',
                 'description' => 'Process test requests',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -576,7 +596,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'cancel-lab-requests',
+                'name' => 'cancel-lab-test-requests',
                 'description' => 'Cancel test requests',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -585,7 +605,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'view-lab-results',
+                'name' => 'view-lab-test-results',
                 'description' => 'View test results',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -594,7 +614,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'enter-lab-results',
+                'name' => 'create-lab-test-results',
                 'description' => 'Enter test results',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -603,7 +623,7 @@ class PermissionSeeder extends Seeder
                 'requires_approval' => false,
             ],
             [
-                'name' => 'validate-lab-results',
+                'name' => 'validate-lab-test-results',
                 'description' => 'Validate test results',
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
@@ -680,6 +700,18 @@ class PermissionSeeder extends Seeder
                 'module' => 'Laboratory',
                 'category' => 'Laboratory',
                 'risk_level' => 'medium',
+                'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+            [
+                'name' => 'manage-laboratory',
+                'display_name' => 'Manage Laboratory',
+                'description' => 'Full access to manage laboratory operations',
+                'module' => 'laboratory',
+                'category' => 'laboratory',
+                'resource' => 'laboratory',
+                'action' => 'manage',
+                'risk_level' => 'high',
                 'requires_mfa' => true,
                 'requires_approval' => false,
             ],
@@ -1117,6 +1149,34 @@ class PermissionSeeder extends Seeder
                 'category' => 'Finance',
                 'risk_level' => 'high',
                 'requires_mfa' => true,
+                'requires_approval' => false,
+            ],
+
+            // Dashboard Permissions
+            [
+                'name' => 'view-dashboard',
+                'display_name' => 'View Dashboard',
+                'description' => 'Access the main dashboard',
+                'module' => 'dashboard',
+                'category' => 'Dashboard',
+                'resource' => 'dashboard',
+                'action' => 'view',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
+
+            // Audit Permissions
+            [
+                'name' => 'view-activity-logs',
+                'display_name' => 'View Activity Logs',
+                'description' => 'View system activity and audit logs',
+                'module' => 'audit',
+                'category' => 'Audit',
+                'resource' => 'activity-logs',
+                'action' => 'view',
+                'risk_level' => 'medium',
+                'requires_mfa' => false,
                 'requires_approval' => false,
             ],
         ];

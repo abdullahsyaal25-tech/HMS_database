@@ -60,6 +60,9 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
         ? appointment.services.reduce((sum, s) => sum + ((s.pivot?.final_cost ?? s.pivot?.custom_cost) || 0), 0)
         : 0;
 
+    // Calculate total discount (services discount + additional discount)
+    const totalDiscount = servicesDiscount + additionalDiscount;
+
     const calculatedGrandTotal = appointment && appointment.services && appointment.services.length > 0
         ? Math.max(0, servicesFinalTotal - Math.min(servicesFinalTotal, additionalDiscount))  // Apply additional discount to services total, ensuring it doesn't exceed the total
         : Math.max(0, consultationFee - Math.min(consultationFee, additionalDiscount));
@@ -232,21 +235,17 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                             ${appointment.services.map(service => `
                                 <div class="financial-row">
                                     <span>${service.name}:</span>
-                                    <span>${formatCurrency(service.pivot?.final_cost || 0)}</span>
+                                    <span>${formatCurrency(service.pivot?.custom_cost || 0)}</span>
                                 </div>
                             `).join('')}
                             <div class="financial-row">
                                 <span>Services Subtotal:</span>
-                                <span>${formatCurrency(servicesFinalTotal)}</span>
+                                <span>${formatCurrency(servicesSubtotal)}</span>
                             </div>
+                            ${totalDiscount > 0 ? `
                             <div class="financial-row discount-row">
-                                <span>Services Discount:</span>
-                                <span>-${formatCurrency(servicesDiscount > 0 ? servicesDiscount : (servicesSubtotal - servicesFinalTotal))}</span>
-                            </div>
-                            ${additionalDiscount > 0 ? `
-                            <div class="financial-row discount-row">
-                                <span>Additional Discount:</span>
-                                <span>-${formatCurrency(Math.min(servicesFinalTotal, additionalDiscount))}</span>
+                                <span>Total Discount:</span>
+                                <span>-${formatCurrency(totalDiscount)}</span>
                             </div>
                             ` : ''}
                             <div class="total-row">
@@ -258,10 +257,10 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                                 <span>Consultation Fee:</span>
                                 <span>${formatCurrency(consultationFee)}</span>
                             </div>
-                            ${additionalDiscount > 0 ? `
+                            ${totalDiscount > 0 ? `
                             <div class="financial-row discount-row">
-                                <span>Additional Discount:</span>
-                                <span>-${formatCurrency(Math.min(consultationFee, additionalDiscount))}</span>
+                                <span>Total Discount:</span>
+                                <span>-${formatCurrency(totalDiscount)}</span>
                             </div>
                             ` : ''}
                             <div class="total-row">
@@ -393,40 +392,35 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                                 {appointment.services.map((service) => (
                                     <div key={service.id} className="flex justify-between py-1">
                                         <span className="text-gray-600">{service.name}:</span>
-                                        <span className="font-medium">{formatCurrency(service.pivot?.final_cost || 0)}</span>
+                                        <span className="font-medium">{formatCurrency(service.pivot?.custom_cost || 0)}</span>
                                     </div>
                                 ))}
                                 <div className="flex justify-between py-1">
                                     <span className="text-gray-600">Services Subtotal:</span>
                                     <span className="font-medium">{formatCurrency(servicesSubtotal)}</span>
                                 </div>
-                                <div className="flex justify-between py-1 text-green-600">
-                                    <span>Services Discount:</span>
-                                    <span className="font-medium">-{formatCurrency(servicesDiscount > 0 ? servicesDiscount : Math.max(0, servicesSubtotal - servicesFinalTotal))}</span>
-                                </div>
-                                {additionalDiscount > 0 && (
+                                {totalDiscount > 0 && (
                                     <div className="flex justify-between py-1 text-green-600">
-                                        <span>Additional Discount:</span>
-                                        <span className="font-medium">-{formatCurrency(Math.min(servicesFinalTotal, additionalDiscount))}</span>
+                                        <span>Total Discount:</span>
+                                        <span className="font-medium">-{formatCurrency(totalDiscount)}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between py-2 bg-gray-100 px-2 rounded mt-2">
                                     <span className="font-bold text-lg">Amount Paid:</span>
-                                    <span className="font-bold text-lg text-gray-800">{formatCurrency(calculatedGrandTotal)}</span>
+                                    <span className="font-bold text-lg text-gray-800">{formatCurrency(grandTotal)}</span>
                                 </div>
                             </>
                         ) : (
                             <>
-            
-                                {additionalDiscount > 0 && (
+                                {totalDiscount > 0 && (
                                     <div className="flex justify-between py-1 text-green-600">
-                                        <span>Additional Discount:</span>
-                                        <span className="font-medium">-{formatCurrency(Math.min(consultationFee, additionalDiscount))}</span>
+                                        <span>Total Discount:</span>
+                                        <span className="font-medium">-{formatCurrency(totalDiscount)}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between py-2 bg-gray-100 px-2 rounded mt-2">
                                     <span className="font-bold text-lg">Amount Paid:</span>
-                                    <span className="font-bold text-lg text-gray-800">{formatCurrency(calculatedGrandTotal)}</span>
+                                    <span className="font-bold text-lg text-gray-800">{formatCurrency(grandTotal)}</span>
                                 </div>
                             </>
                         )}
