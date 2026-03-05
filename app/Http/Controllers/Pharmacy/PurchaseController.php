@@ -73,7 +73,25 @@ class PurchaseController extends Controller
         ];
         
         return Inertia::render('Pharmacy/Purchases/Index', [
-            'purchases' => $purchases,
+            'purchases' => [
+                'data' => $purchases->items(),
+                'links' => [
+                    'first' => $purchases->url(1),
+                    'last' => $purchases->url($purchases->lastPage()),
+                    'prev' => $purchases->previousPageUrl(),
+                    'next' => $purchases->nextPageUrl(),
+                ],
+                'meta' => [
+                    'current_page' => $purchases->currentPage(),
+                    'from' => $purchases->firstItem(),
+                    'last_page' => $purchases->lastPage(),
+                    'links' => $purchases->linkCollection()->toArray(),
+                    'path' => $purchases->path(),
+                    'per_page' => $purchases->perPage(),
+                    'to' => $purchases->lastItem(),
+                    'total' => $purchases->total(),
+                ],
+            ],
             'suppliers' => $suppliers,
             'stats' => $stats,
             'filters' => $request->only(['query', 'status', 'supplier_id', 'date_from', 'date_to']),

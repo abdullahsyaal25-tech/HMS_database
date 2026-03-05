@@ -58,14 +58,38 @@ export default function PharmacyLayout({
     const isAuthenticated = !!user;
     const totalAlerts = (alerts.lowStock || 0) + (alerts.expiringSoon || 0) + (alerts.expired || 0);
 
+    // DEBUG: Log user object on component mount
+    useMemo(() => {
+        console.log('=== PHARMACY LAYOUT DEBUG ===');
+        console.log('User object:', user);
+        console.log('Auth object:', auth);
+        console.log('Is Authenticated:', isAuthenticated);
+        console.log('User role:', user?.role);
+        console.log('User roleModel:', user?.roleModel);
+        console.log('User is_super_admin:', user?.is_super_admin);
+        console.log('User permissions:', user?.permissions);
+        console.log('=============================');
+    }, [user, auth, isAuthenticated]);
+
     // Check if user is a restricted user (pharmacy admin only)
     // Only pharmacy-admin should be restricted from Home, Sales Dashboard, and Pharmacy Dashboard
     // All other roles (super admin, sub super admin, reception admin, etc.) should have access
     const isRestrictedUser = useCallback((): boolean => {
-        if (!user) return true; // Not authenticated = restricted
+        console.log('=== isRestrictedUser() called ===');
+        
+        if (!user) {
+            console.log('No user found - returning RESTRICTED (true)');
+            return true; // Not authenticated = restricted
+        }
+        
+        console.log('User role:', user.role);
+        console.log('User roleModel:', user.roleModel);
+        console.log('User is_super_admin:', user.is_super_admin);
+        console.log('Full user object keys:', Object.keys(user));
         
         // If user has is_super_admin flag set to true, they are NOT restricted
         if (user.is_super_admin === true) {
+            console.log('User is_super_admin === true - returning NOT RESTRICTED (false)');
             return false;
         }
         
@@ -73,52 +97,97 @@ export default function PharmacyLayout({
         const userRole = user.role;
         const userRoleSlug = user.roleModel?.slug;
         
-        // Restrict only pharmacy admin role
-        if (userRoleSlug === 'pharmacy-admin' ||
-            userRole === 'Pharmacy Admin' ||
-            userRole === 'pharmacy admin') {
+        console.log('Checking role:', { userRole, userRoleSlug });
+        
+        // Restrict only pharmacy admin role (case-insensitive check)
+        const isPharmacyAdmin = userRoleSlug === 'pharmacy-admin' ||
+            userRole?.toLowerCase() === 'pharmacy admin' ||
+            userRole?.toLowerCase() === 'pharmacy-admin';
+            
+        if (isPharmacyAdmin) {
+            console.log('User is pharmacy-admin - returning RESTRICTED (true)');
             return true;
         }
         
         // All other users (super admin, sub super admin, reception admin, etc.) are NOT restricted
+        console.log('User is not pharmacy-admin - returning NOT RESTRICTED (false)');
         return false;
     }, [user]);
 
     // Check if user has a specific permission
     const hasPermission = useCallback((permission: string): boolean => {
-        if (!user) return false;
-        return user.permissions?.includes(permission) ?? false;
+        console.log('=== hasPermission() called ===');
+        console.log('Checking permission:', permission);
+        console.log('User:', user);
+        
+        if (!user) {
+            console.log('No user - returning false');
+            return false;
+        }
+        
+        const userPermissions = user.permissions || [];
+        console.log('User permissions:', userPermissions);
+        console.log('User is_super_admin:', user.is_super_admin);
+        
+        // Super admin bypass - if user is super admin, they have all permissions
+        if (user.is_super_admin === true) {
+            console.log('User is super admin - granting permission');
+            return true;
+        }
+        
+        const hasPerm = userPermissions.includes(permission);
+        console.log(`Permission '${permission}' granted:`, hasPerm);
+        return hasPerm;
     }, [user]);
 
     const filteredNavItems = useMemo(() => {
+        console.log('=== Building filteredNavItems ===');
+        console.log('isRestrictedUser() result:', isRestrictedUser());
+        console.log('hasPermission(view-dashboard):', hasPermission('view-dashboard'));
+        
         // Build navigation items
         const items: NavItem[] = [];
         
-        // Home - only for unrestricted users (super admins)
-        if (!isRestrictedUser()) {
+        // Home - only for super admins
+        const showHome = user?.is_super_admin === true;
+        console.log('Should show Home?', showHome);
+        if (showHome) {
             items.push({
                 title: 'Home',
                 href: '/dashboard',
                 icon: Building2,
             });
+            console.log('Added: Home');
+        } else {
+            console.log('Skipped: Home (not super admin)');
         }
         
-        // Dashboard - visible to everyone with permission
-        if (hasPermission('view-dashboard')) {
+        // Dashboard - only for super admins
+        const showDashboard = user?.is_super_admin === true;
+        console.log('Should show Dashboard?', showDashboard);
+        if (showDashboard) {
             items.push({
                 title: 'Dashboard',
                 href: '/pharmacy',
                 icon: LayoutGrid,
             });
+            console.log('Added: Dashboard');
+        } else {
+            console.log('Skipped: Dashboard (not super admin)');
         }
         
-        // Sale Dashboard - only for unrestricted users (super admins)
-        if (!isRestrictedUser()) {
+        // Sale Dashboard - only for super admins
+        const showSaleDashboard = user?.is_super_admin === true;
+        console.log('Should show Sale Dashboard?', showSaleDashboard);
+        if (showSaleDashboard) {
             items.push({
                 title: 'Sale Dashboard',
                 href: '/pharmacy/sales/dashboard',
                 icon: BarChart3,
             });
+            console.log('Added: Sale Dashboard');
+        } else {
+            console.log('Skipped: Sale Dashboard (not super admin)');
         }
         
         // Sale section - visible to all authenticated users
@@ -244,7 +313,13 @@ export default function PharmacyLayout({
                 },
             ],
         });
+        console.log('Added: Reports');
 
+        console.log('=== Final navigation items ===');
+        console.log('Total items:', items.length);
+        console.log('Item titles:', items.map(item => item.title));
+        console.log('=============================');
+        
         return items;
     }, [isRestrictedUser, hasPermission]);
 

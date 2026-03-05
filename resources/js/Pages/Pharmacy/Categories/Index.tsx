@@ -67,11 +67,6 @@ interface CategoryIndexProps {
 }
 
 export default function CategoryIndex({ categories, query = '' }: CategoryIndexProps) {
-  // Debug: Log pagination data
-  console.log('[DEBUG] Categories data:', categories);
-  console.log('[DEBUG] Meta:', categories.meta);
-  console.log('[DEBUG] Last page:', categories.meta?.last_page);
-  
   const [searchTerm, setSearchTerm] = useState(query);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<{id: number; name: string; count: number} | null>(null);

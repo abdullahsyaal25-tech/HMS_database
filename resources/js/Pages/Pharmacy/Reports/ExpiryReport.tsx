@@ -23,6 +23,10 @@ import {
     Search,
     AlertTriangle,
     Trash2,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
 } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { useState } from 'react';
@@ -31,10 +35,21 @@ import type { Medicine, MedicineAlert } from '@/types/pharmacy';
 interface ExpiryReportProps {
     medicines: {
         data: Medicine[];
-        current_page: number;
-        last_page: number;
-        per_page: number;
-        total: number;
+        links: {
+            first: string | null;
+            last: string | null;
+            prev: string | null;
+            next: string | null;
+        };
+        meta: {
+            current_page: number;
+            from: number;
+            last_page: number;
+            per_page: number;
+            to: number;
+            total: number;
+            path: string;
+        };
     };
     alerts: MedicineAlert[];
     filters: {
@@ -344,7 +359,7 @@ export default function ExpiryReport({ medicines, alerts, filters, summary }: Ex
             {/* Medicines Table */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Medicines ({medicines.total})</CardTitle>
+                    <CardTitle>Medicines ({medicines.meta?.total || 0})</CardTitle>
                     <CardDescription>Medicines with expiry dates and status</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -439,30 +454,100 @@ export default function ExpiryReport({ medicines, alerts, filters, summary }: Ex
                         </Table>
                     </div>
 
-                    {/* Pagination */}
-                    {medicines.last_page > 1 && (
-                        <div className="mt-6 flex items-center justify-center gap-2">
+                    {/* Pagination - always visible */}
+                    <div className="flex items-center justify-between mt-6">
+                        <p className="text-sm text-muted-foreground">
+                            Showing {medicines.meta?.from || 0} to {medicines.meta?.to || 0} of {medicines.meta?.total || 0} results
+                        </p>
+                        <div className="flex items-center gap-1">
+                            {/* First Page */}
                             <Button
                                 variant="outline"
-                                size="sm"
-                                disabled={medicines.current_page === 1}
-                                onClick={() => handlePageChange(medicines.current_page - 1)}
+                                size="icon"
+                                className="h-9 w-9"
+                                disabled={medicines.meta?.current_page === 1}
+                                onClick={() => handlePageChange(1)}
                             >
-                                Previous
+                                <ChevronsLeft className="h-4 w-4" />
                             </Button>
-                            <span className="text-sm text-muted-foreground">
-                                Page {medicines.current_page} of {medicines.last_page}
-                            </span>
+                            
+                            {/* Previous Page */}
                             <Button
                                 variant="outline"
-                                size="sm"
-                                disabled={medicines.current_page === medicines.last_page}
-                                onClick={() => handlePageChange(medicines.current_page + 1)}
+                                size="icon"
+                                className="h-9 w-9"
+                                disabled={!medicines.links?.prev}
+                                onClick={() => handlePageChange(medicines.meta?.current_page - 1)}
                             >
-                                Next
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            
+                            {/* Page Numbers */}
+                            {(() => {
+                                const current = medicines.meta?.current_page || 1;
+                                const last = medicines.meta?.last_page || 1;
+                                const pages: (number | string)[] = [];
+                                
+                                if (last <= 7) {
+                                    for (let i = 1; i <= last; i++) pages.push(i);
+                                } else {
+                                    if (current <= 4) {
+                                        for (let i = 1; i <= 5; i++) pages.push(i);
+                                        pages.push('...');
+                                        pages.push(last);
+                                    } else if (current >= last - 3) {
+                                        pages.push(1);
+                                        pages.push('...');
+                                        for (let i = last - 4; i <= last; i++) pages.push(i);
+                                    } else {
+                                        pages.push(1);
+                                        pages.push('...');
+                                        for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+                                        pages.push('...');
+                                        pages.push(last);
+                                    }
+                                }
+                                
+                                return pages.map((page, index) => (
+                                    page === '...' ? (
+                                        <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">...</span>
+                                    ) : (
+                                        <Button
+                                            key={page}
+                                            variant={current === page ? 'default' : 'outline'}
+                                            size="icon"
+                                            className="h-9 w-9"
+                                            onClick={() => handlePageChange(page as number)}
+                                        >
+                                            {page}
+                                        </Button>
+                                    )
+                                ));
+                            })()}
+                            
+                            {/* Next Page */}
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9"
+                                disabled={!medicines.links?.next}
+                                onClick={() => handlePageChange(medicines.meta?.current_page + 1)}
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                            
+                            {/* Last Page */}
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9"
+                                disabled={medicines.meta?.current_page === medicines.meta?.last_page}
+                                onClick={() => handlePageChange(medicines.meta?.last_page)}
+                            >
+                                <ChevronsRight className="h-4 w-4" />
                             </Button>
                         </div>
-                    )}
+                    </div>
                 </CardContent>
             </Card>
         </PharmacyLayout>

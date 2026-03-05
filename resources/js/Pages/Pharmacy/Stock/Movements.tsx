@@ -23,6 +23,10 @@ import {
     User,
     Calendar,
     Search,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -374,54 +378,107 @@ export default function Movements({ movements, medicines, filters = {} }: Moveme
                             </Table>
                         </div>
 
-                        {/* Pagination */}
-                        {(movements.meta?.last_page || 0) > 1 && (
-                            <div className="flex items-center justify-between mt-6">
-                                <p className="text-sm text-muted-foreground">
-                                    Showing {movements.meta?.from || 0} to {movements.meta?.to || 0} of {movements.meta?.total || 0} results
-                                </p>
-                                <div className="flex items-center gap-2">
-                                    <Link
-                                        href={movements.links.prev || '#'}
-                                        className={cn(
-                                            'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
-                                            'h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-                                            !movements.links.prev && 'pointer-events-none opacity-50'
-                                        )}
-                                    >
-                                        Previous
-                                    </Link>
-                                    <div className="flex items-center gap-1">
-                                        {movements.meta.links
-                                            .filter(link => !link.label.includes('Previous') && !link.label.includes('Next'))
-                                            .map((link, index) => (
-                                                <Link
-                                                    key={index}
-                                                    href={link.url || '#'}
-                                                    className={cn(
-                                                        'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 w-9',
-                                                        link.active
-                                                            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                                                            : 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-                                                        !link.url && 'pointer-events-none opacity-50'
-                                                    )}
-                                                    dangerouslySetInnerHTML={{ __html: decodeHtmlEntity(link.label) }}
-                                                />
-                                            ))}
-                                    </div>
-                                    <Link
-                                        href={movements.links.next || '#'}
-                                        className={cn(
-                                            'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
-                                            'h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-                                            !movements.links.next && 'pointer-events-none opacity-50'
-                                        )}
-                                    >
-                                        Next
-                                    </Link>
-                                </div>
+                        {/* Pagination - always visible */}
+                        <div className="flex items-center justify-between mt-6">
+                            <p className="text-sm text-muted-foreground">
+                                Showing {movements.meta?.from || 0} to {movements.meta?.to || 0} of {movements.meta?.total || 0} results
+                            </p>
+                            <div className="flex items-center gap-1">
+                                {/* First Page */}
+                                <Link
+                                    href={movements.links?.first || '#'}
+                                    className={cn(
+                                        'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+                                        'h-9 w-9 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+                                        movements.meta?.current_page === 1 && 'pointer-events-none opacity-50'
+                                    )}
+                                >
+                                    <ChevronsLeft className="h-4 w-4" />
+                                </Link>
+                                
+                                {/* Previous Page */}
+                                <Link
+                                    href={movements.links?.prev || '#'}
+                                    className={cn(
+                                        'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+                                        'h-9 w-9 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+                                        !movements.links?.prev && 'pointer-events-none opacity-50'
+                                    )}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Link>
+                                
+                                {/* Page Numbers */}
+                                {(() => {
+                                    const current = movements.meta?.current_page || 1;
+                                    const last = movements.meta?.last_page || 1;
+                                    const pages: (number | string)[] = [];
+                                    
+                                    if (last <= 7) {
+                                        for (let i = 1; i <= last; i++) pages.push(i);
+                                    } else {
+                                        if (current <= 4) {
+                                            for (let i = 1; i <= 5; i++) pages.push(i);
+                                            pages.push('...');
+                                            pages.push(last);
+                                        } else if (current >= last - 3) {
+                                            pages.push(1);
+                                            pages.push('...');
+                                            for (let i = last - 4; i <= last; i++) pages.push(i);
+                                        } else {
+                                            pages.push(1);
+                                            pages.push('...');
+                                            for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+                                            pages.push('...');
+                                            pages.push(last);
+                                        }
+                                    }
+                                    
+                                    return pages.map((page, index) => (
+                                        page === '...' ? (
+                                            <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">...</span>
+                                        ) : (
+                                            <Link
+                                                key={page}
+                                                href={`${movements.meta?.path}?page=${page}`}
+                                                className={cn(
+                                                    'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 w-9',
+                                                    current === page
+                                                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                                        : 'border border-input bg-background hover:bg-accent hover:text-accent-foreground'
+                                                )}
+                                            >
+                                                {page}
+                                            </Link>
+                                        )
+                                    ));
+                                })()}
+                                
+                                {/* Next Page */}
+                                <Link
+                                    href={movements.links?.next || '#'}
+                                    className={cn(
+                                        'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+                                        'h-9 w-9 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+                                        !movements.links?.next && 'pointer-events-none opacity-50'
+                                    )}
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Link>
+                                
+                                {/* Last Page */}
+                                <Link
+                                    href={movements.links?.last || '#'}
+                                    className={cn(
+                                        'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+                                        'h-9 w-9 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+                                        movements.meta?.current_page === movements.meta?.last_page && 'pointer-events-none opacity-50'
+                                    )}
+                                >
+                                    <ChevronsRight className="h-4 w-4" />
+                                </Link>
                             </div>
-                        )}
+                        </div>
                     </CardContent>
                 </Card>
             </div>

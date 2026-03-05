@@ -73,6 +73,27 @@ class StockController extends Controller
         $medicines = $query->paginate(10)->withQueryString();
         $categories = MedicineCategory::all();
         
+        // Format pagination data
+        $formattedMedicines = [
+            'data' => $medicines->items(),
+            'links' => [
+                'first' => $medicines->url(1),
+                'last' => $medicines->url($medicines->lastPage()),
+                'prev' => $medicines->previousPageUrl(),
+                'next' => $medicines->nextPageUrl(),
+            ],
+            'meta' => [
+                'current_page' => $medicines->currentPage(),
+                'from' => $medicines->firstItem(),
+                'last_page' => $medicines->lastPage(),
+                'links' => $medicines->linkCollection()->toArray(),
+                'path' => $medicines->path(),
+                'per_page' => $medicines->perPage(),
+                'to' => $medicines->lastItem(),
+                'total' => $medicines->total(),
+            ],
+        ];
+        
         // Calculate statistics
         $stats = [
             'total_items' => Medicine::count(),
@@ -92,7 +113,7 @@ class StockController extends Controller
         ];
         
         return Inertia::render('Pharmacy/Stock/Index', [
-            'medicines' => $medicines,
+            'medicines' => $formattedMedicines,
             'categories' => $categories,
             'stats' => $stats,
             'filters' => $request->only(['query', 'category_id', 'stock_status']),
@@ -146,8 +167,29 @@ class StockController extends Controller
         $movements = $query->paginate(20)->withQueryString();
         $medicines = Medicine::select('id', 'name')->get();
         
+        // Format pagination data
+        $formattedMovements = [
+            'data' => $movements->items(),
+            'links' => [
+                'first' => $movements->url(1),
+                'last' => $movements->url($movements->lastPage()),
+                'prev' => $movements->previousPageUrl(),
+                'next' => $movements->nextPageUrl(),
+            ],
+            'meta' => [
+                'current_page' => $movements->currentPage(),
+                'from' => $movements->firstItem(),
+                'last_page' => $movements->lastPage(),
+                'links' => $movements->linkCollection()->toArray(),
+                'path' => $movements->path(),
+                'per_page' => $movements->perPage(),
+                'to' => $movements->lastItem(),
+                'total' => $movements->total(),
+            ],
+        ];
+        
         return Inertia::render('Pharmacy/Stock/Movements', [
-            'movements' => $movements,
+            'movements' => $formattedMovements,
             'medicines' => $medicines,
             'filters' => $request->only(['query', 'medicine_id', 'type', 'date_from', 'date_to']),
         ]);

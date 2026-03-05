@@ -15,6 +15,8 @@ import {
   List,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Search,
   TrendingUp,
   Currency,
@@ -459,46 +461,99 @@ export default function MedicineIndex({
           <p className="text-sm text-muted-foreground">
             Showing {medicines.meta?.from || 0} to {medicines.meta?.to || 0} of {medicines.meta?.total || 0} results
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            {/* First Page */}
+            <Link
+              href={medicines.links?.first || '#'}
+              className={cn(
+                'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+                'h-9 w-9 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+                medicines.meta?.current_page === 1 && 'pointer-events-none opacity-50'
+              )}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Link>
+            
+            {/* Previous Page */}
             <Link
               href={medicines.links?.prev || '#'}
               className={cn(
                 'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
-                'h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+                'h-9 w-9 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
                 !medicines.links?.prev && 'pointer-events-none opacity-50'
               )}
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
+              <ChevronLeft className="h-4 w-4" />
             </Link>
-            <div className="flex items-center gap-1">
-              {medicines.meta?.links
-                ?.filter(link => !link.label.includes('Previous') && !link.label.includes('Next'))
-                .map((link, index) => (
+            
+            {/* Page Numbers */}
+            {(() => {
+              const current = medicines.meta?.current_page || 1;
+              const last = medicines.meta?.last_page || 1;
+              const pages: (number | string)[] = [];
+              
+              if (last <= 7) {
+                for (let i = 1; i <= last; i++) pages.push(i);
+              } else {
+                if (current <= 4) {
+                  for (let i = 1; i <= 5; i++) pages.push(i);
+                  pages.push('...');
+                  pages.push(last);
+                } else if (current >= last - 3) {
+                  pages.push(1);
+                  pages.push('...');
+                  for (let i = last - 4; i <= last; i++) pages.push(i);
+                } else {
+                  pages.push(1);
+                  pages.push('...');
+                  for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+                  pages.push('...');
+                  pages.push(last);
+                }
+              }
+              
+              return pages.map((page, index) => (
+                page === '...' ? (
+                  <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">...</span>
+                ) : (
                   <Link
-                    key={index}
-                    href={link.url || '#'}
+                    key={page}
+                    href={`${medicines.meta?.path}?page=${page}`}
                     className={cn(
                       'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 w-9',
-                      link.active
+                      current === page
                         ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                        : 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-                      !link.url && 'pointer-events-none opacity-50'
+                        : 'border border-input bg-background hover:bg-accent hover:text-accent-foreground'
                     )}
-                    dangerouslySetInnerHTML={{ __html: decodeHtmlEntity(link.label) }}
-                  />
-                ))}
-            </div>
+                  >
+                    {page}
+                  </Link>
+                )
+              ));
+            })()}
+            
+            {/* Next Page */}
             <Link
               href={medicines.links?.next || '#'}
               className={cn(
                 'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
-                'h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+                'h-9 w-9 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
                 !medicines.links?.next && 'pointer-events-none opacity-50'
               )}
             >
-              Next
-              <ChevronRight className="h-4 w-4 ml-1" />
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+            
+            {/* Last Page */}
+            <Link
+              href={medicines.links?.last || '#'}
+              className={cn(
+                'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+                'h-9 w-9 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+                medicines.meta?.current_page === medicines.meta?.last_page && 'pointer-events-none opacity-50'
+              )}
+            >
+              <ChevronsRight className="h-4 w-4" />
             </Link>
           </div>
         </div>

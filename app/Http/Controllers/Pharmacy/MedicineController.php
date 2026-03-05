@@ -194,7 +194,25 @@ class MedicineController extends Controller
             ->value('total') ?? 0;
         
         return Inertia::render('Pharmacy/Medicines/Index', [
-            'medicines' => $medicines,
+            'medicines' => [
+                'data' => $medicines->items(),
+                'links' => [
+                    'first' => $medicines->url(1),
+                    'last' => $medicines->url($medicines->lastPage()),
+                    'prev' => $medicines->previousPageUrl(),
+                    'next' => $medicines->nextPageUrl(),
+                ],
+                'meta' => [
+                    'current_page' => $medicines->currentPage(),
+                    'from' => $medicines->firstItem(),
+                    'last_page' => $medicines->lastPage(),
+                    'links' => $medicines->linkCollection()->toArray(),
+                    'path' => $medicines->path(),
+                    'per_page' => $medicines->perPage(),
+                    'to' => $medicines->lastItem(),
+                    'total' => $medicines->total(),
+                ],
+            ],
             'categories' => $categories,
             'query' => $request->query('query', ''),
             'category_id' => $request->query('category_id', ''),

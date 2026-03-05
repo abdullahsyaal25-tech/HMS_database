@@ -39,8 +39,13 @@ import {
     Eye,
     XCircle,
     FileText,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
 } from 'lucide-react';
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 interface Purchase {
     id: number;
@@ -74,10 +79,21 @@ interface Supplier {
 interface Props {
     purchases: {
         data: Purchase[];
-        current_page: number;
-        last_page: number;
-        per_page: number;
-        total: number;
+        links: {
+            first: string | null;
+            last: string | null;
+            prev: string | null;
+            next: string | null;
+        };
+        meta: {
+            current_page: number;
+            from: number;
+            last_page: number;
+            per_page: number;
+            to: number;
+            total: number;
+            path: string;
+        };
     };
     suppliers: Supplier[];
     stats: {
@@ -395,65 +411,107 @@ export default function PurchasesIndex({ purchases, suppliers, stats, filters }:
                         </TableBody>
                     </Table>
 
-                    {/* Pagination */}
-                    {purchases.last_page > 1 && (
-                        <div className="flex items-center justify-between mt-4">
-                            <p className="text-sm text-muted-foreground">
-                                Showing {(purchases.current_page - 1) * purchases.per_page + 1} to{' '}
-                                {Math.min(
-                                    purchases.current_page * purchases.per_page,
-                                    purchases.total
-                                )}{' '}
-                                of {purchases.total} purchases
-                            </p>
-                            <div className="flex gap-2">
-                                {purchases.current_page > 1 && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() =>
-                                            router.get(
-                                                '/pharmacy/purchases',
-                                                {
-                                                    page: purchases.current_page - 1,
-                                                    query: filters.query || undefined,
-                                                    status: filters.status || undefined,
-                                                    supplier_id: filters.supplier_id || undefined,
-                                                    date_from: filters.date_from || undefined,
-                                                    date_to: filters.date_to || undefined,
-                                                },
-                                                { preserveState: true }
-                                            )
-                                        }
-                                    >
-                                        Previous
-                                    </Button>
+                    {/* Pagination - always visible */}
+                    <div className="flex items-center justify-between mt-4">
+                        <p className="text-sm text-muted-foreground">
+                            Showing {purchases.meta?.from || 0} to {purchases.meta?.to || 0} of {purchases.meta?.total || 0} purchases
+                        </p>
+                        <div className="flex items-center gap-1">
+                            {/* First Page */}
+                            <Link
+                                href={purchases.links?.first || '#'}
+                                className={cn(
+                                    'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+                                    'h-9 w-9 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+                                    purchases.meta?.current_page === 1 && 'pointer-events-none opacity-50'
                                 )}
-                                {purchases.current_page < purchases.last_page && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() =>
-                                            router.get(
-                                                '/pharmacy/purchases',
-                                                {
-                                                    page: purchases.current_page + 1,
-                                                    query: filters.query || undefined,
-                                                    status: filters.status || undefined,
-                                                    supplier_id: filters.supplier_id || undefined,
-                                                    date_from: filters.date_from || undefined,
-                                                    date_to: filters.date_to || undefined,
-                                                },
-                                                { preserveState: true }
-                                            )
-                                        }
-                                    >
-                                        Next
-                                    </Button>
+                            >
+                                <ChevronsLeft className="h-4 w-4" />
+                            </Link>
+                            
+                            {/* Previous Page */}
+                            <Link
+                                href={purchases.links?.prev || '#'}
+                                className={cn(
+                                    'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+                                    'h-9 w-9 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+                                    !purchases.links?.prev && 'pointer-events-none opacity-50'
                                 )}
-                            </div>
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </Link>
+                            
+                            {/* Page Numbers */}
+                            {(() => {
+                                const current = purchases.meta?.current_page || 1;
+                                const last = purchases.meta?.last_page || 1;
+                                const pages: (number | string)[] = [];
+                                
+                                if (last <= 7) {
+                                    for (let i = 1; i <= last; i++) pages.push(i);
+                                } else {
+                                    if (current <= 4) {
+                                        for (let i = 1; i <= 5; i++) pages.push(i);
+                                        pages.push('...');
+                                        pages.push(last);
+                                    } else if (current >= last - 3) {
+                                        pages.push(1);
+                                        pages.push('...');
+                                        for (let i = last - 4; i <= last; i++) pages.push(i);
+                                    } else {
+                                        pages.push(1);
+                                        pages.push('...');
+                                        for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+                                        pages.push('...');
+                                        pages.push(last);
+                                    }
+                                }
+                                
+                                return pages.map((page, index) => (
+                                    page === '...' ? (
+                                        <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">...</span>
+                                    ) : (
+                                        <Link
+                                            key={page}
+                                            href={`${purchases.meta?.path}?page=${page}`}
+                                            className={cn(
+                                                'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 w-9',
+                                                current === page
+                                                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                                    : 'border border-input bg-background hover:bg-accent hover:text-accent-foreground'
+                                            )}
+                                        >
+                                            {page}
+                                        </Link>
+                                    )
+                                ));
+                            })()}
+                            
+                            {/* Next Page */}
+                            <Link
+                                href={purchases.links?.next || '#'}
+                                className={cn(
+                                    'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+                                    'h-9 w-9 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+                                    !purchases.links?.next && 'pointer-events-none opacity-50'
+                                )}
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </Link>
+                            
+                            {/* Last Page */}
+                            <Link
+                                href={purchases.links?.last || '#'}
+                                className={cn(
+                                    'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+                                    'h-9 w-9 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+                                    purchases.meta?.current_page === purchases.meta?.last_page && 'pointer-events-none opacity-50'
+                                )}
+                            >
+                                <ChevronsRight className="h-4 w-4" />
+                            </Link>
                         </div>
-                    )}
+                    </div>
                 </CardContent>
             </Card>
 

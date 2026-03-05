@@ -192,10 +192,6 @@ export function DepartmentPrint({ isOpen, onClose, appointment }: DepartmentPrin
                         <div class="hospital-name">Kamran Curative Hospital</div>
                         ${appointment?.authorized_by ? `<div class="receipt-title"> ${appointment.authorized_by}</div>` : ''}
                     </div>
-                    <div class="token-section">
-                        <div class="token-label">TOKEN NUMBER</div>
-                        <div class="token-number">${appointmentId}</div>
-                    </div>
                     <div class="info-section">
                         <div class="section-title">Patient Information</div>
                         <div class="info-row">

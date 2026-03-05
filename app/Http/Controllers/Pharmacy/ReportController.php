@@ -81,6 +81,27 @@ class ReportController extends Controller
         
         $sales = $query->latest()->paginate(15)->withQueryString();
         
+        // Format pagination data
+        $formattedSales = [
+            'data' => $sales->items(),
+            'links' => [
+                'first' => $sales->url(1),
+                'last' => $sales->url($sales->lastPage()),
+                'prev' => $sales->previousPageUrl(),
+                'next' => $sales->nextPageUrl(),
+            ],
+            'meta' => [
+                'current_page' => $sales->currentPage(),
+                'from' => $sales->firstItem(),
+                'last_page' => $sales->lastPage(),
+                'links' => $sales->linkCollection()->toArray(),
+                'path' => $sales->path(),
+                'per_page' => $sales->perPage(),
+                'to' => $sales->lastItem(),
+                'total' => $sales->total(),
+            ],
+        ];
+        
         // Calculate summary statistics
         $summaryQuery = Sale::query();
         if ($request->filled('date_from')) {
@@ -123,7 +144,7 @@ class ReportController extends Controller
             ->toArray();
         
         return Inertia::render('Pharmacy/Reports/SalesReport', [
-            'sales' => $sales,
+            'sales' => $formattedSales,
             'filters' => [
                 'date_from' => $request->query('date_from', ''),
                 'date_to' => $request->query('date_to', ''),
@@ -286,6 +307,27 @@ class ReportController extends Controller
         }
         
         $medicines = $query->paginate(15)->withQueryString();
+        
+        // Format pagination data
+        $formattedMedicines = [
+            'data' => $medicines->items(),
+            'links' => [
+                'first' => $medicines->url(1),
+                'last' => $medicines->url($medicines->lastPage()),
+                'prev' => $medicines->previousPageUrl(),
+                'next' => $medicines->nextPageUrl(),
+            ],
+            'meta' => [
+                'current_page' => $medicines->currentPage(),
+                'from' => $medicines->firstItem(),
+                'last_page' => $medicines->lastPage(),
+                'links' => $medicines->linkCollection()->toArray(),
+                'path' => $medicines->path(),
+                'per_page' => $medicines->perPage(),
+                'to' => $medicines->lastItem(),
+                'total' => $medicines->total(),
+            ],
+        ];
         
         // Get active expiry alerts
         $alerts = MedicineAlert::with('medicine')

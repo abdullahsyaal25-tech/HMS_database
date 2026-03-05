@@ -37,7 +37,7 @@ class MedicineCategoryController extends Controller
             });
         }
         
-        $categories = $query->orderBy('name')->paginate(2)->withQueryString();
+        $categories = $query->orderBy('name')->paginate(50)->withQueryString();
         
         return Inertia::render('Pharmacy/Categories/Index', [
             'categories' => [

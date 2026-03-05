@@ -40,7 +40,19 @@ class HandleInertiaRequests extends Middleware
         // Get the authenticated user
         $user = Auth::user();
         
+        // DEBUG: Log auth state
+        Log::debug('HandleInertiaRequests: Auth check', [
+            'has_user' => !is_null($user),
+            'user_id' => $user?->id,
+            'user_role' => $user?->role,
+            'is_authenticated' => Auth::check(),
+            'session_id' => $request->session()->getId(),
+        ]);
+        
         if ($user) {
+            // Load roleModel relationship if not already loaded
+            $user->loadMissing('roleModel');
+            
             // Get permissions
             $permissions = $this->getUserPermissions($user);
             
@@ -52,6 +64,11 @@ class HandleInertiaRequests extends Middleware
                 'role_id' => $user->role_id,
                 'is_super_admin' => $user->isSuperAdmin(),
                 'permissions' => $permissions,
+                'roleModel' => $user->roleModel ? [
+                    'id' => $user->roleModel->id,
+                    'name' => $user->roleModel->name,
+                    'slug' => $user->roleModel->slug,
+                ] : null,
             ];
         }
         
@@ -60,7 +77,7 @@ class HandleInertiaRequests extends Middleware
         $flashError = $request->session()->get('error');
         $flashMessage = $request->session()->get('message');
         
-        return array_merge(parent::share($request), [
+        $sharedData = [
             'csrf' => [
                 'token' => $request->session()->token(),
             ],
@@ -74,7 +91,17 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $flashSuccess,
                 'printAppointment' => fn () => $request->session()->get('printAppointment'),
             ],
+        ];
+        
+        // DEBUG: Log shared data
+        Log::debug('HandleInertiaRequests: Sharing data', [
+            'auth_user_is_null' => is_null($userData),
+            'auth_user_id' => $userData['id'] ?? null,
+            'auth_user_role' => $userData['role'] ?? null,
+            'auth_user_is_super_admin' => $userData['is_super_admin'] ?? null,
         ]);
+        
+        return array_merge(parent::share($request), $sharedData);
     }
     
     /**
@@ -82,7 +109,9 @@ class HandleInertiaRequests extends Middleware
      */
     public function handle(Request $request, \Closure $next): \Symfony\Component\HttpFoundation\Response
     {
-        $response = $next($request);
+        // Call parent handle which invokes share() and sets up Inertia properly
+        // This is CRITICAL - parent::handle() calls Inertia::share($this->share($request))
+        $response = parent::handle($request, $next);
         
         // Add security headers
         $response->headers->set('X-Content-Type-Options', 'nosniff');
