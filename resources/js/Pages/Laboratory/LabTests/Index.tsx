@@ -15,6 +15,10 @@ import {
   Beaker,
   LayoutGrid,
   List,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -129,6 +133,13 @@ export default function LabTestIndex({ labTests, query = '', status = '', catego
   const handleReset = () => {
     setFilters({});
     router.get('/laboratory/lab-tests', {}, {
+      preserveState: true,
+      preserveScroll: true,
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    router.get('/laboratory/lab-tests', { ...filters, page }, {
       preserveState: true,
       preserveScroll: true,
     });
@@ -402,51 +413,98 @@ export default function LabTestIndex({ labTests, query = '', status = '', catego
                   </div>
                 )}
 
-                {/* Pagination - Always show when there is data */}
-                <div className="flex flex-col sm:flex-row items-center justify-between p-6 border-t bg-muted/30 gap-4">
-                  <div className="text-sm text-muted-foreground">
-                    Showing <strong className="text-foreground">{meta.from || 0}</strong> to <strong className="text-foreground">{meta.to || 0}</strong> of{' '}
-                    <strong className="text-foreground">{meta.total || 0}</strong> tests
-                  </div>
-                  
+                {/* Pagination - always visible */}
+                <div className="flex items-center justify-between mt-6">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {meta?.from || 0} to {meta?.to || 0} of {meta?.total || 0} results
+                  </p>
                   <div className="flex items-center gap-1">
-                    <Link
-                      href={`/laboratory/lab-tests?page=${(meta.current_page || 1) - 1}&query=${filters.query || ''}&status=${filters.status || ''}&category=${filters.category || ''}`}
-                      className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground ${((meta.current_page || 1) <= 1) ? 'pointer-events-none opacity-50' : ''}`}
+                    {/* First Page */}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9"
+                      disabled={meta?.current_page === 1}
+                      onClick={() => handlePageChange(1)}
                     >
-                      ← Previous
-                    </Link>
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    
+                    {/* Previous Page */}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9"
+                      disabled={!labTests.links?.prev}
+                      onClick={() => handlePageChange((meta?.current_page || 1) - 1)}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
                     
                     {/* Page Numbers */}
-                    {Array.from({ length: Math.min(5, meta.last_page || 1) }, (_, i) => {
-                      let pageNum: number;
-                      if ((meta.last_page || 1) <= 5) {
-                        pageNum = i + 1;
-                      } else if (meta.current_page <= 3) {
-                        pageNum = i + 1;
-                      } else if (meta.current_page >= (meta.last_page || 1) - 2) {
-                        pageNum = (meta.last_page || 1) - 4 + i;
+                    {(() => {
+                      const current = meta?.current_page || 1;
+                      const last = meta?.last_page || 1;
+                      const pages: (number | string)[] = [];
+                      
+                      if (last <= 7) {
+                        for (let i = 1; i <= last; i++) pages.push(i);
                       } else {
-                        pageNum = meta.current_page - 2 + i;
+                        if (current <= 4) {
+                          for (let i = 1; i <= 5; i++) pages.push(i);
+                          pages.push('...');
+                          pages.push(last);
+                        } else if (current >= last - 3) {
+                          pages.push(1);
+                          pages.push('...');
+                          for (let i = last - 4; i <= last; i++) pages.push(i);
+                        } else {
+                          pages.push(1);
+                          pages.push('...');
+                          for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+                          pages.push('...');
+                          pages.push(last);
+                        }
                       }
                       
-                      return (
-                        <Link
-                          key={pageNum}
-                          href={`/laboratory/lab-tests?page=${pageNum}&query=${filters.query || ''}&status=${filters.status || ''}&category=${filters.category || ''}`}
-                          className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 w-9 ${meta.current_page === pageNum ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'border border-input bg-background hover:bg-accent hover:text-accent-foreground'}`}
-                        >
-                          {pageNum}
-                        </Link>
-                      );
-                    })}
+                      return pages.map((page, index) => (
+                        page === '...' ? (
+                          <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">...</span>
+                        ) : (
+                          <Button
+                            key={page}
+                            variant={current === page ? 'default' : 'outline'}
+                            size="icon"
+                            className="h-9 w-9"
+                            onClick={() => handlePageChange(page as number)}
+                          >
+                            {page}
+                          </Button>
+                        )
+                      ));
+                    })()}
                     
-                    <Link
-                      href={`/laboratory/lab-tests?page=${(meta.current_page || 1) + 1}&query=${filters.query || ''}&status=${filters.status || ''}&category=${filters.category || ''}`}
-                      className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground ${((meta.current_page || 1) >= (meta.last_page || 1)) ? 'pointer-events-none opacity-50' : ''}`}
+                    {/* Next Page */}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9"
+                      disabled={!labTests.links?.next}
+                      onClick={() => handlePageChange((meta?.current_page || 1) + 1)}
                     >
-                      Next →
-                    </Link>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    
+                    {/* Last Page */}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9"
+                      disabled={meta?.current_page === meta?.last_page}
+                      onClick={() => handlePageChange(meta?.last_page || 1)}
+                    >
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </>

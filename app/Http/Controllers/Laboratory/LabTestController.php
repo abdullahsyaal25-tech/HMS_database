@@ -167,9 +167,30 @@ class LabTestController extends Controller
         }
 
         // Paginate the results - append all query parameters to preserve filters
-        $labTests = $labTestsQuery->orderBy('created_at', 'desc')
+        $paginatedTests = $labTestsQuery->orderBy('created_at', 'desc')
             ->paginate($perPage)
             ->withQueryString();
+
+        // Format pagination data
+        $labTests = [
+            'data' => $paginatedTests->items(),
+            'links' => [
+                'first' => $paginatedTests->url(1),
+                'last' => $paginatedTests->url($paginatedTests->lastPage()),
+                'prev' => $paginatedTests->previousPageUrl(),
+                'next' => $paginatedTests->nextPageUrl(),
+            ],
+            'meta' => [
+                'current_page' => $paginatedTests->currentPage(),
+                'from' => $paginatedTests->firstItem(),
+                'last_page' => $paginatedTests->lastPage(),
+                'links' => $paginatedTests->linkCollection()->toArray(),
+                'path' => $paginatedTests->path(),
+                'per_page' => $paginatedTests->perPage(),
+                'to' => $paginatedTests->lastItem(),
+                'total' => $paginatedTests->total(),
+            ],
+        ];
 
         return Inertia::render('Laboratory/LabTests/Index', [
             'labTests' => $labTests,

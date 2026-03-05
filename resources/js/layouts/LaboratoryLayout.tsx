@@ -57,31 +57,55 @@ function usePermissionChecker() {
     const page = usePage();
     const auth = page.props.auth;
     const user = auth?.user;
-    const isAuthenticated = !!(user && user.id);
+    const isAuthenticated = !!user;
 
-    const hasPermission = useCallback((permission: string): boolean => {
-        if (!isAuthenticated) {
+    // Check if user is a restricted user (laboratory admin only)
+    // Only laboratory-admin should be restricted from Home and Laboratory Dashboard
+    // All other roles (super admin, sub super admin, reception admin, etc.) should have access
+    const isRestrictedUser = useCallback((): boolean => {
+        if (!user) {
+            return true; // Not authenticated = restricted
+        }
+
+        // If user has is_super_admin flag set to true, they are NOT restricted
+        if (user.is_super_admin === true) {
             return false;
         }
 
-        const userPermissions = user?.permissions || [];
-        const userRole = user?.role;
+        // Check if user is a laboratory admin - ONLY this role should be restricted
+        const userRole = user.role;
+        const userRoleSlug = user.roleModel?.slug;
 
-        if (userRole === 'Super Admin' ||
-            userRole === 'super admin' ||
-            userRole?.toLowerCase() === 'super admin' ||
-            userRole === 'super-admin') {
+        // Restrict only laboratory admin role (case-insensitive check)
+        const isLaboratoryAdmin = userRoleSlug === 'laboratory-admin' ||
+            userRole?.toLowerCase() === 'laboratory admin' ||
+            userRole?.toLowerCase() === 'laboratory-admin';
+
+        if (isLaboratoryAdmin) {
             return true;
         }
 
-        if (user?.is_super_admin === true) {
+        // All other users (super admin, sub super admin, reception admin, etc.) are NOT restricted
+        return false;
+    }, [user]);
+
+    // Check if user has a specific permission
+    const hasPermission = useCallback((permission: string): boolean => {
+        if (!user) {
+            return false;
+        }
+
+        const userPermissions = user.permissions || [];
+
+        // Super admin bypass - if user is super admin, they have all permissions
+        if (user.is_super_admin === true) {
             return true;
         }
 
         return userPermissions.includes(permission);
-    }, [user, isAuthenticated]);
+    }, [user]);
 
-    return { hasPermission, isAuthenticated, user };
+    return { hasPermission, isAuthenticated, isRestrictedUser, user };
 }
 
 const footerNavItems: NavItem[] = [];
@@ -92,14 +116,14 @@ export default function LaboratoryLayout({
     showQuickActions = true,
     alerts = {},
 }: LaboratoryLayoutProps) {
-    const { hasPermission, isAuthenticated, user } = usePermissionChecker();
+    const { hasPermission, isAuthenticated, isRestrictedUser, user } = usePermissionChecker();
 
     const filteredNavItems = useMemo(() => {
         // Build navigation items dynamically
         const items: NavItem[] = [];
 
-        // Home - only for Super Admin
-        const showHome = user?.is_super_admin === true;
+        // Home - only for non-restricted users (super admin, etc.)
+        const showHome = !isRestrictedUser();
         if (showHome) {
             items.push({
                 title: 'Home',
@@ -108,8 +132,8 @@ export default function LaboratoryLayout({
             });
         }
 
-        // Dashboard - only for Super Admin
-        const showDashboard = user?.is_super_admin === true;
+        // Dashboard - only for non-restricted users (super admin, etc.)
+        const showDashboard = !isRestrictedUser();
         if (showDashboard) {
             items.push({
                 title: 'Dashboard',
@@ -194,24 +218,22 @@ export default function LaboratoryLayout({
             ],
         });
 
-        // Reports - only show if user has permission
-        if (hasPermission('laboratory.reports.view')) {
-            items.push({
-                title: 'Reports',
-                href: '/laboratory/reports',
-                icon: FileText,
-                items: [
-                    {
-                        title: 'Overview',
-                        href: '/laboratory/reports',
-                        icon: FileText,
-                    },
-                ],
-            });
-        }
+        // Reports - visible to all authenticated users
+        items.push({
+            title: 'Reports',
+            href: '/laboratory/reports',
+            icon: FileText,
+            items: [
+                {
+                    title: 'Overview',
+                    href: '/laboratory/reports',
+                    icon: FileText,
+                },
+            ],
+        });
 
         return items;
-    }, [hasPermission, isAuthenticated, user]);
+    }, [isRestrictedUser, isAuthenticated, user]);
 
     // Determine if any critical alerts exist
     const hasCriticalAlerts = (alerts.criticalResults ?? 0) > 0;
