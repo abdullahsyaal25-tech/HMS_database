@@ -1165,6 +1165,18 @@ class PermissionSeeder extends Seeder
                 'requires_mfa' => false,
                 'requires_approval' => false,
             ],
+            [
+                'name' => 'view-reception',
+                'display_name' => 'View Reception',
+                'description' => 'Access the reception module',
+                'module' => 'reception',
+                'category' => 'Reception',
+                'resource' => 'reception',
+                'action' => 'view',
+                'risk_level' => 'low',
+                'requires_mfa' => false,
+                'requires_approval' => false,
+            ],
 
             // Audit Permissions
             [

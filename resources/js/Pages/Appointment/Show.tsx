@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Heading from '@/components/heading';
-import HospitalLayout from '@/layouts/HospitalLayout';
+import ReceptionLayout from '@/layouts/ReceptionLayout';
 import { Calendar, Clock, User, Stethoscope, FileText, ArrowLeft, Pencil, Package, DollarSign, Percent, Tag, Receipt, Building2, FlaskConical } from 'lucide-react';
 
 interface Patient {
@@ -91,7 +91,7 @@ export default function AppointmentShow({ appointment }: AppointmentShowProps) {
     };
 
     return (
-        <HospitalLayout>
+        <ReceptionLayout>
             <Head title={`Appointment Details - ${appointment.appointment_id}`} />
             
             <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 md:p-8">
@@ -433,6 +433,6 @@ export default function AppointmentShow({ appointment }: AppointmentShowProps) {
                     </Card>
                 </div>
             </div>
-        </HospitalLayout>
+        </ReceptionLayout>
     );
 }

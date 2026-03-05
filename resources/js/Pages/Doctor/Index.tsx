@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import Heading from '@/components/heading';
 import { Phone, PlusCircle, Search, User } from 'lucide-react';
 import { useState } from 'react';
-import HospitalLayout from '@/layouts/HospitalLayout';
+import ReceptionLayout from '@/layouts/ReceptionLayout';
 
 interface UserInterface {
     id: number;
@@ -65,7 +65,7 @@ export default function DoctorIndex({ doctors }: DoctorIndexProps) {
     );
 
     return (
-        <HospitalLayout>
+        <ReceptionLayout>
             <div className="space-y-6">
                 <Head title="Doctors" />
                 
@@ -291,6 +291,6 @@ export default function DoctorIndex({ doctors }: DoctorIndexProps) {
                     </CardContent>
                 </Card>
             </div>
-        </HospitalLayout>
+        </ReceptionLayout>
     );
 }

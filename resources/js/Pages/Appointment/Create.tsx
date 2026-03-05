@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 // import { Textarea } from '@/components/ui/textarea';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import Heading from '@/components/heading';
-import HospitalLayout from '@/layouts/HospitalLayout';
+import ReceptionLayout from '@/layouts/ReceptionLayout';
 import { AppointmentPrintModal } from '@/components/appointment/AppointmentPrintModal';
 import { DepartmentPrint } from '@/components/appointment/DepartmentPrint';
 import { useToast } from '@/components/Toast';
@@ -845,7 +845,7 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
     }, [printAppointment, selectedServices]);
 
     return (
-        <HospitalLayout>
+        <ReceptionLayout>
             <Head title="Schedule New Appointment" />
             
             <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 md:p-8">
@@ -1499,6 +1499,6 @@ export default function AppointmentCreate({ patients, doctors, departments, prin
                     appointment={appointmentForPrint ?? null}
                 />
             )}
-        </HospitalLayout>
+        </ReceptionLayout>
     );
 }

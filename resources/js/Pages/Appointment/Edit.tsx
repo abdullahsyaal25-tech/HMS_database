@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Heading from '@/components/heading';
-import HospitalLayout from '@/layouts/HospitalLayout';
+import ReceptionLayout from '@/layouts/ReceptionLayout';
 import { ArrowLeft, Save, Calendar as CalendarIcon, Clock, User, Stethoscope, FileText, DollarSign, Percent } from 'lucide-react';
 
 interface Patient {
@@ -103,7 +103,7 @@ export default function AppointmentEdit({ appointment, patients, doctors }: Appo
     };
 
     return (
-        <HospitalLayout>
+        <ReceptionLayout>
             <Head title={`Edit Appointment - ${appointment.appointment_id}`} />
             
             <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 md:p-8">
@@ -430,6 +430,6 @@ export default function AppointmentEdit({ appointment, patients, doctors }: Appo
                     </form>
                 </div>
             </div>
-        </HospitalLayout>
+        </ReceptionLayout>
     );
 }

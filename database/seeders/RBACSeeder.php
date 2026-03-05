@@ -246,6 +246,9 @@ class RBACSeeder extends Seeder
             // Dashboard
             ['name' => 'view-dashboard', 'slug' => 'view_dashboard', 'description' => 'View dashboard', 'resource' => 'dashboard', 'action' => 'view', 'category' => 'Dashboard', 'module' => 'dashboard', 'segregation_group' => 'dashboard', 'risk_level' => 1],
             
+            // Reception
+            ['name' => 'view-reception', 'slug' => 'view_reception', 'description' => 'View reception module', 'resource' => 'reception', 'action' => 'view', 'category' => 'Reception', 'module' => 'reception', 'segregation_group' => 'reception', 'risk_level' => 1],
+            
             // Doctor Management
             ['name' => 'view-doctors', 'slug' => 'view_doctors', 'description' => 'View doctor list', 'resource' => 'doctors', 'action' => 'view', 'category' => 'Doctor Management', 'module' => 'doctors', 'segregation_group' => 'doctor_management', 'risk_level' => 1],
             ['name' => 'create-doctors', 'slug' => 'create_doctors', 'description' => 'Create new doctors', 'resource' => 'doctors', 'action' => 'create', 'category' => 'Doctor Management', 'module' => 'doctors', 'segregation_group' => 'doctor_management', 'risk_level' => 2],
@@ -356,12 +359,13 @@ class RBACSeeder extends Seeder
             ],
             'reception-admin' => [
                 'view-dashboard',
-                'view-patients', 'create-patients', 'edit-patients',
                 'view-doctors',
+                'view-patients', 'create-patients', 'edit-patients',
                 'view-departments', 'create-departments', 'edit-departments',
                 'view-appointments', 'create-appointments', 'edit-appointments', 'delete-appointments',
                 'cancel-appointments', 'reschedule-appointments',
                 'manage-queue', 'view-appointment-schedule',
+                'view-reception',
                 'view-reports',
                 'view-users' // Limited view only
             ],

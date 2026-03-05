@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import Heading from '@/components/heading';
 import { Building, Users, Phone, PlusCircle, Search, Eye, Pencil, Trash2, Activity, Building2 } from 'lucide-react';
 import { useState } from 'react';
-import HospitalLayout from '@/layouts/HospitalLayout';
+import ReceptionLayout from '@/layouts/ReceptionLayout';
 import { Department } from '@/types/department';
 
 interface DepartmentIndexProps {
@@ -58,7 +58,7 @@ export default function DepartmentIndex({ departments }: DepartmentIndexProps) {
     };
 
     return (
-        <HospitalLayout>
+        <ReceptionLayout>
             <Head title="Departments" />
 
             <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4 md:p-8">
@@ -284,6 +284,6 @@ export default function DepartmentIndex({ departments }: DepartmentIndexProps) {
                     </Card>
                 </div>
             </div>
-        </HospitalLayout>
+        </ReceptionLayout>
     );
 }

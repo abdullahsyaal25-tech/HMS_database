@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, usePage, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import {
     Table,
@@ -12,9 +12,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Heading from '@/components/heading';
 import { AppointmentPrintModal } from '@/components/appointment/AppointmentPrintModal';
-import { Calendar, User, Stethoscope, PlusCircle, Search, Clock, Eye, Edit, CalendarDays, DollarSign, AlertTriangle, Clock as ClockIcon } from 'lucide-react';
+import { Calendar, User, Stethoscope, PlusCircle, Search, Clock, Eye, Edit, CalendarDays, DollarSign, AlertTriangle, Clock as ClockIcon, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import HospitalLayout from '@/layouts/HospitalLayout';
+import ReceptionLayout from '@/layouts/ReceptionLayout';
 import { DayStatusBanner } from '@/components/DayStatusBanner';
 import { useDayStatus } from '@/hooks/useDayStatus';
 
@@ -146,6 +146,13 @@ export default function AppointmentIndex({ appointments, stats, currentDayData }
         });
     };
 
+    const handlePageChange = (page: number) => {
+        router.get('/appointments', { page }, {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
     const getStatusBadgeVariant = (status: string) => {
         switch (status.toLowerCase()) {
             case 'scheduled':
@@ -172,7 +179,7 @@ export default function AppointmentIndex({ appointments, stats, currentDayData }
     const completedCount = stats?.completed_count ?? 0;
 
     return (
-        <HospitalLayout>
+        <ReceptionLayout>
             <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 md:p-8">
                 <Head title="Appointments" />
 
@@ -441,51 +448,100 @@ export default function AppointmentIndex({ appointments, stats, currentDayData }
                             </Table>
                         </div>
 
-                        {/* Pagination - always show when meta is available */}
-                        {appointments.meta && (
-                            <div className="flex flex-col sm:flex-row items-center justify-between p-6 border-t bg-muted/30 gap-4">
-                                <div className="text-sm text-muted-foreground">
-                                    Showing <strong className="text-foreground">{appointments.meta.from || 0}</strong> to{' '}
-                                    <strong className="text-foreground">{appointments.meta.to || 0}</strong> of{' '}
-                                    <strong className="text-foreground">{appointments.meta.total || 0}</strong> appointments
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                    {/* Previous */}
-                                    {appointments.meta.current_page <= 1 ? (
-                                        <Button variant="outline" size="sm" disabled>
-                                            Previous
-                                        </Button>
-                                    ) : (
-                                        <Link href={`/appointments?page=${appointments.meta.current_page - 1}`}>
-                                            <Button variant="outline" size="sm" className="hover:bg-primary hover:text-primary-foreground transition-colors">
-                                                Previous
-                                            </Button>
-                                        </Link>
-                                    )}
-
-                                    {/* Current / Total pages
-                                    <div className="flex items-center gap-1 px-3 py-1 rounded-md bg-muted text-sm font-medium">
-                                        <span>{appointments.meta.current_page}</span>
-                                        <span className="text-muted-foreground">/</span>
-                                        <span className="text-muted-foreground">{appointments.meta.last_page}</span>
-                                    </div>
-
-                                    {/* Next */}
-                                    {/* {appointments.meta.current_page >= appointments.meta.last_page ? (
-                                        <Button variant="outline" size="sm" disabled>
-                                            Next
-                                        </Button>
-                                    ) : (
-                                        <Link href={`/appointments?page=${appointments.meta.current_page + 1}`}>
-                                            <Button variant="outline" size="sm" className="hover:bg-primary hover:text-primary-foreground transition-colors">
-                                                Next
-                                            </Button>
-                                        </Link>
-                                    )}  */}
-                                </div>
+                        {/* Pagination - always visible */}
+                        <div className="flex items-center justify-between p-6 border-t bg-muted/30">
+                            <div className="text-sm text-muted-foreground">
+                                Showing {appointments.meta?.from || 0} to {appointments.meta?.to || 0} of {appointments.meta?.total || 0} appointments
                             </div>
-                        )}
+                            <div className="flex items-center gap-1">
+                                {/* First Page */}
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-9 w-9"
+                                    disabled={appointments.meta?.current_page === 1}
+                                    onClick={() => handlePageChange(1)}
+                                >
+                                    <ChevronsLeft className="h-4 w-4" />
+                                </Button>
+                                
+                                {/* Previous Page */}
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-9 w-9"
+                                    disabled={!appointments.links?.prev}
+                                    onClick={() => handlePageChange((appointments.meta?.current_page || 1) - 1)}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                
+                                {/* Page Numbers */}
+                                {(() => {
+                                    const current = appointments.meta?.current_page || 1;
+                                    const last = appointments.meta?.last_page || 1;
+                                    const pages: (number | string)[] = [];
+                                    
+                                    if (last <= 7) {
+                                        for (let i = 1; i <= last; i++) pages.push(i);
+                                    } else {
+                                        if (current <= 4) {
+                                            for (let i = 1; i <= 5; i++) pages.push(i);
+                                            pages.push('...');
+                                            pages.push(last);
+                                        } else if (current >= last - 3) {
+                                            pages.push(1);
+                                            pages.push('...');
+                                            for (let i = last - 4; i <= last; i++) pages.push(i);
+                                        } else {
+                                            pages.push(1);
+                                            pages.push('...');
+                                            for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+                                            pages.push('...');
+                                            pages.push(last);
+                                        }
+                                    }
+                                    
+                                    return pages.map((page, index) => (
+                                        page === '...' ? (
+                                            <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">...</span>
+                                        ) : (
+                                            <Button
+                                                key={page}
+                                                variant={current === page ? 'default' : 'outline'}
+                                                size="icon"
+                                                className="h-9 w-9"
+                                                onClick={() => handlePageChange(page as number)}
+                                            >
+                                                {page}
+                                            </Button>
+                                        )
+                                    ));
+                                })()}
+                                
+                                {/* Next Page */}
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-9 w-9"
+                                    disabled={!appointments.links?.next}
+                                    onClick={() => handlePageChange((appointments.meta?.current_page || 1) + 1)}
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                                
+                                {/* Last Page */}
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-9 w-9"
+                                    disabled={appointments.meta?.current_page === appointments.meta?.last_page}
+                                    onClick={() => handlePageChange(appointments.meta?.last_page || 1)}
+                                >
+                                    <ChevronsRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -496,6 +552,6 @@ export default function AppointmentIndex({ appointments, stats, currentDayData }
                 onClose={() => setShowPrintModal(false)}
                 appointment={printAppointment as Parameters<typeof AppointmentPrintModal>[0]['appointment']}
             />
-        </HospitalLayout>
+        </ReceptionLayout>
     );
 }

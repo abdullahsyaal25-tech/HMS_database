@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import Heading from '@/components/heading';
 import { Phone, PlusCircle, Search, User, Users, HeartPulse, CalendarDays, CalendarRange, CalendarCheck } from 'lucide-react';
 import { useState } from 'react';
-import HospitalLayout from '@/layouts/HospitalLayout';
+import ReceptionLayout from '@/layouts/ReceptionLayout';
 import { Patient } from '@/types/patient';
 
 interface PatientIndexProps {
@@ -69,7 +69,7 @@ export default function PatientIndex({ patients }: PatientIndexProps) {
     const yearlyCount = patients.meta?.yearly_count ?? 0;
 
     return (
-        <HospitalLayout>
+        <ReceptionLayout>
             <div className="space-y-6">
                 <Head title="Patients" />
 
@@ -344,6 +344,6 @@ export default function PatientIndex({ patients }: PatientIndexProps) {
                     </CardContent>
                 </Card>
             </div>
-        </HospitalLayout>
+        </ReceptionLayout>
     );
 }

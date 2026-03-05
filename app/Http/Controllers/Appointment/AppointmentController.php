@@ -162,7 +162,28 @@ class AppointmentController extends Controller
         $isSuperAdmin = $user?->isSuperAdmin() ?? false;
 
         // Always show only today's appointments in the table
-        $appointments = $this->appointmentService->getAllAppointments(50, true);
+        $paginatedAppointments = $this->appointmentService->getAllAppointments(50, true);
+
+        // Format pagination data
+        $appointments = [
+            'data' => $paginatedAppointments->items(),
+            'links' => [
+                'first' => $paginatedAppointments->url(1),
+                'last' => $paginatedAppointments->url($paginatedAppointments->lastPage()),
+                'prev' => $paginatedAppointments->previousPageUrl(),
+                'next' => $paginatedAppointments->nextPageUrl(),
+            ],
+            'meta' => [
+                'current_page' => $paginatedAppointments->currentPage(),
+                'from' => $paginatedAppointments->firstItem(),
+                'last_page' => $paginatedAppointments->lastPage(),
+                'links' => $paginatedAppointments->linkCollection()->toArray(),
+                'path' => $paginatedAppointments->path(),
+                'per_page' => $paginatedAppointments->perPage(),
+                'to' => $paginatedAppointments->lastItem(),
+                'total' => $paginatedAppointments->total(),
+            ],
+        ];
 
         // Today's stats - query database directly for real-time data
         $todayAppointmentsCount = Appointment::whereDate('appointment_date', today())->count();

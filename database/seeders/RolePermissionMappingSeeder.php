@@ -46,10 +46,11 @@ class RolePermissionMappingSeeder extends Seeder
             
             'reception-admin' => [
                 'view-dashboard',
-                'view-patients', 'create-patients', 'edit-patients',
                 'view-doctors',
+                'view-patients', 'create-patients', 'edit-patients',
+                'view-departments',
                 'view-appointments', 'create-appointments', 'edit-appointments',
-                'view-reports',
+                'view-reception',
             ],
             
             'pharmacy-admin' => [

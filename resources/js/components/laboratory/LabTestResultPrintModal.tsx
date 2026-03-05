@@ -135,6 +135,7 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
                     line-height: 1.6;
                     background: white;
                     color: #000;
+                    padding-top: 40px;
                 }
                 .print-container {
                     max-width: 210mm;
@@ -157,7 +158,7 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
                 .patient-table {
                     width: 100%;
                     border-collapse: collapse;
-                    margin: 15px auto 10px auto;
+                    margin: 0 auto 10px auto;
                     font-size: 10px;
                     max-width: 700px;
                 }
@@ -183,20 +184,23 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
                     width: 100%;
                     border-collapse: collapse;
                     font-size: 10px;
-                    margin: 10px auto;
+                    margin: 10px auto 10px auto;
                     max-width: 700px;
+                    table-layout: fixed;
                 }
                 .results-table th {
                     border: 1px solid #000;
-                    padding: 4px 6px;
+                    padding: 6px 6px;
                     text-align: left;
                     font-weight: bold;
                     background-color: #f0f0f0;
+                    width: 25%;
                 }
                 .results-table td {
                     border: 1px solid #000;
                     padding: 3px 6px;
                     text-align: left;
+                    width: 25%;
                 }
                 .results-table tr:nth-child(even) {
                     background-color: #fafafa;
@@ -364,7 +368,7 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
 
                 <div ref={printRef} className="bg-white p-6 border rounded-lg">
                     {/* Patient Info */}
-                    <table className="w-full border-collapse mb-4 text-xs mx-auto" style={{ maxWidth: '700px', marginTop: '15px' }}>
+                    <table className="w-full border-collapse mb-4 text-xs mx-auto" style={{ maxWidth: '700px', marginTop: '0px' }}>
                         <tbody>
                             <tr>
                                 <td className="border border-gray-400 px-1 py-0.5 font-semibold bg-gray-100 w-1/6">Receipt No:</td>
@@ -398,16 +402,16 @@ export function LabTestResultPrintModal({ isOpen, onClose, labTestResult }: LabT
                     </table>
 
                     {/* Results Table */}
-                    <div className="mb-4 mt-4" style={{ maxWidth: '700px', margin: '10px auto' }}>
+                    <div className="mb-4" style={{ maxWidth: '700px', margin: '10px auto 10px auto' }}>
                         <h3 className="text-center font-bold text-sm mb-2">{testName || 'Test Results'}</h3>
                         <div className="border rounded overflow-hidden">
-                            <table className="w-full text-xs">
+                            <table className="w-full text-xs" style={{ tableLayout: 'fixed' }}>
                                 <thead className="bg-gray-100">
                                     <tr>
-                                        <th className="text-left py-1 px-2 font-semibold border">Test</th>
-                                        <th className="text-left py-1 px-2 font-semibold border">Result</th>
-                                        <th className="text-left py-1 px-2 font-semibold border">Unit</th>
-                                        <th className="text-left py-1 px-2 font-semibold border">Reference Range</th>
+                                        <th className="text-left py-1 px-2 font-semibold border" style={{ width: '25%' }}>Test</th>
+                                        <th className="text-left py-1 px-2 font-semibold border" style={{ width: '25%' }}>Result</th>
+                                        <th className="text-left py-1 px-2 font-semibold border" style={{ width: '25%' }}>Unit</th>
+                                        <th className="text-left py-1 px-2 font-semibold border" style={{ width: '25%' }}>Reference Range</th>
                                     </tr>
                                 </thead>
                                 <tbody>
